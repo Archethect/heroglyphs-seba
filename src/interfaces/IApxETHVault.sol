@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.28;
 
 /// @title IApxETHVault
 /// @notice Interface for the ApxETHVault contract which is a drip vault for ApxETH.
