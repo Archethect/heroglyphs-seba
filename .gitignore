@@ -3,6 +3,7 @@ cache
 coverage
 node_modules
 out
+.idea
 
 # files
 *.env
@@ -13,9 +14,9 @@ lcov.info
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
-.idea
 
 # broadcasts
 !broadcast
 broadcast/*
 broadcast/*/31337/
+
