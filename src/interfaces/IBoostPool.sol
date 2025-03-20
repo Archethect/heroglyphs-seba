@@ -63,6 +63,10 @@ interface IBoostPool {
     /// @param attestationPoints The number of attestation points used to calculate the reward.
     event ValidatorGraduated(uint256 indexed validatorId, address indexed withdrawalAddress, uint256 attestationPoints);
 
+    /// @notice Emitted when the Perpetual Yield Bearing Auto PxEth contract address is updated.
+    /// @param _pybapxETH The new Perpetual Yield Bearing Auto PxEth contract address.
+    event PerpYieldBearingAutoPxEthSet(address _pybapxETH);
+
     /*//////////////////////////////////////////////////////////////
                          PUBLIC CONSTANTS & VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -143,4 +147,10 @@ interface IBoostPool {
      * @param _yieldManager The new yield manager contract address.
      */
     function setYieldManager(address _yieldManager) external;
+
+    /**
+     * @notice Sets the Perpetual Yield Bearing Auto PxEth contract address.
+     * @param _pybapxETH The new Perpetual Yield Bearing Auto PxEth contract address.
+     */
+    function setPerpYieldBearingAutoPxEth(address _pybapxETH) external;
 }

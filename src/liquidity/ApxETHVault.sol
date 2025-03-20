@@ -37,18 +37,16 @@ contract ApxETHVault is BaseDripVault, IApxETHVault {
     // ===============================================================
     /**
      * @notice Constructs the ApxETHVault.
-     * @dev Initializes the BaseDripVault with the owner and yield manager, sets the token contracts.
+     * @dev Initializes the BaseDripVault with the owner, sets the token contracts.
      * @param _owner The owner address.
-     * @param _yieldManager The yield manager address.
      * @param _apxETH The ApxETH token contract address.
      * @param _pybapxETH The PerpYieldBearingAutoPxEth contract address.
      */
     constructor(
         address _owner,
-        address _yieldManager,
         address _apxETH,
         address _pybapxETH
-    ) BaseDripVault(_owner, _yieldManager) {
+    ) BaseDripVault(_owner) {
         APXETH = IApxETH(_apxETH);
         PIREX_ETH = IPirexEth(IApxETH(_apxETH).pirexEth());
         PERP_YIELD_BEARING_AUTO_PX_ETH = IPerpYieldBearingAutoPxEth(_pybapxETH);

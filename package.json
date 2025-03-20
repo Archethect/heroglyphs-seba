@@ -33,6 +33,9 @@
     "lint:sol": "prettier --check \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity && bun solhint \"{script,src/{interfaces|lib|mocks|services},tests}/**/*.sol\"",
     "prettier:check": "prettier --check \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity",
     "prettier:write": "prettier --write \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity",
+    "deploy:hoodi": "bash -c 'source .env && forge script Deploy --rpc-url $HOODI_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --broadcast --resume --chain 560048 -vvvvv'",
+    "deploy:holesky": "bash -c 'source .env && forge script Deploy --rpc-url $HOLESKY_RPC --account $HOLESKY_DEPLOYER_NAME --sender $HOLESKY_SENDER --verify --resume --chain holesky -vvvvv'",
+    "deploy:mainnet": "bash -c 'source .env && forge script Deploy --rpc-url $MAINNET_RPC --account $MAINNET_DEPLOYER_NAME --sender $MAINNET_SENDER --verify --chain mainnet -vvvvv --resume'",
     "test": "forge test",
     "test:coverage": "forge coverage",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"

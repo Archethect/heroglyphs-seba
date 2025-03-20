@@ -30,24 +30,18 @@ contract PerpYieldBearingAutoPxEth is AccessControl, ERC4626, IPerpYieldBearingA
 
     /**
      * @notice Constructs the pybapxETH vault.
-     * @dev Initializes the ERC4626 vault with the underlying asset, sets the vault name and symbol,
-     * and sets the BoostPool address.
+     * @dev Initializes the ERC4626 vault with the underlying asset, sets the vault name and symbol.
      * @param _admin The address to be granted the ADMIN_ROLE.
-     * @param _boostPool The BoostPool contract address.
      * @param _asset The ERC20 asset used as the underlying asset.
      */
     constructor(
         address _admin,
-        address _boostPool,
         ERC20 _asset
     ) ERC4626(_asset, "Perpetual Yield Bearing Autocompounding Pirex Ether", "pybapxETH") {
         if (_admin == address(0)) revert InvalidAddress();
-        if (_boostPool == address(0)) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, _admin);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-
-        boostPool = _boostPool;
     }
 
     /**

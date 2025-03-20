@@ -35,7 +35,7 @@ contract BoostPool is AccessControl, IBoostPool {
     /// @inheritdoc IBoostPool
     IPoap public immutable poap;
     /// @inheritdoc IBoostPool
-    IPerpYieldBearingAutoPxEth public immutable pybapxETH;
+    IPerpYieldBearingAutoPxEth public pybapxETH;
     /// @inheritdoc IBoostPool
     IYieldManager public yieldManager;
 
@@ -56,15 +56,11 @@ contract BoostPool is AccessControl, IBoostPool {
      * @param _admin The address to be granted the ADMIN_ROLE.
      * @param _automator The address to be granted the AUTOMATOR_ROLE.
      * @param _poap The address of the POAP contract.
-     * @param _pybapxETH The address of the PerpYieldBearingAutoPxEth contract.
-     * @param _yieldManager The address of the yield manager contract.
      */
-    constructor(address _admin, address _automator, address _poap, address _pybapxETH, address _yieldManager) {
+    constructor(address _admin, address _automator, address _poap) {
         if (_admin == address(0)) revert InvalidAddress();
         if (_automator == address(0)) revert InvalidAddress();
         if (_poap == address(0)) revert InvalidAddress();
-        if (_pybapxETH == address(0)) revert InvalidAddress();
-        if (_yieldManager == address(0)) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, _admin);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
@@ -72,8 +68,6 @@ contract BoostPool is AccessControl, IBoostPool {
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
 
         poap = IPoap(_poap);
-        pybapxETH = IPerpYieldBearingAutoPxEth(_pybapxETH);
-        yieldManager = IYieldManager(_yieldManager);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -160,5 +154,11 @@ contract BoostPool is AccessControl, IBoostPool {
         if (_yieldManager == address(0)) revert InvalidAddress();
         yieldManager = IYieldManager(_yieldManager);
         emit YieldManagerSet(_yieldManager);
+    }
+
+    function setPerpYieldBearingAutoPxEth(address _pybapxETH) external override onlyRole(ADMIN_ROLE) {
+        if (_pybapxETH == address(0)) revert InvalidAddress();
+        pybapxETH = IPerpYieldBearingAutoPxEth(_pybapxETH);
+        emit PerpYieldBearingAutoPxEthSet(_pybapxETH);
     }
 }

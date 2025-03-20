@@ -5,6 +5,7 @@
   block_timestamp = 1_738_368_000 # Feb 1, 2025 at 00:00 GMT
   bytecode_hash = "none"
   evm_version = "shanghai"
+  cbor_metadata = false
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
@@ -21,7 +22,9 @@
   verbosity = 4
 
 [etherscan]
-  mainnet = { key = "${API_KEY_ETHERSCAN}" }
+  mainnet = { key = "${ETHERSCAN_API_KEY}" }
+  holesky = { key = "${ETHERSCAN_API_KEY}" }
+  hoodi = { key = "${ETHERSCAN_API_KEY}" }
 
 [fmt]
   bracket_spacing = true
@@ -34,13 +37,6 @@
   wrap_comments = true
 
 [rpc_endpoints]
-  arbitrum = "https://arbitrum-one-rpc.publicnode.com"
-  avalanche = "https://avalanche-c-chain-rpc.publicnode.com"
-  base = "https://mainnet.base.org"
-  bnb_smart_chain = "https://bsc-dataseed.binance.org"
-  gnosis_chain = "https://rpc.gnosischain.com"
-  localhost = "http://localhost:8545"
-  mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-  optimism = "https://optimism-rpc.publicnode.com"
-  polygon = "https://polygon-bor-rpc.publicnode.com"
-  sepolia = "https://ethereum-sepolia-rpc.publicnode.com"
+  mainnet = "${MAINNET_RPC}"
+  holesky = "${HOLESKY_RPC}"
+  hoodi = "${HOODI_RPC}"

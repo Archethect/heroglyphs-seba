@@ -30,13 +30,10 @@ abstract contract BaseDripVault is IDripVault, Ownable, ReentrancyGuard {
 
     /**
      * @notice Constructs the BaseDripVault.
-     * @dev Initializes the vault with an owner and a yield manager.
+     * @dev Initializes the vault with an owner.
      * @param _owner The address of the vault owner.
-     * @param _yieldManager The address of the yield manager.
      */
-    constructor(address _owner, address _yieldManager) Ownable(_owner) {
-        yieldManager = _yieldManager;
-    }
+    constructor(address _owner) Ownable(_owner) {}
 
     /// @inheritdoc IDripVault
     function deposit() external payable override nonReentrant onlyYieldManager returns (uint256 depositAmount_) {
