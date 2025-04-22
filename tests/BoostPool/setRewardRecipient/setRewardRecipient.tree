@@ -1,0 +1,3 @@
+SetRewardRecipientTest
+├── it should emit SetRewardRecipient
+└── it should set the correct reward recipient for the sender

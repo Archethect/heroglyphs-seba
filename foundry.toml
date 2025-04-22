@@ -24,7 +24,7 @@
 [etherscan]
   mainnet = { key = "${ETHERSCAN_API_KEY}" }
   holesky = { key = "${ETHERSCAN_API_KEY}" }
-  hoodi = { key = "${ETHERSCAN_API_KEY}" }
+  hoodi = { key = "${ETHERSCAN_API_KEY}", chain = 560048, url = "${HOODI_ETHERSCAN_API}" }
 
 [fmt]
   bracket_spacing = true

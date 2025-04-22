@@ -43,10 +43,7 @@ contract MockPirexETH is Ownable, IPirexEth {
      * @return depositAmount net deposit
      * @return fee fee
      */
-    function deposit(
-        address to,
-        bool
-    ) external payable returns (uint256 depositAmount, uint256 fee) {
+    function deposit(address to, bool) external payable returns (uint256 depositAmount, uint256 fee) {
         fee = (msg.value * feeRate) / DENOMINATOR;
         depositAmount = msg.value - fee;
 

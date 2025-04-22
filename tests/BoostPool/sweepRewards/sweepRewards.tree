@@ -1,0 +1,4 @@
+SweepRewardsTest
+└── given funds are higher than 0
+    ├── it should deposit the funds through the yield manager
+    └── it should emit RewardsSwept

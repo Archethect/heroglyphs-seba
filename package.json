@@ -8,8 +8,9 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1",
-    "solmate": "^6.8.0",
-    "prettier-plugin-solidity": "^1.4.2"
+    "@prb/test": "^0.6.4",
+    "prettier-plugin-solidity": "^1.4.2",
+    "solmate": "^6.8.0"
   },
   "devDependencies": {
     "forge-std": "github:foundry-rs/forge-std#v1.8.1",
@@ -33,7 +34,7 @@
     "lint:sol": "prettier --check \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity && bun solhint \"{script,src/{interfaces|lib|mocks|services},tests}/**/*.sol\"",
     "prettier:check": "prettier --check \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity",
     "prettier:write": "prettier --write \"**/*.{sol,json,md,yml}\" --ignore-path \".prettierignore\" --plugin=prettier-plugin-solidity",
-    "deploy:hoodi": "bash -c 'source .env && forge script Deploy --rpc-url $HOODI_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --broadcast --resume --chain 560048 -vvvvv'",
+    "deploy:hoodi": "bash -c 'source .env && forge script Deploy --rpc-url $HOODI_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --broadcast --verify --resume --chain 560048 -vvvvv'",
     "deploy:holesky": "bash -c 'source .env && forge script Deploy --rpc-url $HOLESKY_RPC --account $HOLESKY_DEPLOYER_NAME --sender $HOLESKY_SENDER --verify --resume --chain holesky -vvvvv'",
     "deploy:mainnet": "bash -c 'source .env && forge script Deploy --rpc-url $MAINNET_RPC --account $MAINNET_DEPLOYER_NAME --sender $MAINNET_SENDER --verify --chain mainnet -vvvvv --resume'",
     "test": "forge test",

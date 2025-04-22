@@ -42,11 +42,7 @@ contract ApxETHVault is BaseDripVault, IApxETHVault {
      * @param _apxETH The ApxETH token contract address.
      * @param _pybapxETH The PerpYieldBearingAutoPxEth contract address.
      */
-    constructor(
-        address _owner,
-        address _apxETH,
-        address _pybapxETH
-    ) BaseDripVault(_owner) {
+    constructor(address _owner, address _apxETH, address _pybapxETH) BaseDripVault(_owner) {
         APXETH = IApxETH(_apxETH);
         PIREX_ETH = IPirexEth(IApxETH(_apxETH).pirexEth());
         PERP_YIELD_BEARING_AUTO_PX_ETH = IPerpYieldBearingAutoPxEth(_pybapxETH);

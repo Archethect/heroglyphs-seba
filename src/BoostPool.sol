@@ -20,8 +20,8 @@ contract BoostPool is AccessControl, IBoostPool {
 
     /// @notice The stakers union POAP event ID.
     uint256 public constant STAKERS_UNION = 175498;
-    /// @notice The duration of the graduation period in blocks (approximately 180 days).
-    uint256 public constant GRADUATION_DURATION_IN_BLOCKS = 1_296_000;
+    /// @notice The duration of the graduation period in blocks (approximately 1 day for testing).
+    uint256 public constant GRADUATION_DURATION_IN_BLOCKS = 7200;
 
     /// @notice Role identifier for administrative functions.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");

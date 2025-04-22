@@ -1,0 +1,5 @@
+FallbackTest
+├── when value is zero
+│   └── it should emit EtherReceived with zero
+└── when value is not zero
+    └── it should emit EtherReceived with the value
