@@ -1,0 +1,10 @@
+DepositTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when the value is zero
+    │   └── it should revert
+    └── when the value is not zero
+        ├── it should add the value to total deposit and subtract the pirx fee
+        ├── it should deposit the value to pirexETH
+        └── it should return the deposited amount subtracted with the fee

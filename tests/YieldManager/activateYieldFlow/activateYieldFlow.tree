@@ -1,0 +1,7 @@
+ActivateYieldFlowTest
+├── when not the automator role
+│   └── it should revert
+└── when the automator role
+    ├── it should add the pending interest to the yield manager deposit amount
+    ├── it should emit FundsDeposited
+    └── it should emit YieldFlowActivated

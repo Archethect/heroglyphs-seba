@@ -1,0 +1,10 @@
+DepositFundsTest
+├── given the depositor is the boostpool
+│   ├── it should correctly add the amount to the yieldmanager deposit object
+│   ├── it should deposit the amount to the apxEthVault
+│   └── it should emit FundsDeposited
+└── given the depositor is not the boostpool
+    ├── it should create a new deposit object
+    ├── it should increase the depositId
+    ├── it should deposit the amount to the apxEthVault
+    └── it should emit FundsDeposited

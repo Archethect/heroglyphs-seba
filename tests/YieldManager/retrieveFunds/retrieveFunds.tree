@@ -1,0 +1,18 @@
+RetrieveFundsTest
+├── when the depositor is the yield manager
+│   ├── when the sender is not an admin
+│   │   └── it should revert
+│   └── when the sender is an admin
+│       ├── it should delete the deposit object
+│       ├── it should withdraw the deposited amount to the sender
+│       └── it should emit FundsRetrieved
+└── when the depositor is not the yield manager
+    ├── when the sender is not the depositor
+    │   └── it should revert
+    └── when the sender is the depositor
+        ├── when the deposit is not unlockable yet
+        │   └── it should revert
+        └── when the deposit is unlockabled
+            ├── it should delete the deposit object
+            ├── it should withdraw the deposited amount to the sender
+            └── it should emit FundsRetrieved

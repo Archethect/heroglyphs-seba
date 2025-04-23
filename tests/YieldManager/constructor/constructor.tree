@@ -1,0 +1,25 @@
+ConstructorTest
+├── when admin is zero
+│   └── it should revert
+└── when admin is not zero
+    ├── when automator is zero
+    │   └── it should revert
+    └── when automator is not zero
+        ├── when boostpool is zero
+        │   └── it should revert
+        └── when boostpool is not zero
+            ├── when apxETH is zero
+            │   └── it should revert
+            └── when apxETH is not zero
+                ├── when apxEthVault is zero
+                │   └── it should revert
+                └── when apxEthVault is not zero
+                    ├── when pybapxEth is zero
+                    │   └── it should revert
+                    └── when pybapxEth is not zero
+                        ├── it should give admin the admin role
+                        ├── it should give automator the automator role
+                        ├── it should set boostpool
+                        ├── it should set apxETH
+                        ├── it should sep apxEthVault
+                        └── it should set pybapxEth

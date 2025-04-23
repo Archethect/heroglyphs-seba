@@ -37,4 +37,43 @@ abstract contract Modifiers is Helpers {
         resetPrank(users.admin);
         _;
     }
+
+    modifier whenBoostpoolIsNotZero() {
+        _;
+    }
+
+    modifier whenApxETHIsNotZero() {
+        _;
+    }
+
+    modifier whenApxEthVaultIsNotZero() {
+        _;
+    }
+
+    modifier whenTheYieldManager() {
+        resetPrank(contracts.yieldManager);
+        _;
+    }
+
+    modifier whenYieldFlowIsActive() {
+        _;
+    }
+
+    modifier whenTheOwner() {
+        resetPrank(users.admin);
+        _;
+    }
+
+    modifier whenTheDepositorIsTheYieldManager() {
+        resetPrank(contracts.yieldManager);
+        _;
+    }
+
+    modifier whenTheDepositorIsNotTheYieldManager() {
+        _;
+    }
+
+    modifier whenTheSenderIsTheDepositor() {
+        _;
+    }
 }

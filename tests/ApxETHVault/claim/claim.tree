@@ -1,0 +1,10 @@
+ClaimTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when yield flow is not active
+    │   └── it should revert
+    └── when yield flow is active
+        ├── it should transfer the interest in apxETH to the sender
+        ├── it should emit InterestClaimed
+        └── it should return the interest

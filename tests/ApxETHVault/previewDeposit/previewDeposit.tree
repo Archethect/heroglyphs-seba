@@ -1,0 +1,2 @@
+PreviewDepositTest
+└── it returns the amount that will be deposited, taking the fee into account

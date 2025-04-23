@@ -1,0 +1,5 @@
+GetPendingClaimingTest
+├── when the max redeemable apxETH in ETH is not bigger then the total amount of deposits
+│   └── it should return 0
+└── when the max redeemable apxETH in ETH is bigger then the total amount of deposits
+    └── it should return the pending claimable amount
