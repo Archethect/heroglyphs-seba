@@ -1,0 +1,11 @@
+DepositTest
+├── when the amount of shares for the assets is zero
+│   └── it should revert
+└── when the amount of shares for the assets is not zero
+    ├── when adding the shares would exceed the supplycap
+    │   └── it should revert
+    └── when adding the shares would not exceed the supplycap
+        ├── it should transfer the assets from the sender to the vault
+        ├── it should mint new shares to the receiver
+        ├── it should emit Deposit
+        └── it should increase the assetTotal with the provided amount of assets

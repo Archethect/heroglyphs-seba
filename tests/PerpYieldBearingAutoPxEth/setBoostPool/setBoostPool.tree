@@ -1,0 +1,9 @@
+SetBoostPoolTest
+├── when the caller has no admin role
+│   └── it should revert
+└── when the caller has the admin role
+    ├── when the new boostpool address is zero
+    │   └── it should revert
+    └── when the new boostpool address is not zero
+        ├── it should set the new boostpool address
+        └── it should emit BoostPoolChanged

@@ -76,4 +76,13 @@ abstract contract Modifiers is Helpers {
     modifier whenTheSenderIsTheDepositor() {
         _;
     }
+
+    modifier whenTheAmountOfSharesForTheAssetsIsNotZero() {
+        _;
+    }
+
+    modifier whenTheCallerHasTheAdminRole() {
+        resetPrank(users.admin);
+        _;
+    }
 }

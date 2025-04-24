@@ -1,0 +1,5 @@
+TopupTest
+└── given a topup is done
+    ├── it should send the assets from the sender to the vault
+    ├── it should emit Topup
+    └── it should increase assetTotal

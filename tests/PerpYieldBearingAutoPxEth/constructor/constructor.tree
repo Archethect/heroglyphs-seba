@@ -1,0 +1,8 @@
+ConstructorTest
+├── when admin is zero
+│   └── it should revert
+└── when admin is not zero
+    ├── it should grant admin the admin role
+    ├── it should set the asset
+    ├── it should set the name of the ERC20
+    └── it should set the symbol of the ERC20

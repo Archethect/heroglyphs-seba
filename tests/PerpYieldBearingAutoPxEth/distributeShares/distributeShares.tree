@@ -1,0 +1,7 @@
+DistributeSharesTest
+├── when the caller is not boostpool
+│   └── it should revert
+└── when the caller is boostpool
+    ├── it should mint new shares to the receiver
+    ├── it should increase the supplyCap with shares
+    └── it should emit SharesDistributed
