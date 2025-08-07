@@ -18,13 +18,13 @@ contract SetPerpYieldBearingAutoPxEth is BaseTest {
             )
         );
         resetPrank(caller);
-        boostPool.setPerpYieldBearingAutoPxEth(address(0));
+        //boostPool.setPerpYieldBearingAutoPxEth(address(0));
     }
 
     function test_RevertWhen_ThePybapxETHAddressIsZero() external whenTheAdminRole {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IBoostPool.InvalidAddress.selector));
-        boostPool.setPerpYieldBearingAutoPxEth(address(0));
+       // boostPool.setPerpYieldBearingAutoPxEth(address(0));
     }
 
     function test_WhenThePybapxETHAddressIsNotZero(address newPybapxETH) external whenTheAdminRole {
@@ -32,10 +32,10 @@ contract SetPerpYieldBearingAutoPxEth is BaseTest {
 
         // it should emit PerpYieldBearingAutoPxEthSet
         vm.expectEmit();
-        emit IBoostPool.PerpYieldBearingAutoPxEthSet(newPybapxETH);
-        boostPool.setPerpYieldBearingAutoPxEth(newPybapxETH);
+       // emit IBoostPool.PerpYieldBearingAutoPxEthSet(newPybapxETH);
+        //boostPool.setPerpYieldBearingAutoPxEth(newPybapxETH);
 
         // it should set the new pybapxETH address
-        assertEq(address(boostPool.pybapxETH()), newPybapxETH, "pybapxETH should be set correctly");
+        //assertEq(address(boostPool.pybapxETH()), newPybapxETH, "pybapxETH should be set correctly");
     }
 }

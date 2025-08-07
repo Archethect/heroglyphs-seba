@@ -1,50 +1,88 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { IApxETH } from "src/vendor/dinero/IApxETH.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { IBoostPool } from "src/interfaces/IBoostPool.sol";
-import { IPoap } from "src/interfaces/IPoap.sol";
-import { IYieldManager } from "src/interfaces/IYieldManager.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
-import { IApxETHVault } from "src/interfaces/IApxETHVault.sol";
+/*───────────────────────────── OpenZeppelin ───────────────────────────*/
+import { AccessControl }   from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { IERC20 }          from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+/*─────────────────────────────── Interfaces ───────────────────────────*/
+import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
+import { ISBOLD }           from "src/vendor/liquity/ISBOLD.sol";
+import { ISebaVault }       from "src/interfaces/ISebaVault.sol";
+import { IYieldVault }      from "src/interfaces/IYieldVault.sol";
+import { IYieldManager }    from "src/interfaces/IYieldManager.sol";
 
 /**
  * @title YieldManager
- * @notice Manages yield processing and user deposits.
- * @dev This contract receives ETH, interacts with the ApxETHVault to claim yield,
- * deposits funds into the pybapxEth vault, and allows users to retrieve funds after a lock period.
+ * @notice Handles BoostPool funding, user deposits (time-locked), ETH→BOLD→sBOLD
+ *         conversion, strategy-yield routing, and vault migration.
  */
-contract YieldManager is AccessControl, IYieldManager {
+contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     /*//////////////////////////////////////////////////////////////
-                              CONSTANTS & ROLES
+                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    bytes32 public constant override ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    /// @inheritdoc IYieldManager
-    bytes32 public constant override AUTOMATOR_ROLE = keccak256("AUTOMATOR_ROLE");
-
-    /// @notice The deposit lock duration (30 days).
-    uint32 public constant override DEPOSIT_LOCK_DURATION = 30 days;
+    uint32 public constant USER_LOCK_SECS = 30 days;
 
     /*//////////////////////////////////////////////////////////////
-                              STATE VARIABLES
+                             CONFIGURABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The next deposit id.
+    /// @inheritdoc IYieldManager
+    uint16 public ROUTER_SLIPPAGE_BPS = 50;     // 0.50 %
+    /// @inheritdoc IYieldManager
+    uint32 public ROUTER_VALIDITY_SECS = 15 minutes;
+
+    /*//////////////////////////////////////////////////////////////
+                               ROLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYieldManager
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    /// @inheritdoc IYieldManager
+    bytes32 public constant AUTOMATOR_ROLE = keccak256("AUTOMATOR_ROLE");
+
+    /*//////////////////////////////////////////////////////////////
+                       IMMUTABLE EXTERNAL REFERENCES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYieldManager
+    address public immutable boostPool;
+    /// @inheritdoc IYieldManager
+    IEthToBoldRouter public immutable router;
+    /// @inheritdoc IYieldManager
+    IERC20 public immutable BOLD;
+    /// @inheritdoc IYieldManager
+    ISBOLD public immutable sBOLD;
+    /// @inheritdoc IYieldManager
+    ISebaVault public immutable sebaVault;
+
+    /*//////////////////////////////////////////////////////////////
+                             STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// Router / conversion state
+    /// @inheritdoc IYieldManager
+    bytes public activeRouterUid;
+    /// @inheritdoc IYieldManager
+    bool public yieldFlowActive;
+    /// @inheritdoc IYieldManager
+    uint256 public pendingBoldConversion;
+    /// @inheritdoc IYieldManager
+    uint256 public lastConversionStartTimestamp;
+
+    /// Principal tracking (protocol owned)
+    /// @inheritdoc IYieldManager
+    uint256 public principalValue;
+
+    /// Strategy vault presently in use
+    /// @inheritdoc IYieldManager
+    IYieldVault public yieldVault;
+
+    /// User deposits
     uint256 public override depositId;
-
-    /// @notice The BoostPool contract address.
-    address public immutable override boostPool;
-    /// @notice The ApxETH contract instance.
-    IApxETH public immutable override apxETH;
-    /// @notice The ApxETHVault contract instance.
-    IApxETHVault public immutable override apxEthVault;
-    /// @notice The PerpYieldBearingAutoPxEth contract instance.
-    IPerpYieldBearingAutoPxEth public immutable override pybapxEth;
-
-    /// @notice Mapping of deposit id to Deposit details.
     mapping(uint256 => Deposit) public override deposits;
 
     /*//////////////////////////////////////////////////////////////
@@ -52,122 +90,241 @@ contract YieldManager is AccessControl, IYieldManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the YieldManager.
-     * @dev Sets roles and immutable contract addresses. Reverts if any provided address is zero.
-     * @param _admin The address granted the ADMIN_ROLE.
-     * @param _automator The address granted the AUTOMATOR_ROLE.
-     * @param _boostPool The BoostPool contract address.
-     * @param _apxETH The ApxETH contract address.
-     * @param _apxEthVault The ApxETHVault contract address.
-     * @param _pybapxEth The PerpYieldBearingAutoPxEth contract address.
+     * @notice Initialize the YieldManager.
      */
     constructor(
-        address _admin,
-        address _automator,
+        address admin,
+        address automator,
         address _boostPool,
-        address _apxETH,
-        address _apxEthVault,
-        address _pybapxEth
+        address _router,
+        address _bold,
+        address _sbold,
+        address _sebaVault,
+        address _yieldVault
     ) {
-        if (_admin == address(0)) revert InvalidAddress();
-        if (_automator == address(0)) revert InvalidAddress();
-        if (_boostPool == address(0)) revert InvalidAddress();
-        if (_apxETH == address(0)) revert InvalidAddress();
-        if (_apxEthVault == address(0)) revert InvalidAddress();
-        if (_pybapxEth == address(0)) revert InvalidAddress();
+        if (
+            admin      == address(0) || automator == address(0) ||
+            _boostPool == address(0) || _router   == address(0) ||
+            _bold      == address(0) || _sbold    == address(0) ||
+            _sebaVault == address(0) || _yieldVault == address(0)
+        ) revert InvalidAddress();
 
-        _grantRole(ADMIN_ROLE, _admin);
-        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-        _grantRole(AUTOMATOR_ROLE, _automator);
+        _grantRole(ADMIN_ROLE, admin);
+        _grantRole(AUTOMATOR_ROLE, automator);
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
 
         boostPool = _boostPool;
-        apxETH = IApxETH(_apxETH);
-        apxEthVault = IApxETHVault(_apxEthVault);
-        pybapxEth = IPerpYieldBearingAutoPxEth(_pybapxEth);
+        router     = IEthToBoldRouter(_router);
+        BOLD       = IERC20(_bold);
+        sBOLD      = ISBOLD(_sbold);
+        sebaVault  = ISebaVault(_sebaVault);
+        yieldVault = IYieldVault(_yieldVault);
     }
 
     /*//////////////////////////////////////////////////////////////
-                              EXTERNAL FUNCTIONS
+                               RECEIVE
+    //////////////////////////////////////////////////////////////*/
+
+    receive() external payable {}
+
+    /*//////////////////////////////////////////////////////////////
+                        FUNDING (BoostPool / Users)
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    function distributeYield() external override {
-        apxEthVault.claim();
-        uint256 apxETHBalance = apxETH.balanceOf(address(this));
-        if (apxETHBalance > 0) {
-            apxETH.approve(address(pybapxEth), apxETHBalance);
-            pybapxEth.topup(apxETHBalance);
-            emit YieldDistributed(msg.sender, address(pybapxEth), apxETHBalance);
-        }
-    }
+    function depositFunds() external payable override nonReentrant {
+        if (msg.value == 0) revert EmptyDeposit();
+        uint256 depositValue;
 
-    /// @inheritdoc IYieldManager
-    function depositFunds() external payable override {
-        address depositor = msg.sender;
+        /* ---------- 1️⃣  BoostPool deposit: 50 / 50 split ---------- */
         if (msg.sender == boostPool) {
-            depositor = address(this);
+            uint256 half  = msg.value / 2;
+            uint256 other = msg.value - half;
+
+            pendingBoldConversion += half;
+            depositValue   = yieldVault.deposit{ value: other }();
+            principalValue        += depositValue;
+
+            emit DepositReceived(msg.sender, depositValue);
+            return;
         }
-        _depositFunds(depositor);
+
+        /* ---------- 2️⃣  External user deposit (locked) ------------ */
+        depositValue = yieldVault.deposit{ value: msg.value }();
+
+        unchecked { ++depositId; }
+        deposits[depositId] = Deposit({
+            depositor: msg.sender,
+            vaultAtDeposit: yieldVault,
+            amount: depositValue,
+            unlockTime: uint32(block.timestamp + USER_LOCK_SECS)
+        });
+
+        emit DepositReceived(msg.sender, depositValue);
+        emit FundsDeposited(depositId, msg.sender, msg.value);
     }
 
-    /// @inheritdoc IYieldManager
-    function retrieveFunds(uint32 id) external override {
-        Deposit storage d = deposits[id];
-        uint256 returningAmount = d.amount;
+    /*//////////////////////////////////////////////////////////////
+                      USER PRINCIPAL RETRIEVAL
+    //////////////////////////////////////////////////////////////*/
 
-        if (d.depositor == address(this)) {
-            if (!hasRole(ADMIN_ROLE, msg.sender)) revert InvalidDepositor(msg.sender);
-        } else {
-            if (d.depositor != msg.sender) revert InvalidDepositor(msg.sender);
-        }
-        if (d.lockUntil > block.timestamp) revert DepositStillLocked(block.timestamp, d.lockUntil);
+    /// @inheritdoc IYieldManager
+    function retrieveFunds(uint256 id) external override nonReentrant {
+        Deposit memory d = deposits[id];
+        if (d.amount == 0)               revert NonExistingDeposit(id);
+        if (d.depositor != msg.sender)   revert InvalidDepositor(msg.sender);
+        if (block.timestamp < d.unlockTime)
+            revert DepositStillLocked(block.timestamp, d.unlockTime);
 
         delete deposits[id];
 
-        apxEthVault.withdraw(msg.sender, returningAmount);
+        uint256 pre = address(this).balance;
+        d.vaultAtDeposit.retrievePrincipal(d.amount);
+        uint256 post = address(this).balance;
+        uint256 funds = post - pre;
 
-        emit FundsRetrieved(id, msg.sender, returningAmount);
+        (bool ok, ) = msg.sender.call{ value: funds }("");
+        if (!ok) revert TransferFailed();
+
+        emit FundsRetrieved(id, msg.sender, funds);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                      ETH→BOLD→sBOLD CONVERSION
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYieldManager
+    function runBoldConversion() external override {
+        /* 1️⃣  Cancel expired router intent & reclaim ETH */
+        if (block.timestamp > lastConversionStartTimestamp + ROUTER_VALIDITY_SECS) {
+            if (_hasOpenRouterIntent()) {
+                uint256 pre = address(this).balance;
+                _cancelRouterIntent();
+                uint256 post = address(this).balance;
+                unchecked { pendingBoldConversion += post - pre; }
+            }
+
+            /* 2️⃣  Finalise any BOLD→sBOLD conversion */
+            _runSBoldConversion();
+
+            /* 3️⃣  Start a new ETH→BOLD intent if funds pending */
+            if (pendingBoldConversion > 0) {
+                uint256 ethIn = pendingBoldConversion;
+                bytes memory uid = router.swapExactEthForBold{ value: ethIn }(
+                    ROUTER_SLIPPAGE_BPS,
+                    ROUTER_VALIDITY_SECS
+                );
+                activeRouterUid = uid;
+                pendingBoldConversion = 0;
+                emit BoldConversionStarted(uid, ethIn);
+            }
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            YIELD MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYieldManager
+    function distributeYield() external override onlyRole(AUTOMATOR_ROLE) {
+        uint256 pre = address(this).balance;
+        yieldVault.claimYield();
+        uint256 ethAmount = address(this).balance - pre;
+
+        if (ethAmount > 0) {
+            if (!yieldFlowActive) {
+                yieldVault.deposit{ value: ethAmount }();
+                emit YieldDistributed(ethAmount, false);
+                return;
+            }
+            pendingBoldConversion += ethAmount;
+        }
+        emit YieldDistributed(ethAmount, true);
     }
 
     /// @inheritdoc IYieldManager
-    function activateYieldFlow() external override onlyRole(AUTOMATOR_ROLE) {
-        uint256 interest = apxEthVault.activateYieldFlow();
-        Deposit storage d = deposits[0];
-        if (d.depositor == address(0)) d.depositor = address(this);
-        d.amount += uint128(interest);
-        emit FundsDeposited(0, address(this), interest);
+    function activateYieldFlow() external override onlyRole(ADMIN_ROLE) {
+        if (yieldFlowActive) revert YieldFlowAlreadyActivated();
+        yieldFlowActive = true;
         emit YieldFlowActivated();
     }
 
     /*//////////////////////////////////////////////////////////////
-                              INTERNAL FUNCTIONS
+                            VAULT MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Internal function that records a deposit.
-     * @dev For external deposits, a new deposit record is created with a lock period.
-     * For internal deposits (e.g. from yield or MEV rewards), deposit id 0 is used.
-     * @param depositor The address for which the deposit is recorded.
-     */
-    function _depositFunds(address depositor) internal {
-        uint256 sanitizedAmount = apxEthVault.deposit{ value: msg.value }();
-
-        if (depositor == address(this)) {
-            // Internal deposits (e.g., from MEV rewards)
-            Deposit storage d = deposits[0];
-            if (d.depositor == address(0)) d.depositor = address(this);
-            d.amount += uint128(sanitizedAmount);
-            emit FundsDeposited(0, depositor, sanitizedAmount);
-        } else {
-            // External deposits (retrievable by the depositor)
-            depositId++;
-            deposits[depositId] = Deposit({
-                depositor: msg.sender,
-                amount: uint128(sanitizedAmount),
-                lockUntil: uint32(block.timestamp + DEPOSIT_LOCK_DURATION)
-            });
-            emit FundsDeposited(depositId, depositor, sanitizedAmount);
+    /// @inheritdoc IYieldManager
+    function setYieldVault(address _yieldVault) external override onlyRole(ADMIN_ROLE) {
+        if (principalValue > 0) {
+            yieldVault.retrievePrincipal(principalValue);
+            principalValue = 0;
+            emit PrincipalRetrieved();
         }
+        yieldVault = IYieldVault(_yieldVault);
+        emit NewYieldVaultSet(_yieldVault);
+    }
+
+    /// @inheritdoc IYieldManager
+    function retrievePrincipalFromYieldVault() external override onlyRole(ADMIN_ROLE) {
+        if (principalValue == 0) revert NoPrincipalDeployed();
+        yieldVault.retrievePrincipal(principalValue);
+        principalValue = 0;
+        emit PrincipalRetrieved();
+    }
+
+    /// @inheritdoc IYieldManager
+    function depositPrincipalIntoYieldVault() external override onlyRole(ADMIN_ROLE) {
+        uint256 principal = address(this).balance - pendingBoldConversion;
+        principalValue += yieldVault.deposit{ value: principal }();
+        emit PrincipalDeposited(principal);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ADMIN CONFIG SETTERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYieldManager
+    function setRouterSlippageBps(uint16 _bps) external override onlyRole(ADMIN_ROLE) {
+        require(_bps <= 10_000, "slippage bps out of range");
+        uint16 prev = ROUTER_SLIPPAGE_BPS;
+        ROUTER_SLIPPAGE_BPS = _bps;
+        emit RouterSlippageBpsSet(prev, _bps);
+    }
+
+    /// @inheritdoc IYieldManager
+    function setRouterValiditySecs(uint32 _secs) external override onlyRole(ADMIN_ROLE) {
+        require(_secs > 0, "validity must be > 0");
+        uint32 prev = ROUTER_VALIDITY_SECS;
+        ROUTER_VALIDITY_SECS = _secs;
+        emit RouterValiditySecsSet(prev, _secs);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                               INTERNALS
+    //////////////////////////////////////////////////////////////*/
+
+    function _runSBoldConversion() internal {
+        uint256 boldBal = BOLD.balanceOf(address(this));
+        if (boldBal > 0) {
+            BOLD.approve(address(sBOLD), boldBal);
+            uint256 sOut = sBOLD.deposit(boldBal);
+
+            sBOLD.approve(address(sebaVault), sOut);
+            sebaVault.topup(sOut);
+
+            emit BoldConversionFinalised(boldBal, sOut);
+        }
+    }
+
+    function _cancelRouterIntent() internal {
+        if (activeRouterUid.length == 0) revert NoActiveRouterIntent();
+        router.cancelMyIntent();
+        delete activeRouterUid;
+    }
+
+    function _hasOpenRouterIntent() internal view returns (bool) {
+        if (activeRouterUid.length == 0) return false;
+        (IEthToBoldRouter.IntentState st, , ) = router.getIntentState(address(this));
+        return st == IEthToBoldRouter.IntentState.Open;
     }
 }

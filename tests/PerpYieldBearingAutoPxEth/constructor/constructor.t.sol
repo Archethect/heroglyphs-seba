@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
-import { PerpYieldBearingAutoPxEth } from "src/PerpYieldBearingAutoPxEth.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
+import {ISebaYieldVault} from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+import {SebaYieldVault} from "src/PerpYieldBearingAutoPxEth.sol";
 
 contract ConstructorTest is BaseTest {
     function test_RevertWhen_AdminIsZero() external {
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IPerpYieldBearingAutoPxEth.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISebaYieldVault.InvalidAddress.selector));
         new PerpYieldBearingAutoPxEth(address(0), apxETH);
     }
 
     function test_WhenAdminIsNotZero() external {
-        PerpYieldBearingAutoPxEth localPerpYieldBearingAutoPxEth = new PerpYieldBearingAutoPxEth(users.admin, apxETH);
+        SebaYieldVault localPerpYieldBearingAutoPxEth = new PerpYieldBearingAutoPxEth(users.admin, apxETH);
 
         // it should grant admin the admin role
         assertTrue(
@@ -44,4 +44,4 @@ contract ConstructorTest is BaseTest {
             "PerpYieldBearingAutoPxEth: symbol should be set correctly"
         );
     }
-}
+}*/

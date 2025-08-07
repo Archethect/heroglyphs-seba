@@ -13,7 +13,7 @@ contract SubscribeValidatorTest is BaseTest {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IBoostPool.NonEligibleStaker.selector, users.validator, 1));
         vm.prank(users.validator);
-        boostPool.subscribeValidator(1, 1);
+        boostPool.subscribeValidator(1);
     }
 
     function test_RevertWhen_PoapIsNotFromStakersUnion() external whenSenderIsPoapOwner {
@@ -24,7 +24,7 @@ contract SubscribeValidatorTest is BaseTest {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IBoostPool.NonEligibleStaker.selector, users.validator, 1));
         vm.prank(users.validator);
-        boostPool.subscribeValidator(1, 1);
+        boostPool.subscribeValidator(1);
     }
 
     function test_RevertWhen_TheValidatorRegistrationBlockIsNotZero()
@@ -36,11 +36,11 @@ contract SubscribeValidatorTest is BaseTest {
         poap.createPoap(users.validator, "", 175498);
         resetPrank(users.validator);
         // We subscribe a first time to set the registration block
-        boostPool.subscribeValidator(1, 1);
+        boostPool.subscribeValidator(1);
 
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IBoostPool.ValidatorAlreadySubscribed.selector, 1));
-        boostPool.subscribeValidator(1, 1);
+        boostPool.subscribeValidator(1);
     }
 
     function test_WhenTheValidatorRegistrationBlockIsZero() external whenSenderIsPoapOwner whenPoapIsFromStakersUnion {
@@ -50,8 +50,8 @@ contract SubscribeValidatorTest is BaseTest {
 
         // it should emit SubscribeValidator
         vm.expectEmit();
-        emit IBoostPool.SubscribeValidator(users.validator, 1, 1);
-        boostPool.subscribeValidator(1, 1);
+        emit IBoostPool.SubscribeValidator(users.validator, 1);
+        boostPool.subscribeValidator(1);
 
         // it should set the registration block to the current block
         assertEq(boostPool.validatorRegistrationBlock(1), block.number, "BoostPool: invalid registration block");

@@ -1,9 +1,0 @@
-SetYieldManagerTest
-├── when not the owner
-│   └── it should revert
-└── when the owner
-    ├── when the yield manager address is zero
-    │   └── it should revert
-    └── when the yield manager address is not zero
-        ├── it should set the new yield manager
-        └── it should emit YieldManagerUpdated

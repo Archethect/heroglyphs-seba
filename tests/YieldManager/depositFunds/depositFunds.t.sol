@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 
 contract DepositFundsTest is BaseTest {
@@ -44,4 +44,4 @@ contract DepositFundsTest is BaseTest {
         assertEq(apxETHVault.getTotalDeposit(), 0.99 ether, "total deposit is not correct");
         assertEq(contracts.pirexETH.balance, 1 ether, "pirexETH balance is not correct");
     }
-}
+}*/

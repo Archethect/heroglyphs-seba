@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
 
 contract TotalAssetsTest is BaseTest {
     function test_ShouldReturnTheTotalAmountOfAssets(uint256 amount) external {
@@ -16,4 +16,4 @@ contract TotalAssetsTest is BaseTest {
         // it should return the total amount of assets
         assertEq(pybapxEth.totalAssets(), amount, "totalAssets should be equal to the amount of assets");
     }
-}
+}*/

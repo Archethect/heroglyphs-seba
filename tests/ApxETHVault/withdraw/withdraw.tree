@@ -1,7 +1,0 @@
-WithdrawTest
-├── when not the yield manager
-│   └── it should revert
-└── when the yield manager
-    ├── it should transfer the amount in apxETH shares to the receiver
-    ├── it should remove the amount from the total deposits
-    └── it should return the withdrawn amount in apxETH shares

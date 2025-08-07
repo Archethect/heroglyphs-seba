@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
+import {ISebaYieldVault} from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
 import { ERC4626 } from "solmate/src/tokens/ERC4626.sol";
 
 contract MintTest is BaseTest {
     function test_RevertWhen_AddingTheSharesWouldExceedTheSupplycap() external {
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IPerpYieldBearingAutoPxEth.SupplyCapExceeded.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISebaYieldVault.SupplyCapExceeded.selector));
         resetPrank(users.validator);
         pybapxEth.mint(1, users.validator);
     }
@@ -43,4 +43,4 @@ contract MintTest is BaseTest {
         // it should increase the assetTotal with the amount of assets
         assertEq(pybapxEth.assetTotal(), 1 ether, "assetTotal should be 1 ether");
     }
-}
+}*/

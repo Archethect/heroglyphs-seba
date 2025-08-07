@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IBoostPool } from "src/interfaces/IBoostPool.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
-import { IPoap } from "src/interfaces/IPoap.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+import {ISebaVault} from "src/interfaces/ISebaVault.sol";
 
 /**
  * @title BoostPool
@@ -18,8 +17,6 @@ contract BoostPool is AccessControl, IBoostPool {
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The stakers union POAP event ID.
-    uint256 public constant STAKERS_UNION = 175498;
     /// @notice The duration of the graduation period in blocks (approximately 1 day for testing).
     uint256 public constant GRADUATION_DURATION_IN_BLOCKS = 7200;
 
@@ -33,9 +30,7 @@ contract BoostPool is AccessControl, IBoostPool {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBoostPool
-    IPoap public immutable poap;
-    /// @inheritdoc IBoostPool
-    IPerpYieldBearingAutoPxEth public pybapxETH;
+    ISebaVault public sebaVault;
     /// @inheritdoc IBoostPool
     IYieldManager public yieldManager;
 
@@ -55,19 +50,15 @@ contract BoostPool is AccessControl, IBoostPool {
      * @dev Sets the initial roles and immutable contract references.
      * @param _admin The address to be granted the ADMIN_ROLE.
      * @param _automator The address to be granted the AUTOMATOR_ROLE.
-     * @param _poap The address of the POAP contract.
      */
-    constructor(address _admin, address _automator, address _poap) {
+    constructor(address _admin, address _automator) {
         if (_admin == address(0)) revert InvalidAddress();
         if (_automator == address(0)) revert InvalidAddress();
-        if (_poap == address(0)) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, _admin);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _grantRole(AUTOMATOR_ROLE, _automator);
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
-
-        poap = IPoap(_poap);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -86,28 +77,23 @@ contract BoostPool is AccessControl, IBoostPool {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBoostPool
-    function subscribeValidator(uint64 _validatorId, uint256 _poapId) external override {
-        if (poap.ownerOf(_poapId) != msg.sender || poap.tokenEvent(_poapId) != STAKERS_UNION)
-            revert NonEligibleStaker(msg.sender, _poapId);
+    function subscribeValidator(uint64 _validatorId) external override {
         if (validatorRegistrationBlock[_validatorId] != 0) revert ValidatorAlreadySubscribed(_validatorId);
 
         validatorRegistrationBlock[_validatorId] = block.number;
 
-        emit SubscribeValidator(msg.sender, _validatorId, _poapId);
+        emit SubscribeValidator(msg.sender, _validatorId);
     }
 
     /// @inheritdoc IBoostPool
-    function subscribeValidators(uint64[] calldata _validatorIdArray, uint256 _poapId) external override {
-        if (poap.ownerOf(_poapId) != msg.sender || poap.tokenEvent(_poapId) != STAKERS_UNION)
-            revert NonEligibleStaker(msg.sender, _poapId);
-
+    function subscribeValidators(uint64[] calldata _validatorIdArray) external override {
         for (uint256 i = 0; i < _validatorIdArray.length; ) {
             if (validatorRegistrationBlock[_validatorIdArray[i]] != 0)
                 revert ValidatorAlreadySubscribed(_validatorIdArray[i]);
 
             validatorRegistrationBlock[_validatorIdArray[i]] = block.number;
 
-            emit SubscribeValidator(msg.sender, _validatorIdArray[i], _poapId);
+            emit SubscribeValidator(msg.sender, _validatorIdArray[i]);
 
             unchecked {
                 i += 1;
@@ -145,7 +131,7 @@ contract BoostPool is AccessControl, IBoostPool {
             _withdrawalAddress = rewardRecipient[_withdrawalAddress];
         }
         validatorIsGraduated[_validatorId] = true;
-        pybapxETH.distributeShares(_withdrawalAddress, _attestationPoints);
+        sebaVault.distributeShares(_withdrawalAddress, _attestationPoints);
         emit ValidatorGraduated(_validatorId, _withdrawalAddress, _attestationPoints);
     }
 
@@ -156,9 +142,9 @@ contract BoostPool is AccessControl, IBoostPool {
         emit YieldManagerSet(_yieldManager);
     }
 
-    function setPerpYieldBearingAutoPxEth(address _pybapxETH) external override onlyRole(ADMIN_ROLE) {
-        if (_pybapxETH == address(0)) revert InvalidAddress();
-        pybapxETH = IPerpYieldBearingAutoPxEth(_pybapxETH);
-        emit PerpYieldBearingAutoPxEthSet(_pybapxETH);
+    function setSebaVault(address _sebaVault) external override onlyRole(ADMIN_ROLE) {
+        if (_sebaVault == address(0)) revert InvalidAddress();
+        sebaVault = ISebaVault(_sebaVault);
+        emit SebaVaultSet(_sebaVault);
     }
 }

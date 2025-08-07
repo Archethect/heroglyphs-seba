@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import { IPoap } from "src/interfaces/IPoap.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+import { ISebaVault } from "src/interfaces/ISebaVault.sol";
 
 /**
  * @title IBoostPool
@@ -40,8 +40,7 @@ interface IBoostPool {
     /// @notice Emitted when a validator is subscribed to the pool.
     /// @param staker The address of the staker who subscribed.
     /// @param validatorId The ID of the validator that was subscribed.
-    /// @param poapId The POAP token ID used for subscription.
-    event SubscribeValidator(address indexed staker, uint256 indexed validatorId, uint256 indexed poapId);
+    event SubscribeValidator(address indexed staker, uint256 indexed validatorId);
 
     /// @notice Emitted when a withdrawal address sets or updates its reward recipient.
     /// @param withdrawalAddress The address that sets its reward recipient.
@@ -63,16 +62,13 @@ interface IBoostPool {
     /// @param attestationPoints The number of attestation points used to calculate the reward.
     event ValidatorGraduated(uint256 indexed validatorId, address indexed withdrawalAddress, uint256 attestationPoints);
 
-    /// @notice Emitted when the Perpetual Yield Bearing Auto PxEth contract address is updated.
-    /// @param _pybapxETH The new Perpetual Yield Bearing Auto PxEth contract address.
-    event PerpYieldBearingAutoPxEthSet(address _pybapxETH);
+    /// @notice Emitted when the Seba Vault contract address is updated.
+    /// @param _sebaVault The new Seba Vault contract address.
+    event SebaVaultSet(address _sebaVault);
 
     /*//////////////////////////////////////////////////////////////
                          PUBLIC CONSTANTS & VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice The stakers union POAP event ID required for subscription.
-    function STAKERS_UNION() external view returns (uint256);
 
     /// @notice The duration of the graduation period in blocks (e.g., 180 days).
     function GRADUATION_DURATION_IN_BLOCKS() external view returns (uint256);
@@ -83,11 +79,8 @@ interface IBoostPool {
     /// @notice The role identifier for automator functions.
     function AUTOMATOR_ROLE() external view returns (bytes32);
 
-    /// @notice The POAP contract instance used by the BoostPool.
-    function poap() external view returns (IPoap);
-
-    /// @notice The Perpetual Yield Bearing Auto PxEth contract instance.
-    function pybapxETH() external view returns (IPerpYieldBearingAutoPxEth);
+    /// @notice The Seba Vault contract instance.
+    function sebaVault() external view returns (ISebaVault);
 
     /// @notice The yield manager contract instance.
     function yieldManager() external view returns (IYieldManager);
@@ -109,16 +102,14 @@ interface IBoostPool {
      * @notice Subscribes a validator to the BoostPool.
      * @dev A staker must own the specified POAP and the POAP must be from the stakers union.
      * @param _validatorId The ID of the validator to subscribe.
-     * @param _poapId The POAP token ID to verify eligibility.
      */
-    function subscribeValidator(uint64 _validatorId, uint256 _poapId) external;
+    function subscribeValidator(uint64 _validatorId) external;
 
     /**
      * @notice Subscribes multiple validators to the BoostPool.
      * @param _validatorIdArray An array of validator IDs to subscribe.
-     * @param _poapId The POAP token ID to verify eligibility.
      */
-    function subscribeValidators(uint64[] calldata _validatorIdArray, uint256 _poapId) external;
+    function subscribeValidators(uint64[] calldata _validatorIdArray) external;
 
     /**
      * @notice Sets the reward recipient for the caller's withdrawal address.
@@ -148,9 +139,5 @@ interface IBoostPool {
      */
     function setYieldManager(address _yieldManager) external;
 
-    /**
-     * @notice Sets the Perpetual Yield Bearing Auto PxEth contract address.
-     * @param _pybapxETH The new Perpetual Yield Bearing Auto PxEth contract address.
-     */
-    function setPerpYieldBearingAutoPxEth(address _pybapxETH) external;
+    function setSebaVault(address _sebaVault) external;
 }

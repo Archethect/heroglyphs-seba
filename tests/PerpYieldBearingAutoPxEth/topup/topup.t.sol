@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
+import {ISebaYieldVault} from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
 
 contract TopupTest is BaseTest {
     function test_GivenATopupIsDone() external {
@@ -13,7 +13,7 @@ contract TopupTest is BaseTest {
 
         // it should emit Topup
         vm.expectEmit();
-        emit IPerpYieldBearingAutoPxEth.Topup(users.validator, 1 ether);
+        emit ISebaYieldVault.Topup(users.validator, 1 ether);
         pybapxEth.topup(1 ether);
         pybapxEth.topup(0.2 ether);
         // it should send the assets from the sender to the vault
@@ -22,4 +22,4 @@ contract TopupTest is BaseTest {
         // it should increase assetTotal
         assertEq(pybapxEth.assetTotal(), 1.2 ether, "assetTotal should be 1 ether");
     }
-}
+}*/

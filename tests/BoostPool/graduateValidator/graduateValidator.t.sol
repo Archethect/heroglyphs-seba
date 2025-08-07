@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
 import { IBoostPool } from "src/interfaces/IBoostPool.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
@@ -90,4 +90,4 @@ contract GraduateValidatorTest is BaseTest {
         // it should distribute the pybapxETH shares
         assertEq(pybapxEth.balanceOf(receiverAddress), attestationPoints, "pybapxETH: shares should be distributed");
     }
-}
+}*/

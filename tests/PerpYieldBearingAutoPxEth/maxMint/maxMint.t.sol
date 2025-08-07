@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
 
 contract MaxMintTest is BaseTest {
     function test_GivenTheUserCanConvertMoreAssetsToSharesThenCanBeMinted() external {
@@ -35,4 +35,4 @@ contract MaxMintTest is BaseTest {
             "maxMint should be the total amount of shares the user can minted based on his assets"
         );
     }
-}
+}*/

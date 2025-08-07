@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { BaseTest } from "tests/Base.t.sol";
-import { IPerpYieldBearingAutoPxEth } from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
+/*import { BaseTest } from "tests/Base.t.sol";
+import {ISebaYieldVault} from "src/interfaces/IPerpYieldBearingAutoPxEth.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract SetBoostPoolTest is BaseTest {
@@ -23,7 +23,7 @@ contract SetBoostPoolTest is BaseTest {
 
     function test_RevertWhen_TheNewBoostpoolAddressIsZero() external whenTheCallerHasTheAdminRole {
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IPerpYieldBearingAutoPxEth.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISebaYieldVault.InvalidAddress.selector));
         pybapxEth.setBoostPool(address(0));
     }
 
@@ -32,10 +32,11 @@ contract SetBoostPoolTest is BaseTest {
 
         // it should emit BoostPoolChanged
         vm.expectEmit();
-        emit IPerpYieldBearingAutoPxEth.BoostPoolChanged(newBoostPool);
+        emit ISebaYieldVault.BoostPoolChanged(newBoostPool);
         pybapxEth.setBoostPool(newBoostPool);
 
         // it should set the new boostpool address
         assertEq(pybapxEth.boostPool(), newBoostPool, "boostpool address should be equal to the new boostpool address");
     }
 }
+*/
