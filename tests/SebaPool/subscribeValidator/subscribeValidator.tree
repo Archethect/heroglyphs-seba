@@ -1,0 +1,6 @@
+SubscribeValidatorTest
+├── when the validator registration block is not zero
+│   └── it should revert
+└── when the validator registration block is zero
+    ├── it should set the registration block to the current block
+    └── it should emit SubscribeValidator

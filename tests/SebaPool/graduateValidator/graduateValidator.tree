@@ -1,0 +1,20 @@
+GraduateValidatorTest
+├── when not the automator role
+│   └── it should revert
+└── when the automator role
+    ├── when the validator registration block is zero
+    │   └── it should revert
+    └── when the validator registration block is not zero
+        ├── when the validator is already graduated
+        │   └── it should revert
+        └── when the validator is not yet graduated
+            ├── when the graduation duration is not yet reached
+            │   └── it should revert
+            ├── when the graduation duration is reached and the reward recipient is set
+            │   ├── it should set validatorIsGraduated to true
+            │   ├── it should distribute the pybapxETH shares to the reward recipient
+            │   └── it should emit ValidatorGraduated
+            └── when the graduation duration is reached and the reward recipient is not set
+                ├── it should set validatorIsGraduated to true
+                ├── it should distribute the pybapxETH shares to the withdrawal address
+                └── it should emit ValidatorGraduated

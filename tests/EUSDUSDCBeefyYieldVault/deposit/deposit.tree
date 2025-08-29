@@ -1,0 +1,15 @@
+DepositTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when the value is zero
+    │   └── it should revert
+    └── when the value is not zero
+        ├── when the lpMinted is zero
+        │   └── it should revert
+        └── when the lpMinted is not zero
+            ├── it should mint new shares
+            ├── it should increase the principalShares
+            ├── it should set the new depositValue
+            ├── it should increase the principalValue
+            └── it should emit Deposited

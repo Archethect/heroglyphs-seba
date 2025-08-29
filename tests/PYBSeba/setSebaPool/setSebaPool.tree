@@ -1,0 +1,9 @@
+SetSebaPoolTest
+├── when the caller has no admin role
+│   └── it should revert
+└── when the caller has the admin role
+    ├── when the new sebapool address is zero
+    │   └── it should revert
+    └── when the new sebapool address is not zero
+        ├── it should set the new sebapool address
+        └── it should emit SebaPoolChanged

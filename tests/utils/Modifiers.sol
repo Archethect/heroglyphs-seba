@@ -85,4 +85,74 @@ abstract contract Modifiers is Helpers {
         resetPrank(users.admin);
         _;
     }
+
+    modifier whenEthFlowIsNotZero() {
+        _;
+    }
+
+    modifier whenBoldIsNotZero() {
+        _;
+    }
+
+    modifier whenWethIsNotZero() {
+        _;
+    }
+
+    modifier whenEthUsdFeedIsNotZero() {
+        _;
+    }
+
+    modifier whenTheValueIsNotZero() {
+        _;
+    }
+
+    modifier whenTheFeeIsSmallerThanTheBpsDenominator() {
+        _;
+    }
+
+    modifier whenTheSlippageIsSmallerThanTheBpsDenominator() {
+        _;
+    }
+
+    modifier whenThereIsNoOpenOrderYet() {
+        _;
+    }
+
+    modifier whenTheOraclePriceIsBiggerThanZero() {
+        _;
+    }
+
+    modifier whenSettlementIsNotZero() {
+        _;
+    }
+
+    modifier whenTheCallerIsTheYieldManager() {
+        _;
+    }
+
+    modifier whenThereIsAnActiveOrder() {
+        _;
+    }
+
+    modifier whenYieldManagerIsNotZero() {
+        _;
+    }
+
+    modifier whenUsdcIsNotZero() {
+        _;
+    }
+
+    modifier whenSwapRouterIsNotZero() {
+        _;
+    }
+
+    modifier whenQuoterIsNotZero() {
+        _;
+    }
+
+    modifier whenCurvePoolIsNotZero() {
+        _;
+    }
+
+
 }

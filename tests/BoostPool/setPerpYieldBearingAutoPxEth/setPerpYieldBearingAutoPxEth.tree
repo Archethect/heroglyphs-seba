@@ -1,9 +1,0 @@
-SetPerpYieldBearingAutoPxEth
-├── when not the admin role
-│   └── it should revert
-└── when the admin role
-    ├── when the pybapxETH address is zero
-    │   └── it should revert
-    └── when the pybapxETH address is not zero
-        ├── it should set the new pybapxETH address
-        └── it should emit PerpYieldBearingAutoPxEthSet

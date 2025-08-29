@@ -5,11 +5,12 @@ pragma solidity ^0.8.28;
 import { AccessControl }   from "@openzeppelin/contracts/access/AccessControl.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 }          from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20 }           from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /*─────────────────────────────── Interfaces ───────────────────────────*/
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
 import { ISBOLD }           from "src/vendor/liquity/ISBOLD.sol";
-import { ISebaVault }       from "src/interfaces/ISebaVault.sol";
+import { IPYBSeba }       from "src/interfaces/IPYBSeba.sol";
 import { IYieldVault }      from "src/interfaces/IYieldVault.sol";
 import { IYieldManager }    from "src/interfaces/IYieldManager.sol";
 
@@ -32,6 +33,8 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
     /// @inheritdoc IYieldManager
     uint16 public ROUTER_SLIPPAGE_BPS = 50;     // 0.50 %
+    /// @inheritdoc IYieldManager
+    uint16 public FEE_BPS = 100;     // 1 %
     /// @inheritdoc IYieldManager
     uint32 public ROUTER_VALIDITY_SECS = 15 minutes;
 
@@ -57,7 +60,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     /// @inheritdoc IYieldManager
     ISBOLD public immutable sBOLD;
     /// @inheritdoc IYieldManager
-    ISebaVault public immutable sebaVault;
+    IPYBSeba public immutable sebaVault;
 
     /*//////////////////////////////////////////////////////////////
                              STATE VARIABLES
@@ -65,7 +68,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
     /// Router / conversion state
     /// @inheritdoc IYieldManager
-    bytes public activeRouterUid;
+    bytes32 public activeRouterUid;
     /// @inheritdoc IYieldManager
     bool public yieldFlowActive;
     /// @inheritdoc IYieldManager
@@ -111,13 +114,14 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(AUTOMATOR_ROLE, automator);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
 
         boostPool = _boostPool;
         router     = IEthToBoldRouter(_router);
         BOLD       = IERC20(_bold);
         sBOLD      = ISBOLD(_sbold);
-        sebaVault  = ISebaVault(_sebaVault);
+        sebaVault  = IPYBSeba(_sebaVault);
         yieldVault = IYieldVault(_yieldVault);
     }
 
@@ -199,7 +203,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         if (block.timestamp > lastConversionStartTimestamp + ROUTER_VALIDITY_SECS) {
             if (_hasOpenRouterIntent()) {
                 uint256 pre = address(this).balance;
-                _cancelRouterIntent();
+                _finalizeRouterIntent();
                 uint256 post = address(this).balance;
                 unchecked { pendingBoldConversion += post - pre; }
             }
@@ -210,7 +214,8 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
             /* 3️⃣  Start a new ETH→BOLD intent if funds pending */
             if (pendingBoldConversion > 0) {
                 uint256 ethIn = pendingBoldConversion;
-                bytes memory uid = router.swapExactEthForBold{ value: ethIn }(
+                bytes32 uid = router.swapExactEthForBold{ value: ethIn }(
+                FEE_BPS,
                     ROUTER_SLIPPAGE_BPS,
                     ROUTER_VALIDITY_SECS
                 );
@@ -307,24 +312,22 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         uint256 boldBal = BOLD.balanceOf(address(this));
         if (boldBal > 0) {
             BOLD.approve(address(sBOLD), boldBal);
-            uint256 sOut = sBOLD.deposit(boldBal);
+            uint256 sOut = sBOLD.deposit(boldBal, address(this));
 
-            sBOLD.approve(address(sebaVault), sOut);
+            ERC20(address(sBOLD)).approve(address(sebaVault), sOut);
             sebaVault.topup(sOut);
 
             emit BoldConversionFinalised(boldBal, sOut);
         }
     }
 
-    function _cancelRouterIntent() internal {
+    function _finalizeRouterIntent() internal {
         if (activeRouterUid.length == 0) revert NoActiveRouterIntent();
-        router.cancelMyIntent();
+        router.finalizeIntent();
         delete activeRouterUid;
     }
 
     function _hasOpenRouterIntent() internal view returns (bool) {
-        if (activeRouterUid.length == 0) return false;
-        (IEthToBoldRouter.IntentState st, , ) = router.getIntentState(address(this));
-        return st == IEthToBoldRouter.IntentState.Open;
+        return (activeRouterUid.length > 0);
     }
 }

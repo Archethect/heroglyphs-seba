@@ -1,0 +1,32 @@
+ConstructorTest
+├── when admin is zero
+│   └── it whould revert
+└── when admin is not zero
+    ├── when yieldManager is zero
+    │   └── it should revert
+    └── when yieldManager is not zero
+        ├── when weth is ero
+        │   └── it should revert
+        └── when weth is not zero
+            ├── when usdc is zero
+            │   └── it should revert
+            └── when usdc is not zero
+                ├── when swapRouter is zero
+                │   └── it should revert
+                └── when swapRouter is not zero
+                    ├── when quoter is zero
+                    │   └── it should revert
+                    └── when quoter is not zero
+                        ├── when curvePool is zero
+                        │   └── it should revert
+                        └── when curvePool is not zero
+                            ├── when beefy is zero
+                            │   └── it should revert
+                            └── when beefy is not zero
+                                ├── it should configure the correct roles
+                                ├── it should set the correct weth
+                                ├── it should set the correct usdc
+                                ├── it should set the correct swapRouter
+                                ├── it should set the correct quoter
+                                ├── it should set the correct curvePool
+                                └── it should set the correct beefy

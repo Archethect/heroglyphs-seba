@@ -17,6 +17,7 @@ import { ICurvePool }  from "src/vendor/curve/ICurvePool.sol";
 import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
 import { IWETH }       from "src/vendor/various/IWETH.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
+import {console} from "forge-std/src/console.sol";
 
 /**
  * @title EUSDUSDCBeefyYieldVault
@@ -104,6 +105,8 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         address _curvePool,
         address _beefy
     ) {
+        if (admin == address(0)) revert InvalidAddress();
+        if (yieldManager == address(0)) revert InvalidAddress();
         if (_weth == address(0)) revert InvalidAddress();
         if (_usdc == address(0)) revert InvalidAddress();
         if (_swapRouter == address(0)) revert InvalidAddress();
@@ -113,6 +116,7 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
 
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(YIELDMANAGER_ROLE, yieldManager);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(YIELDMANAGER_ROLE, ADMIN_ROLE);
 
         WETH = _weth;
@@ -148,6 +152,7 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
 
         /* Add liquidity (USDe/USDC) → LP tokens */
         uint256[2] memory amounts; // [USDe, USDC]; we only fill USDC index 1
+        amounts[0] = 0;
         amounts[1] = usdcOut;
         uint256 lpExpected = curvePool.calc_token_amount(amounts, true);
         uint256 minMint = (lpExpected * (10_000 - slippageBps)) / 10_000;

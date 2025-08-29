@@ -1,0 +1,9 @@
+SetSebaVault
+├── when not the admin role
+│   └── it should revert
+└── when the admin role
+    ├── when the sebaVault address is zero
+    │   └── it should revert
+    └── when the sebaVault address is not zero
+        ├── it should set the new sebaVault address
+        └── it should emit SebaVaultSet

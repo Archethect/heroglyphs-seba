@@ -2,13 +2,12 @@
 pragma solidity ^0.8.28;
 
 /*───────────────────────────── Dependencies ───────────────────────────*/
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
-import { IGPv2Settlement } from "src/vendor/cowswap/IGPv2Settlement.sol";
-import { IWETH } from "src/vendor/various/IWETH.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /*────────────────────────── Contract Implementation ───────────────────*/
 
 /**
@@ -17,7 +16,8 @@ import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
  *         Tracks a single open order per initiator and supports cancellation/refunds.
  * @dev See {IEthToBoldRouter} for the external interface.
  */
-contract EthToBoldRouter is IEthToBoldRouter {
+contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
+    using SafeERC20 for IERC20;
     /*//////////////////////////////////////////////////////////////
                           IMMUTABLE REFERENCES
     //////////////////////////////////////////////////////////////*/
@@ -27,11 +27,16 @@ contract EthToBoldRouter is IEthToBoldRouter {
     /// @inheritdoc IEthToBoldRouter
     IERC20 public immutable BOLD;
     /// @inheritdoc IEthToBoldRouter
-    IWETH public immutable WETH;
-    /// @inheritdoc IEthToBoldRouter
     AggregatorV3Interface public immutable ETH_USD_FEED;
+
+    /*//////////////////////////////////////////////////////////////
+                               ROLES
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc IEthToBoldRouter
-    IGPv2Settlement public immutable SETTLEMENT;
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    /// @inheritdoc IEthToBoldRouter
+    bytes32 public constant YIELD_MANAGER_ROLE = keccak256("YIELD_MANAGER_ROLE");
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -44,8 +49,9 @@ contract EthToBoldRouter is IEthToBoldRouter {
                              STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice One open order per initiator.
-    mapping(address => Order) public pending;
+    /// @notice Order tracking.
+   Order public order;
+   int64 public quoteCounter;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -55,28 +61,29 @@ contract EthToBoldRouter is IEthToBoldRouter {
      * @notice Initializes the EthToBoldRouter.
      * @param ethFlow CowSwap Eth-flow contract address.
      * @param bold BOLD ERC-20 token address.
-     * @param weth WETH token address.
      * @param ethUsdFeed Chainlink ETH/USD aggregator address.
-     * @param settlement CowSwap settlement contract address.
      */
     constructor(
         address ethFlow,
         address bold,
-        address weth,
         address ethUsdFeed,
-        address settlement
+        address admin,
+        address yieldManager
     ) {
         if (ethFlow == address(0)) revert InvalidAddress();
         if (bold == address(0)) revert InvalidAddress();
-        if (weth == address(0)) revert InvalidAddress();
         if (ethUsdFeed == address(0)) revert InvalidAddress();
-        if (settlement == address(0)) revert InvalidAddress();
+        if (admin == address(0)) revert InvalidAddress();
+        if (yieldManager == address(0)) revert InvalidAddress();
+
+        _grantRole(ADMIN_ROLE, admin);
+        _grantRole(YIELD_MANAGER_ROLE, yieldManager);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(YIELD_MANAGER_ROLE, ADMIN_ROLE);
 
         ETH_FLOW = IEthFlow(ethFlow);
         BOLD = IERC20(bold);
-        WETH = IWETH(weth);
         ETH_USD_FEED = AggregatorV3Interface(ethUsdFeed);
-        SETTLEMENT = IGPv2Settlement(settlement);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -84,7 +91,7 @@ contract EthToBoldRouter is IEthToBoldRouter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Allow receiving ETH (Eth-flow refunds or WETH unwrap).
+     * @notice Allow receiving ETH (Eth-flow refunds).
      */
     receive() external payable {}
 
@@ -93,141 +100,78 @@ contract EthToBoldRouter is IEthToBoldRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IEthToBoldRouter
-    function swapExactEthForBold(uint16 slippageBps, uint32 validity)
+    function swapExactEthForBold(uint16 feeBps, uint16 slippageBps, uint32 validity)
     external
     payable
-    override
-    returns (bytes memory uid)
+    override onlyRole(YIELD_MANAGER_ROLE)
+    returns (bytes32 uid)
     {
         if (msg.value == 0) revert NoEthSent();
+        if (feeBps >= BPS_DENOMINATOR) revert InvalidFee(feeBps, BPS_DENOMINATOR);
         if (slippageBps >= BPS_DENOMINATOR) revert InvalidSlippage(slippageBps, BPS_DENOMINATOR);
-        if (pending[msg.sender].active) revert OrderAlreadyOpen();
+        if (order.active) revert OrderAlreadyOpen();
 
         // 1) On-chain ETH/USD
         (, int256 px, , uint256 updatedAt, ) = ETH_USD_FEED.latestRoundData();
         if (px <= 0) revert OraclePriceInvalid(px);
-        if (updatedAt + 600 < block.timestamp) revert StaleOracle();
+        if (updatedAt + 3600 < block.timestamp) revert StaleOracle();
         uint8 d = ETH_USD_FEED.decimals(); // typically 8
 
         // 2) Compute min BOLD out (1 BOLD = 1 USD; BOLD assumed 18 decimals)
-        uint256 boldRaw = (msg.value * uint256(px)) / (10 ** d);
+        uint256 sellAmount = msg.value * (BPS_DENOMINATOR - feeBps) / BPS_DENOMINATOR;
+        uint256 feeAmount = msg.value - sellAmount;
+        uint256 boldRaw = (sellAmount * uint256(px)) / (10 ** d);
         uint256 minBold = (boldRaw * (BPS_DENOMINATOR - slippageBps)) / BPS_DENOMINATOR;
 
-        // 3) Create Eth-flow intent (receiver is the initiator)
+        // 3) Create Eth-flow intent
         IEthFlow.Data memory data = IEthFlow.Data({
             buyToken: BOLD,
-            receiver: msg.sender,
-            sellAmount: msg.value,
+            receiver: address(this),
+            sellAmount: sellAmount,
             buyAmount: minBold,
-            appData: bytes32(0),
-            feeAmount: 0,
+            appData: bytes32(uint256(0x53ba1)),
+            feeAmount: feeAmount,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
-            quoteId: 0
+            quoteId: quoteCounter
         });
 
         uid = ETH_FLOW.createOrder{ value: msg.value }(data);
 
         // 4) Record
-        pending[msg.sender] = Order({
+        order = Order({
             initiator: msg.sender,
             ethAmount: msg.value,
             uid: uid,
-            validTo: data.validTo,
-            active: true
+            active: true,
+            data: data
         });
+
+        quoteCounter++;
 
         emit IntentCreated(msg.sender, msg.value, minBold, uid, data.validTo);
     }
 
     /// @inheritdoc IEthToBoldRouter
-    function cancelMyIntent() external override {
-        Order storage o = pending[msg.sender];
-        if (!o.active) revert NoActiveOrder();
-        if (o.initiator != msg.sender) revert NotInitiator();
+    function finalizeIntent() external override onlyRole(YIELD_MANAGER_ROLE) {
+        if (!order.active) revert NoActiveOrder();
 
-        (IntentState state, , ) = getIntentState(msg.sender);
+        // Try to invalidate. If already invalidated by someone else after expiry, ignore failure.
+        try ETH_FLOW.invalidateOrder(order.data) { } catch { /* already invalidated or non-cancellable; ignore */ }
 
-        if (state == IntentState.Open || state == IntentState.Expired) {
-            // Track balances to forward any refunds back to initiator.
-            uint256 preEth = address(this).balance;
-            uint256 preWeth = WETH.balanceOf(address(this));
+        uint256 balance = address(this).balance;
+        uint256 boldBalance = BOLD.balanceOf(address(this));
 
-            // May revert if Eth-flow considers it non-cancellable; we gate by state==Open to avoid this.
-            ETH_FLOW.cancelOrder(o.uid);
-
-            // Convert any refunded WETH to ETH and sum ETH delta.
-            uint256 wethRefund = WETH.balanceOf(address(this)) - preWeth;
-            if (wethRefund > 0) {
-                WETH.withdraw(wethRefund);
-            }
-            uint256 ethRefund = address(this).balance - preEth;
-            if (ethRefund > 0) {
-                (bool ok, ) = msg.sender.call{ value: ethRefund }("");
-                if (!ok) revert FailedETHRefund();
-            }
-
-            o.active = false;
-            emit IntentCancelled(msg.sender, o.uid, ethRefund);
-        } else {
-            // Already filled — just mark inactive, do not revert.
-            o.active = false;
-            emit IntentClosedAsFinalized(msg.sender, o.uid);
+        if(balance > 0) {
+            (bool ok, ) = msg.sender.call{ value: balance }("");
+            if (!ok) revert FailedETHRefund();
         }
-    }
 
-    /// @inheritdoc IEthToBoldRouter
-    function getIntentState(address initiator)
-    public
-    view
-    override
-    returns (IntentState state, uint256 filled, uint32 validTo)
-    {
-        Order storage o = pending[initiator];
-        if (!o.active || o.uid.length == 0) return (IntentState.None, 0, 0);
-
-        (bytes32 orderHash, , uint32 _validTo) = _decodeUid(o.uid);
-        validTo = _validTo;
-
-        filled = SETTLEMENT.filledAmount(orderHash);
-
-        if (filled > 0) {
-            state = IntentState.Filled;
-        } else if (block.timestamp < validTo) {
-            state = IntentState.Open;
-        } else {
-            state = IntentState.Expired;
+        if(boldBalance > 0) {
+            BOLD.safeTransfer(msg.sender,boldBalance);
         }
-    }
 
-    /// @inheritdoc IEthToBoldRouter
-    function secondsToExpiry(address initiator) external view override returns (uint256) {
-        Order storage o = pending[initiator];
-        if (!o.active || block.timestamp >= o.validTo) return 0;
-        return o.validTo - block.timestamp;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                HELPERS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev UID layout = 32 bytes orderHash | 20 bytes owner | 4 bytes validTo.
-     * @param uid The 56-byte UID to decode.
-     * @return orderHash The CowSwap order hash.
-     * @return owner The order owner encoded in the UID.
-     * @return validTo The order expiry timestamp encoded in the UID.
-     */
-    function _decodeUid(bytes memory uid)
-    private
-    pure
-    returns (bytes32 orderHash, address owner, uint32 validTo)
-    {
-        if (uid.length != 56) revert BadUID(uid);
-        assembly {
-            orderHash := mload(add(uid, 32))
-            owner := shr(96, mload(add(uid, 52)))
-            validTo := mload(add(uid, 56))
-        }
+        order.active = false;
+        emit IntentFinalized(msg.sender, order.uid, balance, boldBalance);
     }
 }

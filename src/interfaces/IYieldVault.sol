@@ -24,7 +24,7 @@ interface IYieldVault {
     function deposit() external payable returns (uint256 depositValue);
 
     /**
-     * @notice Claim strategy yield and transfer it back to the caller
+ * @notice Claim strategy yield and transfer it back to the caller
      *         (either auto-compounded or forwarded on, depending on the caller’s logic).
      * @dev Implementations decide what constitutes “yield” versus principal.
      */

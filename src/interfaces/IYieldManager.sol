@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { IERC20 }           from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
 import { ISBOLD }           from "src/vendor/liquity/ISBOLD.sol";
-import { ISebaVault }       from "src/interfaces/ISebaVault.sol";
+import { IPYBSeba }       from "src/interfaces/IPYBSeba.sol";
 import { IYieldVault }      from "src/interfaces/IYieldVault.sol";
 
 /**
@@ -80,7 +80,7 @@ interface IYieldManager {
     /// Emitted when a new ETH→BOLD CowSwap order (intent) is started.
     /// @param uid    56-byte unique identifier returned by Eth-flow.
     /// @param ethIn  Exact ETH amount committed to the order.
-    event BoldConversionStarted(bytes uid, uint256 ethIn);
+    event BoldConversionStarted(bytes32 uid, uint256 ethIn);
 
     /// Emitted when BOLD is converted to sBOLD and staked into SebaVault.
     /// @param boldIn   BOLD tokens consumed.
@@ -124,6 +124,9 @@ interface IYieldManager {
     /// @notice Seconds a user deposit remains locked.
     function USER_LOCK_SECS() external view returns (uint32);
 
+    /// @notice CowSwap fee (basis-points, 1 bp = 0.01 %).
+    function FEE_BPS() external view returns (uint16);
+
     /// @notice CowSwap slippage tolerance (basis-points, 1 bp = 0.01 %).
     function ROUTER_SLIPPAGE_BPS() external view returns (uint16);
 
@@ -138,12 +141,12 @@ interface IYieldManager {
     function router()     external view returns (IEthToBoldRouter);
     function BOLD()       external view returns (IERC20);
     function sBOLD()      external view returns (ISBOLD);
-    function sebaVault()  external view returns (ISebaVault);
+    function sebaVault()  external view returns (IPYBSeba);
     function yieldVault() external view returns (IYieldVault);
     function boostPool()  external view returns (address);
 
     /// Conversion & yield state
-    function activeRouterUid()              external view returns (bytes memory);
+    function activeRouterUid()              external view returns (bytes32);
     function pendingBoldConversion()        external view returns (uint256);
     function yieldFlowActive()              external view returns (bool);
     function lastConversionStartTimestamp() external view returns (uint256);

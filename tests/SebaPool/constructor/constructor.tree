@@ -1,0 +1,9 @@
+ConstructorTest
+├── when admin is zero
+│   └── it should revert
+└── when admin is not zero
+    ├── when automator is zero
+    │   └── it should revert
+    └── when automator is not zero
+        ├── it should give admin the admin role
+        └── it should give automator the automator role

@@ -1,0 +1,17 @@
+FinalizeIntentTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when there is no active order
+    │   └── it should revert
+    └── when there is an active order
+        ├── when the intent reverted
+        │   ├── it should call invalidateOrder
+        │   ├── it should return ETH to the sender
+        │   ├── it should marke the order inactive
+        │   └── it should emit IntentFinalized
+        └── when the intent succeeded
+            ├── it should call invalidateOrder
+            ├── it should return BOLD to the sender
+            ├── it should marke the order inactive
+            └── it should emit IntentFinalized
