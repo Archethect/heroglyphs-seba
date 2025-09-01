@@ -9,10 +9,6 @@ contract ReceiveTest is BaseTest {
         deal(address(ethToBoldRouter), 1 ether);
 
         // it should receive ETH
-        assertEq(
-            address(ethToBoldRouter).balance,
-            preBalance + 1 ether,
-            "ethToBoldRouter should have the funds"
-        );
+        assertEq(address(ethToBoldRouter).balance, preBalance + 1 ether, "ethToBoldRouter should have the funds");
     }
 }

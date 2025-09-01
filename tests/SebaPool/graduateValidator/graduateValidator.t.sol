@@ -63,12 +63,8 @@ contract GraduateValidatorTest is BaseTest {
 
     function test_WhenTheGraduationDurationIsReachedAndTheRewardRecipientIsSet(
         address receiverAddress,
-        uint256 attestationPoints)
-        external
-        whenTheAutomatorRole
-        whenTheValidatorRegistrationBlockIsNotZero
-        whenTheValidatorIsNotYetGraduated
-    {
+        uint256 attestationPoints
+    ) external whenTheAutomatorRole whenTheValidatorRegistrationBlockIsNotZero whenTheValidatorIsNotYetGraduated {
         vm.assume(attestationPoints <= type(uint256).max);
         assumeNotZeroAddress(receiverAddress);
         resetPrank(users.validator);
@@ -89,12 +85,10 @@ contract GraduateValidatorTest is BaseTest {
         assertEq(pybSeba.balanceOf(receiverAddress), attestationPoints, "pybapxETH: shares should be distributed");
     }
 
-    function test_WhenTheGraduationDurationIsReachedAndTheRewardRecipientIsNotSet(uint256 attestationPoints, address withdrawalAddress)
-        external
-        whenTheAutomatorRole
-        whenTheValidatorRegistrationBlockIsNotZero
-        whenTheValidatorIsNotYetGraduated
-    {
+    function test_WhenTheGraduationDurationIsReachedAndTheRewardRecipientIsNotSet(
+        uint256 attestationPoints,
+        address withdrawalAddress
+    ) external whenTheAutomatorRole whenTheValidatorRegistrationBlockIsNotZero whenTheValidatorIsNotYetGraduated {
         vm.assume(attestationPoints <= type(uint256).max);
         assumeNotZeroAddress(withdrawalAddress);
         resetPrank(users.validator);

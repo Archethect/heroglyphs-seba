@@ -41,7 +41,7 @@ contract Deploy is Script {
         boostPool.setPerpYieldBearingAutoPxEth(address(pybapxEth));
         boostPool.setYieldManager(address(yieldManager));
         apxETHVault.setYieldManager(address(yieldManager));*/
-        /*vm.stopBroadcast();
+/*vm.stopBroadcast();
     }
 }
 */

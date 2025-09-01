@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { IERC20 }           from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-import { ISBOLD }           from "src/vendor/liquity/ISBOLD.sol";
-import { IPYBSeba }       from "src/interfaces/IPYBSeba.sol";
-import { IYieldVault }      from "src/interfaces/IYieldVault.sol";
+import { ISBOLD } from "src/vendor/liquity/ISBOLD.sol";
+import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
+import { IYieldVault } from "src/interfaces/IYieldVault.sol";
 
 /**
  * @title IYieldManager
@@ -29,10 +29,10 @@ interface IYieldManager {
     /// @param unlockTime       Timestamp (UTC-seconds) after which withdrawal
     ///                         via {retrieveFunds} is allowed.
     struct Deposit {
-        address     depositor;
+        address depositor;
         IYieldVault vaultAtDeposit;
-        uint256     amount;
-        uint32      unlockTime;
+        uint256 amount;
+        uint32 unlockTime;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -138,17 +138,17 @@ interface IYieldManager {
     function AUTOMATOR_ROLE() external view returns (bytes32);
 
     /// External contract references
-    function router()     external view returns (IEthToBoldRouter);
-    function BOLD()       external view returns (IERC20);
-    function sBOLD()      external view returns (ISBOLD);
-    function sebaVault()  external view returns (IPYBSeba);
+    function router() external view returns (IEthToBoldRouter);
+    function BOLD() external view returns (IERC20);
+    function sBOLD() external view returns (ISBOLD);
+    function sebaVault() external view returns (IPYBSeba);
     function yieldVault() external view returns (IYieldVault);
-    function boostPool()  external view returns (address);
+    function boostPool() external view returns (address);
 
     /// Conversion & yield state
-    function activeRouterUid()              external view returns (bytes32);
-    function pendingBoldConversion()        external view returns (uint256);
-    function yieldFlowActive()              external view returns (bool);
+    function activeRouterUid() external view returns (bytes32);
+    function pendingBoldConversion() external view returns (uint256);
+    function yieldFlowActive() external view returns (bool);
     function lastConversionStartTimestamp() external view returns (uint256);
 
     /// Principal deployed on behalf of Seba (ETH value)
@@ -158,13 +158,9 @@ interface IYieldManager {
     function depositId() external view returns (uint256);
 
     /// Mapping accessor for deposits
-    function deposits(uint256 id)
-    external
-    view
-    returns (address depositor,
-        IYieldVault vaultAtDeposit,
-        uint256 amount,
-        uint32 unlockTime);
+    function deposits(
+        uint256 id
+    ) external view returns (address depositor, IYieldVault vaultAtDeposit, uint256 amount, uint32 unlockTime);
 
     /*//////////////////////////////////////////////////////////////
                                 ACTIONS

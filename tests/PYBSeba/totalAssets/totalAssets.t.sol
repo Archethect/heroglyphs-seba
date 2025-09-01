@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TotalAssetsTest is BaseTest {
     function test_ShouldReturnTheTotalAmountOfAssets(uint256 amount) external {
@@ -11,7 +11,7 @@ contract TotalAssetsTest is BaseTest {
 
         resetPrank(users.validator);
 
-        deal(address(bold), users.validator,amount);
+        deal(address(bold), users.validator, amount);
         bold.approve(contracts.sBOLD, amount);
         sBOLD.deposit(amount, users.validator);
         uint256 sBoldBalance = IERC20(address(sBOLD)).balanceOf(contracts.sebaPool);

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {IPYBSeba} from "src/interfaces/IPYBSeba.sol";
+import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
 import { ERC4626 } from "solmate/src/tokens/ERC4626.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DepositTest is BaseTest {
     function test_RevertWhen_TheAmountOfSharesForTheAssetsIsZero() external {
@@ -38,10 +38,22 @@ contract DepositTest is BaseTest {
         resetPrank(users.validator);
         pybSeba.withdraw(0.5 ether, users.validator, users.validator);
 
-        assertEq(IERC20(address(sBOLD)).balanceOf(users.validator), 0.5 ether, "sBOLD balance of the sender should be 0.5");
-        assertEq(IERC20(address(sBOLD)).balanceOf(contracts.pybSeba), sBOLDBalance - 0.5 ether, "sBOLD balance of the vault should be the remainder");
-        assertEq(pybSeba.balanceOf(users.validator), pybSeba.convertToShares(sBOLDBalance - 0.5 ether), "shares balance of the receiver should be equal to the remainder converted in shares");
-        assertEq(pybSeba.assetTotal(),sBOLDBalance - 0.5 ether, "assetTotal should be equal to the remainder");
+        assertEq(
+            IERC20(address(sBOLD)).balanceOf(users.validator),
+            0.5 ether,
+            "sBOLD balance of the sender should be 0.5"
+        );
+        assertEq(
+            IERC20(address(sBOLD)).balanceOf(contracts.pybSeba),
+            sBOLDBalance - 0.5 ether,
+            "sBOLD balance of the vault should be the remainder"
+        );
+        assertEq(
+            pybSeba.balanceOf(users.validator),
+            pybSeba.convertToShares(sBOLDBalance - 0.5 ether),
+            "shares balance of the receiver should be equal to the remainder converted in shares"
+        );
+        assertEq(pybSeba.assetTotal(), sBOLDBalance - 0.5 ether, "assetTotal should be equal to the remainder");
 
         IERC20(address(sBOLD)).approve(contracts.pybSeba, 0.5 ether);
 
@@ -52,9 +64,17 @@ contract DepositTest is BaseTest {
 
         // it should transfer the assets from the sender to the vault
         assertEq(IERC20(address(sBOLD)).balanceOf(users.validator), 0, "sBOLD balance of the sender should be 0");
-        assertEq(IERC20(address(sBOLD)).balanceOf(contracts.pybSeba), sBOLDBalance, "sBOLD balance of the vault should be the initial sBoldBalance");
+        assertEq(
+            IERC20(address(sBOLD)).balanceOf(contracts.pybSeba),
+            sBOLDBalance,
+            "sBOLD balance of the vault should be the initial sBoldBalance"
+        );
         // it should mint new shares to the receiver
-        assertEq(pybSeba.balanceOf(users.validator), pybSeba.totalSupply(), "shares balance of the receiver should be the total supply");
+        assertEq(
+            pybSeba.balanceOf(users.validator),
+            pybSeba.totalSupply(),
+            "shares balance of the receiver should be the total supply"
+        );
         // it should increase the assetTotal with the provided amount of assets
         assertEq(pybSeba.assetTotal(), sBOLDBalance, "assetTotal should be the initial sBoldBalance");
     }

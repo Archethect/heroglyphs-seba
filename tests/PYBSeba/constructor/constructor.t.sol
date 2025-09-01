@@ -27,22 +27,10 @@ contract ConstructorTest is BaseTest {
             "PYBSeba: admin role should be admin"
         );
         // it should set the asset
-        assertEq(
-            address(localPYBSeba.asset()),
-            contracts.sBOLD,
-            "PYBSeba: asset should be set correctly"
-        );
+        assertEq(address(localPYBSeba.asset()), contracts.sBOLD, "PYBSeba: asset should be set correctly");
         // it should set the name of the ERC20
-        assertEq(
-            localPYBSeba.name(),
-            "Perpetual Yield Bearing Seba",
-            "PYBSeba: name should be set correctly"
-        );
+        assertEq(localPYBSeba.name(), "Perpetual Yield Bearing Seba", "PYBSeba: name should be set correctly");
         // it should set the symbol of the ERC20
-        assertEq(
-            localPYBSeba.symbol(),
-            "pybSeba",
-            "PYBSeba: symbol should be set correctly"
-        );
+        assertEq(localPYBSeba.symbol(), "pybSeba", "PYBSeba: symbol should be set correctly");
     }
 }

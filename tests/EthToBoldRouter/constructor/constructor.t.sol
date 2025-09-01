@@ -15,13 +15,13 @@ contract ConstructorTest is BaseTest {
     function test_RevertWhen_BoldIsZero() external whenEthFlowIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, address(0), contracts.ethUsdFeed,users.admin, users.yieldManager);
+        new EthToBoldRouter(contracts.ethFlow, address(0), contracts.ethUsdFeed, users.admin, users.yieldManager);
     }
 
     function test_RevertWhen_EthUsdFeedIsZero() external whenEthFlowIsNotZero whenBoldIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, contracts.bold, address(0),users.admin, users.yieldManager);
+        new EthToBoldRouter(contracts.ethFlow, contracts.bold, address(0), users.admin, users.yieldManager);
     }
 
     function test_RevertWhen_AdminIsZero()
@@ -57,7 +57,13 @@ contract ConstructorTest is BaseTest {
         whenSettlementIsNotZero
         whenAdminIsNotZero
     {
-        EthToBoldRouter localEthToBoldROuter = new EthToBoldRouter(contracts.ethFlow, contracts.bold, contracts.ethUsdFeed, users.admin, users.yieldManager);
+        EthToBoldRouter localEthToBoldROuter = new EthToBoldRouter(
+            contracts.ethFlow,
+            contracts.bold,
+            contracts.ethUsdFeed,
+            users.admin,
+            users.yieldManager
+        );
 
         // it should grant the correct roles
         assertEq(
@@ -66,10 +72,7 @@ contract ConstructorTest is BaseTest {
             "admin should have the ADMIN role"
         );
         assertEq(
-            localEthToBoldROuter.hasRole(
-                localEthToBoldROuter.YIELD_MANAGER_ROLE(),
-                users.yieldManager
-            ),
+            localEthToBoldROuter.hasRole(localEthToBoldROuter.YIELD_MANAGER_ROLE(), users.yieldManager),
             true,
             "yieldManager should have the YIELD_MANAGER role"
         );
@@ -86,10 +89,10 @@ contract ConstructorTest is BaseTest {
         );
 
         // it should set the correct ethFlow
-        assertEq(address(localEthToBoldROuter.ETH_FLOW()), contracts.ethFlow,"EthFlow is not correct");
+        assertEq(address(localEthToBoldROuter.ETH_FLOW()), contracts.ethFlow, "EthFlow is not correct");
         // it should set the correct bold
-        assertEq(address(localEthToBoldROuter.BOLD()), contracts.bold,"BOLD is not correct");
+        assertEq(address(localEthToBoldROuter.BOLD()), contracts.bold, "BOLD is not correct");
         // it should set the correct ethUsdFeed
-        assertEq(address(localEthToBoldROuter.ETH_USD_FEED()), contracts.ethUsdFeed,"EthUsdFeed is not correct");
+        assertEq(address(localEthToBoldROuter.ETH_USD_FEED()), contracts.ethUsdFeed, "EthUsdFeed is not correct");
     }
 }

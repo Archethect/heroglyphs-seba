@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
 import { ISebaPool } from "src/interfaces/ISebaPool.sol";
-import {SebaPool} from "src/SebaPool.sol";
+import { SebaPool } from "src/SebaPool.sol";
 
 contract ConstructorTest is BaseTest {
     function test_RevertWhen_AdminIsZero() external {

@@ -154,5 +154,23 @@ abstract contract Modifiers is Helpers {
         _;
     }
 
+    modifier whenTheYieldFlowIsActive() {
+        _;
+    }
 
+    modifier whenTheCurrentVaultValueIsBiggerThanThePrincipalValue() {
+        _;
+    }
+
+    modifier whenTheDepositValueIsNotZero() {
+        _;
+    }
+
+    modifier whenThereAreSharesToWithdraw() {
+        _;
+    }
+
+    modifier whenTheAdmin() {
+        _;
+    }
 }

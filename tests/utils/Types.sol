@@ -16,8 +16,8 @@ struct Contracts {
     address pybSeba;
     address sBOLD;
     address bold;
-    address WETH;
-    address USDC;
+    address weth;
+    address usdc;
     address ethToBoldRouter;
     address eUsdUsdcBeefyYieldVault;
     address ethFlow;

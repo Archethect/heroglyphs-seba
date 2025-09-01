@@ -3,22 +3,24 @@ pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-import { EthToBoldRouter } from "src/EthToBoldRouter.sol";
 import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {console2} from "forge-std/src/console2.sol";
 
 contract SwapExactEthForBoldTest is BaseTest {
     function test_RevertWhen_TheCallerIsNotTheYieldManager(address invocator) external {
         vm.assume(invocator != users.yieldManager);
         // it should revert
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, invocator, ethToBoldRouter.YIELD_MANAGER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                invocator,
+                ethToBoldRouter.YIELD_MANAGER_ROLE()
+            )
         );
         resetPrank(invocator);
-        ethToBoldRouter.swapExactEthForBold(0,0,0);
+        ethToBoldRouter.swapExactEthForBold(0, 0, 0);
     }
 
     function test_RevertWhen_TheValueIsZero() external whenTheCallerIsTheYieldManager {
@@ -26,14 +28,12 @@ contract SwapExactEthForBoldTest is BaseTest {
 
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.NoEthSent.selector));
-        ethToBoldRouter.swapExactEthForBold(0,0,0);
+        ethToBoldRouter.swapExactEthForBold(0, 0, 0);
     }
 
-    function test_RevertWhen_TheFeeIsBiggerOrEqualToTheBpsDenominator(uint16 fee)
-        external
-        whenTheCallerIsTheYieldManager
-        whenTheValueIsNotZero
-    {
+    function test_RevertWhen_TheFeeIsBiggerOrEqualToTheBpsDenominator(
+        uint16 fee
+    ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero {
         resetPrank(users.yieldManager);
 
         vm.assume(fee >= 10000);
@@ -41,15 +41,13 @@ contract SwapExactEthForBoldTest is BaseTest {
         vm.deal(users.yieldManager, 1 ether);
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidFee.selector, fee, 10000));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,0,0);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, 0, 0);
     }
 
-    function test_RevertWhen_TheSlippageIsBiggerOrEqualToTheBpsDenominator(uint16 fee, uint16 slippage)
-        external
-        whenTheCallerIsTheYieldManager
-        whenTheValueIsNotZero
-        whenTheFeeIsSmallerThanTheBpsDenominator
-    {
+    function test_RevertWhen_TheSlippageIsBiggerOrEqualToTheBpsDenominator(
+        uint16 fee,
+        uint16 slippage
+    ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero whenTheFeeIsSmallerThanTheBpsDenominator {
         resetPrank(users.yieldManager);
 
         vm.assume(fee >= 0);
@@ -59,10 +57,14 @@ contract SwapExactEthForBoldTest is BaseTest {
         vm.deal(users.yieldManager, 1 ether);
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidSlippage.selector, slippage, 10000));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,0);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, 0);
     }
 
-    function test_RevertWhen_ThereIsAlreadyAnOpenOrder(uint16 fee, uint16 slippage, uint32 validity)
+    function test_RevertWhen_ThereIsAlreadyAnOpenOrder(
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    )
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
@@ -92,7 +94,12 @@ contract SwapExactEthForBoldTest is BaseTest {
             abi.encode(uint8(8))
         );
 
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(1 ether, int256(1 ether), fee, slippage);
+        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
+            1 ether,
+            int256(1 ether),
+            fee,
+            slippage
+        );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
@@ -116,14 +123,18 @@ contract SwapExactEthForBoldTest is BaseTest {
         );
 
         // open first order
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
 
         // it should revert on second order
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OrderAlreadyOpen.selector));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
     }
 
-    function test_RevertWhen_TheOraclePriceIsEqualOrSmallerThanZero(uint16 fee, uint16 slippage, uint32 validity)
+    function test_RevertWhen_TheOraclePriceIsEqualOrSmallerThanZero(
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    )
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
@@ -149,7 +160,7 @@ contract SwapExactEthForBoldTest is BaseTest {
 
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OraclePriceInvalid.selector, 0));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
 
         // Mock first order calls
         mockAndExpectCall(
@@ -159,10 +170,14 @@ contract SwapExactEthForBoldTest is BaseTest {
         );
 
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OraclePriceInvalid.selector, -1));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
     }
 
-    function test_RevertWhen_ThePriceDataIsOlderThan1hour(uint16 fee, uint16 slippage, uint32 validity)
+    function test_RevertWhen_ThePriceDataIsOlderThan1hour(
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    )
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
@@ -189,10 +204,15 @@ contract SwapExactEthForBoldTest is BaseTest {
 
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.StaleOracle.selector));
-        ethToBoldRouter.swapExactEthForBold{value: 1 ether}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
     }
 
-    function test_WhenThePrice1hourOrLessOld(uint256 amount, uint16 fee, uint16 slippage, uint32 validity)
+    function test_WhenThePrice1hourOrLessOld(
+        uint256 amount,
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    )
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
@@ -225,7 +245,12 @@ contract SwapExactEthForBoldTest is BaseTest {
             abi.encode(uint8(8))
         );
 
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(amount, int256(1 ether), fee, slippage);
+        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
+            amount,
+            int256(1 ether),
+            fee,
+            slippage
+        );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
@@ -241,22 +266,36 @@ contract SwapExactEthForBoldTest is BaseTest {
 
         bytes32 uid = bytes32(abi.encodePacked("newOrder"));
 
-        vm.mockCall(contracts.ethFlow,
+        vm.mockCall(
+            contracts.ethFlow,
             amount,
             abi.encodeWithSelector(IEthFlow.createOrder.selector, expected),
-            abi.encode(uid));
+            abi.encode(uid)
+        );
 
         // it should emit IntentCreated
         vm.expectEmit();
-        emit IEthToBoldRouter.IntentCreated(users.yieldManager,amount,minBold,uid,uint32(block.timestamp)+validity);
+        emit IEthToBoldRouter.IntentCreated(
+            users.yieldManager,
+            amount,
+            minBold,
+            uid,
+            uint32(block.timestamp) + validity
+        );
 
         // it should call createOrder with the correct order data and value
-        vm.expectCall(contracts.ethFlow,amount,abi.encodeWithSelector(IEthFlow.createOrder.selector, expected));
+        vm.expectCall(contracts.ethFlow, amount, abi.encodeWithSelector(IEthFlow.createOrder.selector, expected));
 
-        ethToBoldRouter.swapExactEthForBold{value: amount}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
 
         // it should register the pending order in the contract
-        (address _initiator, uint256 _ethAmount, bytes32 _uid, bool _active, IEthFlow.Data memory _data) = ethToBoldRouter.order();
+        (
+            address _initiator,
+            uint256 _ethAmount,
+            bytes32 _uid,
+            bool _active,
+            IEthFlow.Data memory _data
+        ) = ethToBoldRouter.order();
         assertEq(_initiator, users.yieldManager);
         assertEq(_ethAmount, amount);
         assertEq(_uid, uid);

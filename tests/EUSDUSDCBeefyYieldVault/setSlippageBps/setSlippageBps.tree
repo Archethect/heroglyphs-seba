@@ -1,0 +1,9 @@
+SetSlippageBpsTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the bps to be set is bigger than 10 percent
+    │   └── it should revert
+    └── when the bps to be set is not bigger than 10 percent
+        ├── it should set the new slippage bps
+        └── it should emit SlippageSet

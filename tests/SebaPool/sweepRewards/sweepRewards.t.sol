@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {ISebaPool} from "src/interfaces/ISebaPool.sol";
+import { ISebaPool } from "src/interfaces/ISebaPool.sol";
 
 contract SweepRewardsTest is BaseTest {
     function test_GivenFundsAreHigherThan0() external {
@@ -19,7 +19,11 @@ contract SweepRewardsTest is BaseTest {
 
         // it should deposit the funds through the yield manager
         // YieldManager should hold the funds
-        assertEq(contracts.mockSimpleYieldManager.balance - preSweep, 1 ether, "mockSimpleYieldManager should hold funds");
+        assertEq(
+            contracts.mockSimpleYieldManager.balance - preSweep,
+            1 ether,
+            "mockSimpleYieldManager should hold funds"
+        );
         assertEq(contracts.sebaPool.balance, 0, "sebaPool should not hold funds");
     }
 }

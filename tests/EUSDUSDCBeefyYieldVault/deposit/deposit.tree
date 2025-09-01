@@ -10,6 +10,5 @@ DepositTest
         └── when the lpMinted is not zero
             ├── it should mint new shares
             ├── it should increase the principalShares
-            ├── it should set the new depositValue
             ├── it should increase the principalValue
             └── it should emit Deposited

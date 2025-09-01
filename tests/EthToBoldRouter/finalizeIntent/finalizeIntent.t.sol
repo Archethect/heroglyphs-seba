@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-import { EthToBoldRouter } from "src/EthToBoldRouter.sol";
 import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -14,7 +13,11 @@ contract FinalizeIntentTest is BaseTest {
         vm.assume(invocator != users.yieldManager);
         // it should revert
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, invocator, ethToBoldRouter.YIELD_MANAGER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                invocator,
+                ethToBoldRouter.YIELD_MANAGER_ROLE()
+            )
         );
         resetPrank(invocator);
         ethToBoldRouter.finalizeIntent();
@@ -23,13 +26,16 @@ contract FinalizeIntentTest is BaseTest {
     function test_RevertWhen_ThereIsNoActiveOrder() external whenTheYieldManager {
         resetPrank(users.yieldManager);
         // it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(IEthToBoldRouter.NoActiveOrder.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.NoActiveOrder.selector));
         ethToBoldRouter.finalizeIntent();
     }
 
-    function test_WhenTheIntentReverted(uint256 amount, uint16 fee, uint16 slippage, uint32 validity) external whenTheYieldManager whenThereIsAnActiveOrder {
+    function test_WhenTheIntentReverted(
+        uint256 amount,
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    ) external whenTheYieldManager whenThereIsAnActiveOrder {
         resetPrank(users.yieldManager);
 
         vm.assume(amount > 0);
@@ -54,7 +60,12 @@ contract FinalizeIntentTest is BaseTest {
             abi.encode(uint8(8))
         );
 
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(amount, int256(1 ether), fee, slippage);
+        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
+            amount,
+            int256(1 ether),
+            fee,
+            slippage
+        );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
@@ -70,35 +81,46 @@ contract FinalizeIntentTest is BaseTest {
 
         bytes32 uid = bytes32(abi.encodePacked("newOrder"));
 
-        vm.mockCall(contracts.ethFlow,
+        vm.mockCall(
+            contracts.ethFlow,
             amount,
             abi.encodeWithSelector(IEthFlow.createOrder.selector, expected),
-            abi.encode(uid));
+            abi.encode(uid)
+        );
 
-        ethToBoldRouter.swapExactEthForBold{value: amount}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
 
         // it should call invalidateOrder
-        vm.mockCallRevert(contracts.ethFlow,abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected), abi.encodeWithSignature("AlreadyInvalidated()"));
-        vm.expectCall(contracts.ethFlow,abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected));
+        vm.mockCallRevert(
+            contracts.ethFlow,
+            abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected),
+            abi.encodeWithSignature("AlreadyInvalidated()")
+        );
+        vm.expectCall(contracts.ethFlow, abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected));
         // Send some WETH to the contract to simulate a WETH refund
         vm.deal(users.yieldManager, amount);
-        WETH.deposit{value: amount}();
-        WETH.transfer(contracts.ethToBoldRouter,amount);
-        assertEq(users.yieldManager.balance,0);
+        WETH.deposit{ value: amount }();
+        WETH.transfer(contracts.ethToBoldRouter, amount);
+        assertEq(users.yieldManager.balance, 0);
 
         // it should emit IntentFinalized
         vm.expectEmit();
-        emit IEthToBoldRouter.IntentFinalized(users.yieldManager, uid,amount,0);
+        emit IEthToBoldRouter.IntentFinalized(users.yieldManager, uid, amount, 0);
 
         ethToBoldRouter.finalizeIntent();
         // it should return ETH to the sender
-        assertEq(users.yieldManager.balance,amount);
+        assertEq(users.yieldManager.balance, amount);
         // it should mark the order inactive
-        (,,, bool _active,) = ethToBoldRouter.order();
+        (, , , bool _active, ) = ethToBoldRouter.order();
         assertFalse(_active);
     }
 
-    function test_WhenTheIntentSucceeded(uint256 amount, uint16 fee, uint16 slippage, uint32 validity) external whenTheYieldManager whenThereIsAnActiveOrder {
+    function test_WhenTheIntentSucceeded(
+        uint256 amount,
+        uint16 fee,
+        uint16 slippage,
+        uint32 validity
+    ) external whenTheYieldManager whenThereIsAnActiveOrder {
         resetPrank(users.yieldManager);
 
         vm.assume(amount > 0);
@@ -123,7 +145,12 @@ contract FinalizeIntentTest is BaseTest {
             abi.encode(uint8(8))
         );
 
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(amount, int256(1 ether), fee, slippage);
+        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
+            amount,
+            int256(1 ether),
+            fee,
+            slippage
+        );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
@@ -139,29 +166,35 @@ contract FinalizeIntentTest is BaseTest {
 
         bytes32 uid = bytes32(abi.encodePacked("newOrder"));
 
-        vm.mockCall(contracts.ethFlow,
+        vm.mockCall(
+            contracts.ethFlow,
             amount,
             abi.encodeWithSelector(IEthFlow.createOrder.selector, expected),
-            abi.encode(uid));
+            abi.encode(uid)
+        );
 
-        ethToBoldRouter.swapExactEthForBold{value: amount}(fee,slippage,validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
 
         // it should call invalidateOrder
-        vm.mockCall(contracts.ethFlow,abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected), abi.encodeWithSignature("Success()"));
-        vm.expectCall(contracts.ethFlow,abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected));
+        vm.mockCall(
+            contracts.ethFlow,
+            abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected),
+            abi.encodeWithSignature("Success()")
+        );
+        vm.expectCall(contracts.ethFlow, abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected));
         // Send some BOLD to the contract to simulate a succesful intent swap
         deal(address(bold), contracts.ethToBoldRouter, amount * 10);
-        assertEq(bold.balanceOf(users.yieldManager),0);
+        assertEq(bold.balanceOf(users.yieldManager), 0);
 
         // it should emit IntentFinalized (we also get the initial ETH back in this simulation)
         vm.expectEmit();
-        emit IEthToBoldRouter.IntentFinalized(users.yieldManager, uid,amount,amount*10);
+        emit IEthToBoldRouter.IntentFinalized(users.yieldManager, uid, amount, amount * 10);
 
         ethToBoldRouter.finalizeIntent();
         // it should return BOLD to the sender
-        assertEq(bold.balanceOf(users.yieldManager),amount*10);
+        assertEq(bold.balanceOf(users.yieldManager), amount * 10);
         // it should mark the order inactive
-        (,,, bool _active,) = ethToBoldRouter.order();
+        (, , , bool _active, ) = ethToBoldRouter.order();
         assertFalse(_active);
     }
 }

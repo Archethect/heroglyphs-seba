@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { IYieldVault }  from "src/interfaces/IYieldVault.sol";
-import { ISwapRouter }  from "src/vendor/uniswap_v3/ISwapRouter.sol";
-import { IQuoter }      from "src/vendor/uniswap_v3/IQuoter.sol";
-import { ICurvePool }   from "src/vendor/curve/ICurvePool.sol";
-import { IBeefyVault }  from "src/vendor/beefy/IBeefyVault.sol";
+import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
+import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
+import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
+import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
 
 /**
  * @title IEUSDUSDCBeefyYieldVault
@@ -38,6 +38,12 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
     /// Asked to retrieve 0 principal.
     error CannotRetrieveZero();
 
+    /// No shares to withdraw
+    error NoSharesToWithdraw();
+
+    /// Configured slippage is too high
+    error SlippageTooHigh();
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -65,20 +71,20 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
     function UNIV3_FEE_TIER() external view returns (uint24);
 
     /// Access-control role identifiers.
-    function ADMIN_ROLE()        external view returns (bytes32);
+    function ADMIN_ROLE() external view returns (bytes32);
     function YIELDMANAGER_ROLE() external view returns (bytes32);
 
     /// Token & protocol references.
-    function WETH()      external view returns (address);
-    function USDC()      external view returns (address);
+    function WETH() external view returns (address);
+    function USDC() external view returns (address);
     function swapRouter() external view returns (ISwapRouter);
-    function quoter()     external view returns (IQuoter);
-    function curvePool()  external view returns (ICurvePool);
-    function beefy()      external view returns (IBeefyVault);
+    function quoter() external view returns (IQuoter);
+    function curvePool() external view returns (ICurvePool);
+    function beefy() external view returns (IBeefyVault);
 
     /// Accounting snapshots.
     function principalShares() external view returns (uint256);
-    function principalValue()  external view returns (uint256);
+    function principalValue() external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                                 SETTERS

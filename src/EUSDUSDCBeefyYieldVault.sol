@@ -2,22 +2,21 @@
 pragma solidity ^0.8.28;
 
 /*────────────────────────────── OpenZeppelin ──────────────────────────*/
-import { AccessControl }      from "@openzeppelin/contracts/access/AccessControl.sol";
-import { ReentrancyGuard }    from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { Address }            from "@openzeppelin/contracts/utils/Address.sol";
-import { SafeERC20 }          from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 }             from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /*─────────────────────────────── Interfaces ───────────────────────────*/
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
 import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
-import { IQuoter }     from "src/vendor/uniswap_v3/IQuoter.sol";
-import { ICurvePool }  from "src/vendor/curve/ICurvePool.sol";
+import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
+import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
 import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
-import { IWETH }       from "src/vendor/various/IWETH.sol";
+import { IWETH } from "src/vendor/various/IWETH.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
-import {console} from "forge-std/src/console.sol";
 
 /**
  * @title EUSDUSDCBeefyYieldVault
@@ -133,12 +132,12 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
 
     /// @inheritdoc IYieldVault
     function deposit()
-    external
-    payable
-    override
-    nonReentrant
-    onlyRole(YIELDMANAGER_ROLE)
-    returns (uint256 depositValue)
+        external
+        payable
+        override
+        nonReentrant
+        onlyRole(YIELDMANAGER_ROLE)
+        returns (uint256 depositValue)
     {
         if (msg.value == 0) revert NoEthProvided();
 
@@ -151,7 +150,7 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         uint256 usdcOut = _swapExactInput(WETH, USDC, msg.value, usdcMin);
 
         /* Add liquidity (USDe/USDC) → LP tokens */
-        uint256[2] memory amounts; // [USDe, USDC]; we only fill USDC index 1
+        uint256[] memory amounts = new uint256[](2); // [USDe, USDC]; we only fill USDC index 1
         amounts[0] = 0;
         amounts[1] = usdcOut;
         uint256 lpExpected = curvePool.calc_token_amount(amounts, true);
@@ -186,7 +185,7 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         uint256 ppsNow = beefy.getPricePerFullShare();
         uint256 currentVaultValue = (principalShares * ppsNow) / 1e18;
 
-        if (!flowActive && currentVaultValue <= principalValue) {
+        if (!flowActive || currentVaultValue <= principalValue) {
             emit YieldClaimed(0, 0);
             return;
         }
@@ -224,19 +223,13 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldVault
-    function retrievePrincipal(uint256 depositValue)
-    external
-    override
-    nonReentrant
-    onlyRole(YIELDMANAGER_ROLE)
-    {
+    function retrievePrincipal(uint256 depositValue) external override nonReentrant onlyRole(YIELDMANAGER_ROLE) {
         if (depositValue == 0) revert CannotRetrieveZero();
 
         uint256 ppsNow = beefy.getPricePerFullShare();
 
-        /* Translate desired value → shares (rounded up) */
         uint256 sharesToWithdraw = (depositValue * 1e18) / ppsNow;
-        if (sharesToWithdraw == 0) sharesToWithdraw = 1;
+        if (sharesToWithdraw == 0) revert NoSharesToWithdraw();
         if (sharesToWithdraw > principalShares) {
             sharesToWithdraw = principalShares;
             depositValue = (sharesToWithdraw * ppsNow) / 1e18;
@@ -274,7 +267,7 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
 
     /// @inheritdoc IEUSDUSDCBeefyYieldVault
     function setSlippageBps(uint16 bps) external override onlyRole(ADMIN_ROLE) {
-        require(bps <= 1_000, "too high"); // hard cap 10 %
+        if (bps > 1_000) revert SlippageTooHigh(); // hard cap 10 %
         slippageBps = bps;
         emit SlippageSet(bps);
     }

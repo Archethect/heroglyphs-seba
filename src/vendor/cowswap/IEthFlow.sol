@@ -31,10 +31,7 @@ interface IEthFlow {
         /// required for an order to be automatically picked up by the CoW Swap orderbook.
         int64 quoteId;
     }
-    function createOrder(Data calldata order)
-    external
-    payable
-    returns (bytes32 orderHash);
+    function createOrder(Data calldata order) external payable returns (bytes32 orderHash);
 
     function invalidateOrder(Data calldata order) external;
 }

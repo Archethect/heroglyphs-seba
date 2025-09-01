@@ -50,8 +50,8 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Order tracking.
-   Order public order;
-   int64 public quoteCounter;
+    Order public order;
+    int64 public quoteCounter;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -63,13 +63,7 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
      * @param bold BOLD ERC-20 token address.
      * @param ethUsdFeed Chainlink ETH/USD aggregator address.
      */
-    constructor(
-        address ethFlow,
-        address bold,
-        address ethUsdFeed,
-        address admin,
-        address yieldManager
-    ) {
+    constructor(address ethFlow, address bold, address ethUsdFeed, address admin, address yieldManager) {
         if (ethFlow == address(0)) revert InvalidAddress();
         if (bold == address(0)) revert InvalidAddress();
         if (ethUsdFeed == address(0)) revert InvalidAddress();
@@ -100,12 +94,11 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IEthToBoldRouter
-    function swapExactEthForBold(uint16 feeBps, uint16 slippageBps, uint32 validity)
-    external
-    payable
-    override onlyRole(YIELD_MANAGER_ROLE)
-    returns (bytes32 uid)
-    {
+    function swapExactEthForBold(
+        uint16 feeBps,
+        uint16 slippageBps,
+        uint32 validity
+    ) external payable override onlyRole(YIELD_MANAGER_ROLE) returns (bytes32 uid) {
         if (msg.value == 0) revert NoEthSent();
         if (feeBps >= BPS_DENOMINATOR) revert InvalidFee(feeBps, BPS_DENOMINATOR);
         if (slippageBps >= BPS_DENOMINATOR) revert InvalidSlippage(slippageBps, BPS_DENOMINATOR);
@@ -118,7 +111,7 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
         uint8 d = ETH_USD_FEED.decimals(); // typically 8
 
         // 2) Compute min BOLD out (1 BOLD = 1 USD; BOLD assumed 18 decimals)
-        uint256 sellAmount = msg.value * (BPS_DENOMINATOR - feeBps) / BPS_DENOMINATOR;
+        uint256 sellAmount = (msg.value * (BPS_DENOMINATOR - feeBps)) / BPS_DENOMINATOR;
         uint256 feeAmount = msg.value - sellAmount;
         uint256 boldRaw = (sellAmount * uint256(px)) / (10 ** d);
         uint256 minBold = (boldRaw * (BPS_DENOMINATOR - slippageBps)) / BPS_DENOMINATOR;
@@ -139,13 +132,7 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
         uid = ETH_FLOW.createOrder{ value: msg.value }(data);
 
         // 4) Record
-        order = Order({
-            initiator: msg.sender,
-            ethAmount: msg.value,
-            uid: uid,
-            active: true,
-            data: data
-        });
+        order = Order({ initiator: msg.sender, ethAmount: msg.value, uid: uid, active: true, data: data });
 
         quoteCounter++;
 
@@ -157,18 +144,20 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
         if (!order.active) revert NoActiveOrder();
 
         // Try to invalidate. If already invalidated by someone else after expiry, ignore failure.
-        try ETH_FLOW.invalidateOrder(order.data) { } catch { /* already invalidated or non-cancellable; ignore */ }
+        try ETH_FLOW.invalidateOrder(order.data) {} catch {
+            /* already invalidated or non-cancellable; ignore */
+        }
 
         uint256 balance = address(this).balance;
         uint256 boldBalance = BOLD.balanceOf(address(this));
 
-        if(balance > 0) {
+        if (balance > 0) {
             (bool ok, ) = msg.sender.call{ value: balance }("");
             if (!ok) revert FailedETHRefund();
         }
 
-        if(boldBalance > 0) {
-            BOLD.safeTransfer(msg.sender,boldBalance);
+        if (boldBalance > 0) {
+            BOLD.safeTransfer(msg.sender, boldBalance);
         }
 
         order.active = false;

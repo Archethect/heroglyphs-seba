@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 /// @notice vault-specific interface for sBOLD.
 interface ISBOLD {
-
     // --- Vault-specific methods ---
     /// Deposits BOLD and mints sBOLD shares to msg.sender.
     function deposit(uint256 boldAmount, address receiver) external returns (uint256 sharesMinted);

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.28;
 
 import "solmate/src/tokens/ERC20.sol";
-import {MockBold} from "./MockBold.sol";
-import {ISBOLD} from "src/vendor/liquity/ISBOLD.sol";
+import { MockBold } from "./MockBold.sol";
+import { ISBOLD } from "src/vendor/liquity/ISBOLD.sol";
 
 /// @notice Minimal mock ERC4626-like vault for testing with Solmate ERC20.
 contract MockSBold is ERC20, ISBOLD {

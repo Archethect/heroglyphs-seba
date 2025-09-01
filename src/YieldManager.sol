@@ -2,17 +2,17 @@
 pragma solidity ^0.8.28;
 
 /*───────────────────────────── OpenZeppelin ───────────────────────────*/
-import { AccessControl }   from "@openzeppelin/contracts/access/AccessControl.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { IERC20 }          from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ERC20 }           from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /*─────────────────────────────── Interfaces ───────────────────────────*/
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-import { ISBOLD }           from "src/vendor/liquity/ISBOLD.sol";
-import { IPYBSeba }       from "src/interfaces/IPYBSeba.sol";
-import { IYieldVault }      from "src/interfaces/IYieldVault.sol";
-import { IYieldManager }    from "src/interfaces/IYieldManager.sol";
+import { ISBOLD } from "src/vendor/liquity/ISBOLD.sol";
+import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
+import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 
 /**
  * @title YieldManager
@@ -32,9 +32,9 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    uint16 public ROUTER_SLIPPAGE_BPS = 50;     // 0.50 %
+    uint16 public ROUTER_SLIPPAGE_BPS = 50; // 0.50 %
     /// @inheritdoc IYieldManager
-    uint16 public FEE_BPS = 100;     // 1 %
+    uint16 public FEE_BPS = 100; // 1 %
     /// @inheritdoc IYieldManager
     uint32 public ROUTER_VALIDITY_SECS = 15 minutes;
 
@@ -106,10 +106,14 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         address _yieldVault
     ) {
         if (
-            admin      == address(0) || automator == address(0) ||
-            _boostPool == address(0) || _router   == address(0) ||
-            _bold      == address(0) || _sbold    == address(0) ||
-            _sebaVault == address(0) || _yieldVault == address(0)
+            admin == address(0) ||
+            automator == address(0) ||
+            _boostPool == address(0) ||
+            _router == address(0) ||
+            _bold == address(0) ||
+            _sbold == address(0) ||
+            _sebaVault == address(0) ||
+            _yieldVault == address(0)
         ) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, admin);
@@ -118,10 +122,10 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
 
         boostPool = _boostPool;
-        router     = IEthToBoldRouter(_router);
-        BOLD       = IERC20(_bold);
-        sBOLD      = ISBOLD(_sbold);
-        sebaVault  = IPYBSeba(_sebaVault);
+        router = IEthToBoldRouter(_router);
+        BOLD = IERC20(_bold);
+        sBOLD = ISBOLD(_sbold);
+        sebaVault = IPYBSeba(_sebaVault);
         yieldVault = IYieldVault(_yieldVault);
     }
 
@@ -142,12 +146,12 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
         /* ---------- 1️⃣  BoostPool deposit: 50 / 50 split ---------- */
         if (msg.sender == boostPool) {
-            uint256 half  = msg.value / 2;
+            uint256 half = msg.value / 2;
             uint256 other = msg.value - half;
 
             pendingBoldConversion += half;
-            depositValue   = yieldVault.deposit{ value: other }();
-            principalValue        += depositValue;
+            depositValue = yieldVault.deposit{ value: other }();
+            principalValue += depositValue;
 
             emit DepositReceived(msg.sender, depositValue);
             return;
@@ -156,7 +160,9 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         /* ---------- 2️⃣  External user deposit (locked) ------------ */
         depositValue = yieldVault.deposit{ value: msg.value }();
 
-        unchecked { ++depositId; }
+        unchecked {
+            ++depositId;
+        }
         deposits[depositId] = Deposit({
             depositor: msg.sender,
             vaultAtDeposit: yieldVault,
@@ -175,10 +181,9 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     /// @inheritdoc IYieldManager
     function retrieveFunds(uint256 id) external override nonReentrant {
         Deposit memory d = deposits[id];
-        if (d.amount == 0)               revert NonExistingDeposit(id);
-        if (d.depositor != msg.sender)   revert InvalidDepositor(msg.sender);
-        if (block.timestamp < d.unlockTime)
-            revert DepositStillLocked(block.timestamp, d.unlockTime);
+        if (d.amount == 0) revert NonExistingDeposit(id);
+        if (d.depositor != msg.sender) revert InvalidDepositor(msg.sender);
+        if (block.timestamp < d.unlockTime) revert DepositStillLocked(block.timestamp, d.unlockTime);
 
         delete deposits[id];
 
@@ -205,7 +210,9 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
                 uint256 pre = address(this).balance;
                 _finalizeRouterIntent();
                 uint256 post = address(this).balance;
-                unchecked { pendingBoldConversion += post - pre; }
+                unchecked {
+                    pendingBoldConversion += post - pre;
+                }
             }
 
             /* 2️⃣  Finalise any BOLD→sBOLD conversion */
@@ -215,7 +222,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
             if (pendingBoldConversion > 0) {
                 uint256 ethIn = pendingBoldConversion;
                 bytes32 uid = router.swapExactEthForBold{ value: ethIn }(
-                FEE_BPS,
+                    FEE_BPS,
                     ROUTER_SLIPPAGE_BPS,
                     ROUTER_VALIDITY_SECS
                 );

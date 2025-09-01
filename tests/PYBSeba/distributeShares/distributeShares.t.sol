@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {IPYBSeba} from "src/interfaces/IPYBSeba.sol";
+import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
 
 contract DistributeSharesTest is BaseTest {
     function test_RevertWhen_TheCallerIsNotBoostpool(address caller) external {

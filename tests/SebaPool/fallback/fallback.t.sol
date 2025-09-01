@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {ISebaPool} from "src/interfaces/ISebaPool.sol";
+import { ISebaPool } from "src/interfaces/ISebaPool.sol";
 
 contract FallbackTest is BaseTest {
     function test_WhenValueIsZero() external {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IEthFlow} from "src/vendor/cowswap/IEthFlow.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AggregatorV3Interface} from "src/vendor/chainlink/AggregatorV3Interface.sol";
+import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 
 /**
  * @title IEthToBoldRouter
@@ -62,8 +62,8 @@ interface IEthToBoldRouter {
     struct Order {
         address initiator; // the calling address
         uint256 ethAmount; // telemetry/reference only
-        bytes32 uid;         // 56-byte order UID
-        bool active;       // order is open in our local view
+        bytes32 uid; // 56-byte order UID
+        bool active; // order is open in our local view
         IEthFlow.Data data; // Intent data
     }
 
@@ -86,9 +86,9 @@ interface IEthToBoldRouter {
 
     /// @notice Public getter for the pending order.
     function order()
-    external
-    view
-    returns (address initiator, uint256 ethAmount, bytes32 uid, bool active, IEthFlow.Data memory data);
+        external
+        view
+        returns (address initiator, uint256 ethAmount, bytes32 uid, bool active, IEthFlow.Data memory data);
 
     /*//////////////////////////////////////////////////////////////
                                 FUNCTIONS
@@ -104,7 +104,11 @@ interface IEthToBoldRouter {
      * @param validity Validity window (seconds) added to current timestamp.
      * @return uid The 56-byte UID of the created order.
      */
-    function swapExactEthForBold(uint16 feeBps, uint16 slippageBps, uint32 validity) external payable returns (bytes32 uid);
+    function swapExactEthForBold(
+        uint16 feeBps,
+        uint16 slippageBps,
+        uint32 validity
+    ) external payable returns (bytes32 uid);
 
     /**
      * @notice Finalize the caller’s open intent and returns ETH and/or BOLD. If already filled/expired, closes local state without reverting.

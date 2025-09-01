@@ -1,0 +1,21 @@
+RetrievePrincipalTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when the depositValue is zero
+    │   └── it should revert
+    └── when the depositValue is not zero
+        ├── when there are no shares to withdraw
+        │   └── it should revert
+        └── when there are shares to withdraw
+            ├── when the shares to withdraw are bigger than the principal shares
+            │   ├── it should set the sharesToWithdraw equal to the principal shares
+            │   ├── it should set the new principalShares
+            │   ├── it should set the new principalValue
+            │   ├── it should convert the to be withdrawn shares into eth and send it to the caller
+            │   └── it should emit PrincipalRetrieved
+            └── when the shares to withdraw are not bigger than the principal shares
+                ├── it should set the new principalShares
+                ├── it should set the new principalValue
+                ├── it should convert the to be withdrawn shares into eth and send it to the caller
+                └── it should emit PrincipalRetrieved

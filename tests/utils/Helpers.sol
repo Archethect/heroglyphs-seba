@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { PRBTest } from "@prb/test/PRBTest.sol";
 import { StdCheats } from "forge-std/src/StdCheats.sol";
@@ -10,6 +10,7 @@ import { Users, Contracts } from "./Types.sol";
 
 abstract contract Helpers is PRBTest, StdCheats, StdUtils {
     error DoesNotHandleBigCreateCount();
+    error UIDMustBe56Buytes();
 
     Users internal users;
     Contracts internal contracts;
@@ -43,35 +44,27 @@ abstract contract Helpers is PRBTest, StdCheats, StdUtils {
         vm.stopPrank();
     }
 
-    function mockAndExpectCall(
-        address to,
-        uint256 value,
-        bytes memory data,
-        bytes memory output
-    ) internal {
+    function mockAndExpectCall(address to, uint256 value, bytes memory data, bytes memory output) internal {
         vm.mockCall(to, value, data, output);
         vm.expectCall(to, value, data);
     }
 
-    function mockAndExpectCall(
-        address to,
-        bytes memory data,
-        bytes memory output
-    ) internal {
+    function mockAndExpectCall(address to, bytes memory data, bytes memory output) internal {
         mockAndExpectCall(to, 0, data, output);
     }
 
-    function makeCOWUid(
-        bytes32 orderHash,
-        address owner,
-        uint32 validTo
-    ) internal pure returns (bytes memory uid) {
+    function makeCOWUid(bytes32 orderHash, address owner, uint32 validTo) internal pure returns (bytes memory uid) {
         uid = abi.encodePacked(orderHash, owner, validTo);
-        require(uid.length == 56, "UID must be 56 bytes");
+        if (uid.length != 56) revert UIDMustBe56Buytes();
     }
 
-    function calculateOrderAmounts(uint256 amount, int256 price, uint16 fee, uint16 slippage) internal pure returns (uint256 sellAmount, uint256 feeAmount, uint256 minBold) {
-        sellAmount = amount * (10000 - uint256(fee)) / 10000;
+    function calculateOrderAmounts(
+        uint256 amount,
+        int256 price,
+        uint16 fee,
+        uint16 slippage
+    ) internal pure returns (uint256 sellAmount, uint256 feeAmount, uint256 minBold) {
+        sellAmount = (amount * (10000 - uint256(fee))) / 10000;
         feeAmount = amount - sellAmount;
         uint256 boldRaw = (sellAmount * uint256(price)) / (10 ** 8);
         minBold = (boldRaw * (10000 - slippage)) / 10000;
@@ -83,12 +76,12 @@ abstract contract Helpers is PRBTest, StdCheats, StdUtils {
     ) internal pure returns (bytes memory) {
         return
             bytes(
-            string.concat(
-                "AccessControl: account ",
-                Strings.toHexString(uint160(account), 20),
-                " is missing role ",
-                Strings.toHexString(uint256(role), 32)
-            )
-        );
+                string.concat(
+                    "AccessControl: account ",
+                    Strings.toHexString(uint160(account), 20),
+                    " is missing role ",
+                    Strings.toHexString(uint256(role), 32)
+                )
+            );
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
-import {IPYBSeba} from "src/interfaces/IPYBSeba.sol";
+import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract SetSebaPoolTest is BaseTest {

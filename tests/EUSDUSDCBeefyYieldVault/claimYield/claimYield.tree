@@ -1,0 +1,17 @@
+ClaimYieldTest
+├── when not the yield manager
+│   └── it should revert
+└── when the yield manager
+    ├── when the yield flow is not active
+    │   └── it should emit YieldClaimed
+    └── when the yield flow is active
+        ├── when the current vault value is smaller or equal than the principalValue
+        │   └── it should emit yieldClaimed
+        └── when the current vault value is bigger than the principalValue
+            ├── when the yieldShares are zero
+            │   └── it should revert
+            └── when the yieldshares are not zero
+                ├── it should subtract the yieldShares from the principalShares
+                ├── it should set the new principalValue
+                ├── it should sent the converted WETH to the sender
+                └── it should emit YieldClaimed

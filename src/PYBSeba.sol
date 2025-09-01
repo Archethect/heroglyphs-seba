@@ -34,10 +34,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
      * @param _admin The address to be granted the ADMIN_ROLE.
      * @param _asset The ERC20 asset used as the underlying asset.
      */
-    constructor(
-        address _admin,
-        ERC20 _asset
-    ) ERC4626(_asset, "Perpetual Yield Bearing Seba", "pybSeba") {
+    constructor(address _admin, ERC20 _asset) ERC4626(_asset, "Perpetual Yield Bearing Seba", "pybSeba") {
         if (_admin == address(0)) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, _admin);

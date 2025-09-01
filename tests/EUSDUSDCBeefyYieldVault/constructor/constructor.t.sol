@@ -9,25 +9,61 @@ contract ConstructorTest is BaseTest {
     function test_WhenAdminIsZero() external {
         // it whould revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(address(0), users.yieldManager, contracts.WETH, contracts.USDC, contracts.swapRouter, contracts.quoter, contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            address(0),
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_YieldManagerIsZero() external whenAdminIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, address(0), contracts.WETH, contracts.USDC, contracts.swapRouter, contracts.quoter, contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            address(0),
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_WethIsEro() external whenAdminIsNotZero whenYieldManagerIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, address(0), contracts.USDC, contracts.swapRouter, contracts.quoter, contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            address(0),
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_UsdcIsZero() external whenAdminIsNotZero whenYieldManagerIsNotZero whenWethIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, address(0), contracts.swapRouter, contracts.quoter, contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            address(0),
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_SwapRouterIsZero()
@@ -39,7 +75,16 @@ contract ConstructorTest is BaseTest {
     {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, contracts.USDC, address(0), contracts.quoter, contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            address(0),
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_QuoterIsZero()
@@ -52,7 +97,16 @@ contract ConstructorTest is BaseTest {
     {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, contracts.USDC, contracts.swapRouter, address(0), contracts.curvePool, contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            address(0),
+            contracts.curvePool,
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_CurvePoolIsZero()
@@ -66,7 +120,16 @@ contract ConstructorTest is BaseTest {
     {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, contracts.USDC, contracts.swapRouter, contracts.quoter, address(0), contracts.beefy);
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            address(0),
+            contracts.beefy
+        );
     }
 
     function test_RevertWhen_BeefyIsZero()
@@ -81,7 +144,16 @@ contract ConstructorTest is BaseTest {
     {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
-        new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, contracts.USDC, contracts.swapRouter, contracts.quoter, contracts.curvePool, address(0));
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            address(0)
+        );
     }
 
     function test_WhenBeefyIsNotZero()
@@ -94,7 +166,16 @@ contract ConstructorTest is BaseTest {
         whenQuoterIsNotZero
         whenCurvePoolIsNotZero
     {
-        EUSDUSDCBeefyYieldVault localEUSDUSDCBeefyYieldVault = new EUSDUSDCBeefyYieldVault(users.admin, users.yieldManager, contracts.WETH, contracts.USDC, contracts.swapRouter, contracts.quoter, contracts.curvePool, contracts.beefy);
+        EUSDUSDCBeefyYieldVault localEUSDUSDCBeefyYieldVault = new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.WETH,
+            contracts.USDC,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy
+        );
 
         // it should grant the correct roles
         assertEq(
@@ -103,10 +184,7 @@ contract ConstructorTest is BaseTest {
             "admin should have the ADMIN role"
         );
         assertEq(
-            localEUSDUSDCBeefyYieldVault.hasRole(
-                localEUSDUSDCBeefyYieldVault.YIELDMANAGER_ROLE(),
-                users.yieldManager
-            ),
+            localEUSDUSDCBeefyYieldVault.hasRole(localEUSDUSDCBeefyYieldVault.YIELDMANAGER_ROLE(), users.yieldManager),
             true,
             "yieldManager should have the YIELDMANAGER role"
         );
@@ -123,16 +201,24 @@ contract ConstructorTest is BaseTest {
         );
 
         // it should set the correct weth
-        assertEq(address(contracts.WETH),localEUSDUSDCBeefyYieldVault.WETH(),"WETH is not correct");
+        assertEq(address(contracts.WETH), localEUSDUSDCBeefyYieldVault.WETH(), "WETH is not correct");
         // it should set the correct usdc
-        assertEq(address(contracts.USDC),localEUSDUSDCBeefyYieldVault.USDC(),"USDC is not correct");
+        assertEq(address(contracts.USDC), localEUSDUSDCBeefyYieldVault.USDC(), "USDC is not correct");
         // it should set the correct swapRouter
-        assertEq(address(contracts.swapRouter),address(localEUSDUSDCBeefyYieldVault.swapRouter()),"swapRouter is not correct");
+        assertEq(
+            address(contracts.swapRouter),
+            address(localEUSDUSDCBeefyYieldVault.swapRouter()),
+            "swapRouter is not correct"
+        );
         // it should set the correct quoter
-        assertEq(address(contracts.quoter),address(localEUSDUSDCBeefyYieldVault.quoter()),"quoter is not correct");
+        assertEq(address(contracts.quoter), address(localEUSDUSDCBeefyYieldVault.quoter()), "quoter is not correct");
         // it should set the correct curvePool
-        assertEq(address(contracts.curvePool),address(localEUSDUSDCBeefyYieldVault.curvePool()),"curvePool is not correct");
+        assertEq(
+            address(contracts.curvePool),
+            address(localEUSDUSDCBeefyYieldVault.curvePool()),
+            "curvePool is not correct"
+        );
         // it should set the correct beefy
-        assertEq(address(contracts.beefy),address(localEUSDUSDCBeefyYieldVault.beefy()),"beefy is not correct");
+        assertEq(address(contracts.beefy), address(localEUSDUSDCBeefyYieldVault.beefy()), "beefy is not correct");
     }
 }
