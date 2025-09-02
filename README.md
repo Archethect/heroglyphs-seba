@@ -1,147 +1,131 @@
-# Stakers Union – Boost Pool & Yield Management System
+# Seba – Perpetual Yield for Ethereum Solo Validators
 
-This repository implements a **Boost Pool** and associated **Yield Management** flow for ETH validators. By leveraging
-POAP ownership, MEV rewards, and yield‐bearing vaults, validators can join the Stakers Union to compound their staking
-rewards and graduate after a specified duration.
+Seba is a protocol enabling **solo Ethereum validators** to unlock **perpetual yield** from their execution rewards. By committing their rewards for a fixed period, validators can graduate and receive yield-bearing shares that continue to generate rewards indefinitely.
+
+The system builds on **Heroglyphs** and the **DappNode Smoothing Pool** design, but introduces **NFT-boosted rewards**, perpetual yield mechanics, and a decentralized validator alignment model.
 
 ---
 
 ## Overview
 
-1. **Stakers Union POAP**
+1. **Validator Registration (Seba Pool)**
+    - Solo validators register their validator ID in the **SebaPool** contract.
+    - They must set their validator **fee recipient** address to the SebaPool for the entire commitment period (typically 6 months).
+    - Failing to maintain this commitment resets their graduation period.
 
-   - A POAP (Proof of Attendance Protocol) token identifies eligible stakers.
-   - Each validator must own this POAP to register in the Boost Pool.
+2. **Commitment Period**
+    - While committed, **50% of MEV/execution rewards** are sent to the **Seba Yield Vault** as principal for yield generation.
+    - The other **50% is converted to sBOLD** and distributed via the **Perpetual Yield Bearing Seba Vault (pybSeba)**.
 
-2. **Boost Pool**
+3. **Graduation**
+    - After the commitment period, validators become eligible to graduate.
+    - Graduation requires inclusion of their validator ID as a ticker in a valid **Heroglyphs block**.
+    - On graduation, validators receive **pybSeba shares**, proportional to their staked ETH, attestation performance, and potential **NFT boosts**.
 
-   - Orchestrates validator registration, tracks attestation performance, and triggers “graduation” for validators who
-     meet the required conditions.
-   - Also allows depositors to set a custom reward recipient.
+4. **Perpetual Yield**
+    - pybSeba shares entitle holders to perpetual yield in sBOLD, sourced from the Seba Yield Vault.
+    - Shares can be **burned for immediate rewards** or **held for ongoing yield**.
 
-3. **Yield Manager**
-
-   - Collects ETH from MEV rewards or direct deposits.
-   - Converts ETH to ApxETH and deposits it into a yield‐bearing vault (e.g., `ApxETHVault`).
-   - Periodically “distributes yield” by topping up the PerpYieldBearingAutoPxEth contract.
-
-4. **ApxETHVault**
-
-   - A drip vault that accepts ETH (converted into ApxETH) and invests it via PirexEth for yield.
-   - Allows claiming of accrued yield once the yield flow is activated.
-
-5. **PerpYieldBearingAutoPxEth** (ERC4626 Vault)
-
-   - A perpetual, auto‐compounding vault that holds pxETH or a derivative, distributing yield over time to stakers.
-   - Shares can be minted on “graduation” to validators based on attestation points.
-
-6. **Validator**
-   - Registers with the Boost Pool using the Stakers Union POAP.
-   - After a set block duration (e.g., 180 days), the validator can “graduate” and receive yield‐bearing shares.
+5. **Boosts**
+    - **Stakers Union POAP holders** and **Heroglyphs Kamisama NFT holders** receive a **2.5x reward boost**.
+    - Boost eligibility is continuously checked each epoch.
 
 ---
 
 ## High-Level Flow
 
-1. **POAP Requirement**
-
-   - A staker obtains a Stakers Union POAP (e.g., ID 175498).
-   - The staker calls `subscribeValidator` on the **Boost Pool**, passing `_validatorId` and the `_poapId`.
-
-2. **MEV Rewards / Donations**
-
-   - ETH flows into the **Yield Manager** (either as MEV rewards or direct deposits).
-   - The manager calls `depositFunds()`, which sends ETH to the `ApxETHVault`.
-
-3. **ApxETHVault Deposit**
-
-   - On deposit, the vault interacts with PirexEth, converting ETH to ApxETH.
-   - The vault tracks the total deposit and can handle fees.
-
-4. **Yield Manager – Distribute Yield**
-
-   - The manager calls `distributeYield()`, which claims ApxETH from the vault and tops up the
-     **PerpYieldBearingAutoPxEth** contract, boosting its share balance.
-
-5. **Validator Graduation**
-
-   - After the validator’s lock period (e.g., 180 days), the **Boost Pool** triggers `graduateValidator`.
-   - The pool calls `distributeShares` on the **PerpYieldBearingAutoPxEth**, minting yield‐bearing shares to the
-     validator’s address.
-
-6. **Withdrawal**
-   - If a user deposited ETH through the **Yield Manager** (and not via the staker’s internal deposit), they can
-     retrieve their share after the lock period.
-
----
-
-## Diagram
-
-Below is a simplified representation of the system architecture (as seen in the accompanying diagram):
-
-![architecture](images/boost_architecture.jpg)
+1. **Opt-in:** Validator registers ID in SebaPool and points fee recipient to Seba.
+2. **Commit:** Validator accrues attestation points during the 6-month period while rewards are split 50/50.
+3. **Backend Sweep:** Every ~5 epochs, rewards are swept into the Seba Yield Vault and pybSeba vault.
+4. **Graduation:** Validator graduates by being included in a valid Heroglyphs block.
+5. **Receive Shares:** Validator’s withdrawal address (or configured recipient) receives pybSeba shares.
+6. **Redeem/Compound:** Validator can burn shares for sBOLD or keep them to accrue perpetual yield.
 
 ---
 
 ## Key Contracts
 
-- **`BoostPool`**:  
-  Handles validator registration, POAP checks, setting reward recipients, and calls to “graduate” validators.
+- **`SebaPool`**  
+  Handles validator registration, graduation eligibility, reward recipient configuration, and boosts.
 
-- **`YieldManager`**:  
-  Receives ETH (MEV or user deposits), deposits into `ApxETHVault`, and periodically calls `distributeYield()` to top up
-  the `PerpYieldBearingAutoPxEth`.
+- **`SebaYieldVault`**  
+  Collects 50% of MEV rewards, converts them into yield-bearing assets, and locks them as protocol principal.
 
-- **`ApxETHVault`** (drip vault):  
-  Accepts ETH, converts it to ApxETH via PirexEth, and tracks total deposits. Allows yield claiming once the yield flow
-  is activated.
+- **`pybSeba` (Perpetual Yield Bearing Seba Vault)**  
+  ERC4626 vault that distributes perpetual yield (sBOLD) to graduated validators holding shares.
 
-- **`PerpYieldBearingAutoPxEth`** (ERC4626):  
-  A yield‐bearing vault that mints shares to validators upon graduation, representing their portion of the
-  auto‐compounding staking rewards.
+- **Backend Services**
+    - Sweep rewards every ~5 epochs into vaults.
+    - Track validator state (attestations, proposals, graduation eligibility).
+    - Use **Alchemy + Beaconcha.in APIs**, custom Subgraph, and AWS Lambda/Secrets Manager.
+
+---
+
+## Architecture
+
+![Architecture](images/seba_architecture.jpg)
+
+## Boosts & Alignment
+
+Aligned communities benefit from higher rewards:
+- **Stakers Union POAP** (checked on Ethereum Mainnet and Gnosis Chain).
+- **Heroglyphs Kamisama NFT** (must be continuously held).
+- Boost: **2.5x shares multiplier**.
+
+This ensures that aligned validators are strongly incentivized to join Seba.
+
+---
+
+## Simulation Results
+
+Monte Carlo simulations (1000 iterations, 1000 validators) demonstrate:
+- **50/50 split model** (half rewards to principal, half directly distributed) provides strong yield performance.
+- **Boosted validators** (x2.5) significantly outperform, making aligned participation highly rewarding.
+- Even in a **worst-case scenario** (no new validators after 2 years), yield remains perpetual and attractive.
 
 ---
 
 ## Project Structure
 
-- **Interfaces** (`IYieldManager`, `IBoostPool`, `IApxETHVault`, `IDripVault`, etc.)  
-  Each contract has a corresponding interface with function signatures, errors, and events.
-
 - **Contracts**
+    - `SebaPool.sol`
+    - `EUSDUSDCBeefyYieldVault.sol`
+    - `PYBSeba.sol`
+    - `EthToBoldRouter.sol`
+    - `YieldManager.sol`
 
-  - `BoostPool.sol`: The main entry point for validator registration and graduation.
-  - `YieldManager.sol`: Gathers ETH, deposits into the vault, and triggers yield distribution.
-  - `ApxETHVault.sol`: A specialized drip vault for ApxETH, hooking into PirexEth.
-  - `PerpYieldBearingAutoPxEth.sol`: An ERC4626 vault that manages minted shares for yield accrual.
+- **Interfaces**
+    - `ISebaPool`
+    - `IEUSDUSDCBeefyYieldVault`
+    - `IYieldVault`
+    - `IPybSebaVault`
+    - `IEthToBoldRouter`
+    - `IYieldManager`
 
-- **Base Classes**
-  - `BaseDripVault.sol`: Abstract contract that implements core deposit/withdraw logic.
-  - `AccessControl`, `Ownable`, `ReentrancyGuard`: OpenZeppelin modules for roles and security.
+- **Backend**
+    - Reward sweeping (cron jobs every 5 epochs).
+    - Validator state tracking API:  
+      `https://ddflzdhahq8jq.cloudfront.net/validator-stats/?validators=...`
 
 ---
 
 ## Usage Flow (Summary)
 
-1. **Admin Setup**
+1. **Validator Onboarding**
+    - Register validator ID in SebaPool.
+    - Set fee recipient to SebaPool.
 
-   - Deploy and configure each contract (Vault, Yield Manager, Boost Pool, etc.).
-   - Assign roles: `ADMIN_ROLE`, `AUTOMATOR_ROLE`, etc.
+2. **Commitment Period**
+    - Rewards are swept 50/50 between principal and sBOLD.
+    - Validator accrues attestation points.
 
-2. **Validator Subscribes**
+3. **Graduation**
+    - After 6 months, validator ID must be included in a Heroglyphs block.
+    - Validator receives pybSeba shares.
 
-   - Must hold a valid POAP (Stakers Union event).
-   - Calls `subscribeValidator` on `BoostPool`.
-
-3. **Yield Flow**
-
-   - MEV rewards or direct deposits flow to `YieldManager`.
-   - Manager calls `depositFunds()`, which goes to `ApxETHVault`.
-   - Manager can call `distributeYield()` to top up `PerpYieldBearingAutoPxEth`.
-
-4. **Validator Graduation**
-   - After enough blocks (GRADUATION_DURATION_IN_BLOCKS), the automator calls `graduateValidator`.
-   - The pool mints yield shares to the validator.
-   - The validator can redeem or hold these yield‐bearing shares.
+4. **Yield Redemption**
+    - Burn shares for sBOLD (immediate yield).
+    - Or hold shares for perpetual compounding rewards.
 
 ---
 
@@ -161,5 +145,5 @@ All code in this repository is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For questions or suggestions, please reach out via issues or open a discussion. We welcome contributions and feedback
-from the community!
+Questions or ideas?  
+Open an issue or start a discussion — we welcome contributions from the validator community!  
