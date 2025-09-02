@@ -52,7 +52,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    address public immutable boostPool;
+    address public immutable sebaPool;
     /// @inheritdoc IYieldManager
     IEthToBoldRouter public immutable router;
     /// @inheritdoc IYieldManager
@@ -98,7 +98,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     constructor(
         address admin,
         address automator,
-        address _boostPool,
+        address _sebaPool,
         address _router,
         address _bold,
         address _sbold,
@@ -108,7 +108,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         if (
             admin == address(0) ||
             automator == address(0) ||
-            _boostPool == address(0) ||
+            _sebaPool == address(0) ||
             _router == address(0) ||
             _bold == address(0) ||
             _sbold == address(0) ||
@@ -121,7 +121,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(AUTOMATOR_ROLE, ADMIN_ROLE);
 
-        boostPool = _boostPool;
+        sebaPool = _sebaPool;
         router = IEthToBoldRouter(_router);
         BOLD = IERC20(_bold);
         sBOLD = ISBOLD(_sbold);
@@ -144,8 +144,8 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         if (msg.value == 0) revert EmptyDeposit();
         uint256 depositValue;
 
-        /* ---------- 1️⃣  BoostPool deposit: 50 / 50 split ---------- */
-        if (msg.sender == boostPool) {
+        /* ---------- SebaPool deposit: 50 / 50 split ---------- */
+        if (msg.sender == sebaPool) {
             uint256 half = msg.value / 2;
             uint256 other = msg.value - half;
 
@@ -157,7 +157,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
             return;
         }
 
-        /* ---------- 2️⃣  External user deposit (locked) ------------ */
+        /* ---------- External user deposit ------------ */
         depositValue = yieldVault.deposit{ value: msg.value }();
 
         unchecked {
@@ -204,8 +204,9 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
     /// @inheritdoc IYieldManager
     function runBoldConversion() external override {
-        /* 1️⃣  Cancel expired router intent & reclaim ETH */
+        /* Cancel expired router intent & reclaim ETH */
         if (block.timestamp > lastConversionStartTimestamp + ROUTER_VALIDITY_SECS) {
+            lastConversionStartTimestamp = block.timestamp;
             if (_hasOpenRouterIntent()) {
                 uint256 pre = address(this).balance;
                 _finalizeRouterIntent();
@@ -215,10 +216,10 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
                 }
             }
 
-            /* 2️⃣  Finalise any BOLD→sBOLD conversion */
+            /* Finalise any BOLD→sBOLD conversion */
             _runSBoldConversion();
 
-            /* 3️⃣  Start a new ETH→BOLD intent if funds pending */
+            /* Start a new ETH→BOLD intent if funds pending */
             if (pendingBoldConversion > 0) {
                 uint256 ethIn = pendingBoldConversion;
                 bytes32 uid = router.swapExactEthForBold{ value: ethIn }(
@@ -245,7 +246,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
         if (ethAmount > 0) {
             if (!yieldFlowActive) {
-                yieldVault.deposit{ value: ethAmount }();
+                principalValue += yieldVault.deposit{ value: ethAmount }();
                 emit YieldDistributed(ethAmount, false);
                 return;
             }
@@ -255,7 +256,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     }
 
     /// @inheritdoc IYieldManager
-    function activateYieldFlow() external override onlyRole(ADMIN_ROLE) {
+    function activateYieldFlow() external override onlyRole(AUTOMATOR_ROLE) {
         if (yieldFlowActive) revert YieldFlowAlreadyActivated();
         yieldFlowActive = true;
         emit YieldFlowActivated();
@@ -297,7 +298,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
     /// @inheritdoc IYieldManager
     function setRouterSlippageBps(uint16 _bps) external override onlyRole(ADMIN_ROLE) {
-        require(_bps <= 10_000, "slippage bps out of range");
+        if (_bps > 10_000) revert SlippageTooHigh();
         uint16 prev = ROUTER_SLIPPAGE_BPS;
         ROUTER_SLIPPAGE_BPS = _bps;
         emit RouterSlippageBpsSet(prev, _bps);
@@ -305,7 +306,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
     /// @inheritdoc IYieldManager
     function setRouterValiditySecs(uint32 _secs) external override onlyRole(ADMIN_ROLE) {
-        require(_secs > 0, "validity must be > 0");
+        if (_secs == 0) revert InvalidValidity();
         uint32 prev = ROUTER_VALIDITY_SECS;
         ROUTER_VALIDITY_SECS = _secs;
         emit RouterValiditySecsSet(prev, _secs);
@@ -329,12 +330,12 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     }
 
     function _finalizeRouterIntent() internal {
-        if (activeRouterUid.length == 0) revert NoActiveRouterIntent();
+        if (activeRouterUid == bytes32(0)) revert NoActiveRouterIntent();
         router.finalizeIntent();
         delete activeRouterUid;
     }
 
     function _hasOpenRouterIntent() internal view returns (bool) {
-        return (activeRouterUid.length > 0);
+        return (activeRouterUid != bytes32(0));
     }
 }

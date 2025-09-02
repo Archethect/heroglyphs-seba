@@ -10,7 +10,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract FinalizeIntentTest is BaseTest {
     function test_RevertWhen_NotTheYieldManager(address invocator) external {
-        vm.assume(invocator != users.yieldManager);
+        vm.assume(invocator != users.yieldManager && invocator != contracts.yieldManager);
         // it should revert
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -99,8 +99,8 @@ contract FinalizeIntentTest is BaseTest {
         vm.expectCall(contracts.ethFlow, abi.encodeWithSelector(IEthFlow.invalidateOrder.selector, expected));
         // Send some WETH to the contract to simulate a WETH refund
         vm.deal(users.yieldManager, amount);
-        WETH.deposit{ value: amount }();
-        WETH.transfer(contracts.ethToBoldRouter, amount);
+        weth.deposit{ value: amount }();
+        weth.transfer(contracts.ethToBoldRouter, amount);
         assertEq(users.yieldManager.balance, 0);
 
         // it should emit IntentFinalized

@@ -13,7 +13,7 @@ contract ClaimYieldTest is BaseTest {
     StdStorage private stdstore;
 
     function test_RevertWhen_NotTheYieldManager(address invocator) external {
-        vm.assume(invocator != users.yieldManager);
+        vm.assume(invocator != users.yieldManager && invocator != contracts.yieldManager);
         // it should revert
         vm.expectRevert(
             abi.encodeWithSelector(

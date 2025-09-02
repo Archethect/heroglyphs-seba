@@ -5,21 +5,28 @@ ConstructorTest
     ├── when automator is zero
     │   └── it should revert
     └── when automator is not zero
-        ├── when boostpool is zero
+        ├── when seba pool is zero
         │   └── it should revert
-        └── when boostpool is not zero
-            ├── when apxETH is zero
+        └── when seba pool is not zero
+            ├── when router is zero
             │   └── it should revert
-            └── when apxETH is not zero
-                ├── when apxEthVault is zero
+            └── when router is not zero
+                ├── when bold is zero
                 │   └── it should revert
-                └── when apxEthVault is not zero
-                    ├── when pybapxEth is zero
+                └── when bold is not zero
+                    ├── when sBOLD is zero
                     │   └── it should revert
-                    └── when pybapxEth is not zero
-                        ├── it should give admin the admin role
-                        ├── it should give automator the automator role
-                        ├── it should set boostpool
-                        ├── it should set apxETH
-                        ├── it should sep apxEthVault
-                        └── it should set pybapxEth
+                    └── when sBOLD is not zero
+                        ├── when seba vault is zero
+                        │   └── it should revert
+                        └── when seba vault is not zero
+                            ├── when yield vault is zero
+                            │   └── it should revert
+                            └── when yield vault is not zero
+                                ├── it should set the correct roles
+                                ├── it should set sebapool
+                                ├── it should set router
+                                ├── it should set BOLD
+                                ├── it should set sBOLD
+                                ├── it should set sebavault
+                                └── it should set yieldvault

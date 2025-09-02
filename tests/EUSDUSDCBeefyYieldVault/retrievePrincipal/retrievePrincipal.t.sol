@@ -7,7 +7,7 @@ import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.so
 
 contract RetrievePrincipalTest is BaseTest {
     function test_RevertWhen_NotTheYieldManager(address invocator) external {
-        vm.assume(invocator != users.yieldManager);
+        vm.assume(invocator != users.yieldManager && invocator != contracts.yieldManager);
         // it should revert
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -44,12 +44,12 @@ contract RetrievePrincipalTest is BaseTest {
         vm.deal(users.yieldManager, 1 ether);
         uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
 
-        //uint256 principalShares = eUsdUsdcBeefyYieldVault.principalShares();
+        uint256 principalShares = eUsdUsdcBeefyYieldVault.principalShares();
         uint256 balanceBefore = users.yieldManager.balance;
 
         // it should emit PrincipalRetrieved
-        // vm.expectEmit();
-        // emit IEUSDUSDCBeefyYieldVault.PrincipalRetrieved(principalShares, 998594580790510476);
+        vm.expectEmit();
+        emit IEUSDUSDCBeefyYieldVault.PrincipalRetrieved(principalShares, 998597841013762580);
         eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
 
         // it should set the sharesToWithdraw equal to the principal shares
@@ -82,8 +82,8 @@ contract RetrievePrincipalTest is BaseTest {
         uint256 expectedPrincipalValue = principalValue - (principalValue * expectedSharesToWithdraw) / principalShares;
 
         // it should emit PrincipalRetrieved
-        // vm.expectEmit();
-        // emit IEUSDUSDCBeefyYieldVault.PrincipalRetrieved(principalShares, 499305686253512692);
+        vm.expectEmit();
+        emit IEUSDUSDCBeefyYieldVault.PrincipalRetrieved(expectedPrincipalShares - 1, 499306920170780746);
         eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue / 2);
 
         // it should set the new principalShares

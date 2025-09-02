@@ -1,4 +1,13 @@
 DistributeYieldTest
-└── given the apxETH balance is bigger than zero
-    ├── it should send the full apxETH balance to pybapxETH vault
-    └── it should emit YieldDistributed
+├── when not the automator role
+│   └── it should revert
+└── when the automator role
+    ├── when there is no yield claimed
+    │   └── it should emit YieldClaimed
+    └── when there is yield claimed
+        ├── when the yield flow is not active
+        │   ├── it should deposit the yield back into the yield vault
+        │   └── it should emit YieldDistributed
+        └── when the yield flow is active
+            ├── it should increase the pendingBoldConversion
+            └── it should emit YieldDistributed

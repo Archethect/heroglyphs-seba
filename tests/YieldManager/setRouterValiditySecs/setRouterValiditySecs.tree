@@ -1,0 +1,9 @@
+SetRouterValiditySecsTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the validity is 0
+    │   └── it should revert
+    └── when the validity is not 0
+        ├── it should set the new router validity seconds
+        └── it should emit RouterValiditySecsSet

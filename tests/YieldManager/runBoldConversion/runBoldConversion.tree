@@ -1,0 +1,13 @@
+RunBoldConversionTest
+└── when the conversion timeout is finished
+    ├── when there is an open router intent
+    │   ├── it should finalize the intent and reset the activeRouterId when a new one is instantiated
+    │   └── it should set the correct pendingBoldConversion
+    ├── when the bold balance in the contract is bigger than 0
+    │   ├── it should convert the bold to sBOLD and topup the sebaVault
+    │   └── it should emit BoldConversionFinalised
+    └── when the pending pendingBoldConversion is bigger than 0
+        ├── it should start a new intent to swap from eth to bold
+        ├── it should set the activeRouterUid
+        ├── it should reset the pendingBoldConversion
+        └── it should emit BoldConversionStarted

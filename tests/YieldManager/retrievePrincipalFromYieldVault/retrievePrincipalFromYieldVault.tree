@@ -1,0 +1,10 @@
+RetrievePrincipalFromYieldVaultTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the principalValue is 0
+    │   └── it should revert
+    └── when the principalValue is not 0
+        ├── it should retrieve the principal from the yieldvault
+        ├── it should set principalValue to 0
+        └── it should emit PrincipalRetrieved

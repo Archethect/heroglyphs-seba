@@ -66,6 +66,12 @@ interface IYieldManager {
     /// Thrown when admin tries to pull protocol principal but none is deployed.
     error NoPrincipalDeployed();
 
+    /// Thrown when the slippage is configured too high
+    error SlippageTooHigh();
+
+    /// Thrown when the invalidity is set to 0
+    error InvalidValidity();
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -143,7 +149,7 @@ interface IYieldManager {
     function sBOLD() external view returns (ISBOLD);
     function sebaVault() external view returns (IPYBSeba);
     function yieldVault() external view returns (IYieldVault);
-    function boostPool() external view returns (address);
+    function sebaPool() external view returns (address);
 
     /// Conversion & yield state
     function activeRouterUid() external view returns (bytes32);

@@ -1,0 +1,6 @@
+DepositPrincipalIntoYieldVaultTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── it should deposit the principal into the yieldvault
+    └── it should emit PrincipalDeposited

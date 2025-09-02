@@ -1,93 +1,95 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/*import { BaseTest } from "tests/Base.t.sol";
+import { BaseTest } from "tests/Base.t.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
+import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { Noop } from "../../../src/mocks/Noop.sol";
 
 contract RetrieveFundsTest is BaseTest {
-    function test_RevertWhen_TheSenderIsNotAnAdmin(address caller) external whenTheDepositorIsTheYieldManager {
-        vm.assume(caller != users.admin);
-        assumeNotZeroAddress(caller);
-
+    function test_RevertWhen_TheDepositAmountIs0() external {
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IYieldManager.InvalidDepositor.selector, caller));
-        resetPrank(caller);
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.NonExistingDeposit.selector, 0));
         yieldManager.retrieveFunds(0);
     }
 
-    function test_WhenTheSenderIsAnAdmin() external whenTheDepositorIsTheYieldManager {
-        resetPrank(contracts.boostPool);
-        vm.deal(contracts.boostPool, 1 ether);
-        yieldManager.depositFunds{ value: 1 ether }();
+    function test_RevertWhen_TheDepositorIsNotTheSender() external whenTheDepositAmountIsNotZero {
+        vm.deal(users.admin, 1 ether);
 
         resetPrank(users.admin);
-
-        // it should emit FundsRetrieved
-        vm.expectEmit();
-        emit IYieldManager.FundsRetrieved(0, users.admin, 0.99 ether);
-        yieldManager.retrieveFunds(0);
-
-        // it should delete the deposit object
-        (uint32 lockedUntil, uint128 amount, address depositor) = yieldManager.deposits(0);
-        assertEq(lockedUntil, 0, "lockedUntil is not correct");
-        assertEq(amount, 0, "amount is not correct");
-        assertEq(depositor, address(0), "depositor is not correct");
-        // it should withdraw the deposited amount to the sender
-        assertEq(apxETH.balanceOf(users.admin), 0.99 ether, "admin balance is not correct");
-    }
-
-    function test_RevertWhen_TheSenderIsNotTheDepositor() external whenTheDepositorIsNotTheYieldManager {
-        resetPrank(users.validator);
-        vm.deal(users.validator, 1 ether);
         yieldManager.depositFunds{ value: 1 ether }();
 
         resetPrank(users.nonValidator);
-
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IYieldManager.InvalidDepositor.selector, users.nonValidator));
         yieldManager.retrieveFunds(1);
     }
 
-    function test_RevertWhen_TheDepositIsNotUnlockableYet()
+    function test_RevertWhen_TheUnlockTimeHasNotBeenReached()
         external
-        whenTheDepositorIsNotTheYieldManager
-        whenTheSenderIsTheDepositor
+        whenTheDepositAmountIsNotZero
+        whenTheDepositorIsTheSender
     {
-        resetPrank(users.validator);
-        vm.deal(users.validator, 1 ether);
+        vm.deal(users.admin, 1 ether);
+
+        resetPrank(users.admin);
         yieldManager.depositFunds{ value: 1 ether }();
-        (uint64 lockedUntil, , ) = yieldManager.deposits(1);
 
         // it should revert
         vm.expectRevert(
-            abi.encodeWithSelector(IYieldManager.DepositStillLocked.selector, block.timestamp, lockedUntil)
+            abi.encodeWithSelector(
+                IYieldManager.DepositStillLocked.selector,
+                block.timestamp,
+                block.timestamp + yieldManager.USER_LOCK_SECS()
+            )
         );
         yieldManager.retrieveFunds(1);
     }
 
-    function test_WhenTheDepositIsUnlockabled()
+    function test_RevertWhen_TheTransferOfTheFundsToTheReceiverFails()
         external
-        whenTheDepositorIsNotTheYieldManager
-        whenTheSenderIsTheDepositor
+        whenTheDepositAmountIsNotZero
+        whenTheDepositorIsTheSender
+        whenTheUnlockTimeHasBeenReached
     {
-        resetPrank(users.validator);
-        vm.deal(users.validator, 1 ether);
-        yieldManager.depositFunds{ value: 1 ether }();
-        (uint64 lockedUntil, , ) = yieldManager.deposits(1);
+        Noop noop = new Noop();
+        vm.deal(address(noop), 1 ether);
 
-        vm.warp(lockedUntil);
+        resetPrank(address(noop));
+        yieldManager.depositFunds{ value: 1 ether }();
+        vm.warp(block.timestamp + yieldManager.USER_LOCK_SECS());
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.TransferFailed.selector));
+        yieldManager.retrieveFunds(1);
+    }
+
+    function test_WhenTheTransferOfTheFundsToTheReceiverSucceeds()
+        external
+        whenTheDepositAmountIsNotZero
+        whenTheDepositorIsTheSender
+        whenTheUnlockTimeHasBeenReached
+    {
+        vm.deal(users.admin, 1 ether);
+
+        resetPrank(users.admin);
+        yieldManager.depositFunds{ value: 1 ether }();
+        vm.warp(block.timestamp + yieldManager.USER_LOCK_SECS());
 
         // it should emit FundsRetrieved
         vm.expectEmit();
-        emit IYieldManager.FundsRetrieved(1, users.validator, 0.99 ether);
+        emit IYieldManager.FundsRetrieved(1, users.admin, 998597841013762580);
         yieldManager.retrieveFunds(1);
 
-        // it should delete the deposit object
-        (uint64 newLockedUntil, uint128 newAmount, address newDepositor) = yieldManager.deposits(1);
-        assertEq(newLockedUntil, 0, "lockedUntil is not correct");
-        assertEq(newAmount, 0, "amount is not correct");
-        assertEq(newDepositor, address(0), "depositor is not correct");
-        // it should withdraw the deposited amount to the sender
-        assertEq(apxETH.balanceOf(users.validator), 0.99 ether, "validator balance is not correct");
+        // it should delete the deposits object
+        (address _depositor, IYieldVault _vaultAtDeposit, uint256 _amount, uint32 _unlockTime) = yieldManager.deposits(
+            1
+        );
+        assertEq(_depositor, address(0));
+        assertEq(address(_vaultAtDeposit), address(0));
+        assertEq(_amount, 0);
+        assertEq(_unlockTime, 0);
+        // it should sent the funds back to the receiver
+        assertEq(users.admin.balance, 998597841013762580);
     }
-}*/
+}

@@ -44,6 +44,7 @@ contract BaseTest is Modifiers {
     function setUp() public virtual {
         mainnetFork = vm.createFork(vm.envString("MAINNET_RPC"));
         vm.selectFork(mainnetFork);
+        vm.rollFork(mainnetFork, 23274276);
 
         _setupUsers();
         _setupContractsAndMocks();
@@ -94,8 +95,21 @@ contract BaseTest is Modifiers {
             address(curvePool),
             address(beefy)
         );
+        yieldManager = new YieldManager(
+            users.admin,
+            users.automator,
+            address(sebaPool),
+            address(ethToBoldRouter),
+            address(bold),
+            address(sBOLD),
+            address(pybSeba),
+            address(eUsdUsdcBeefyYieldVault)
+        );
+        eUsdUsdcBeefyYieldVault.grantRole(eUsdUsdcBeefyYieldVault.YIELDMANAGER_ROLE(), address(yieldManager));
         pybSeba.setSebaPool(address(sebaPool));
         sebaPool.setSebaVault(address(pybSeba));
+        sebaPool.setYieldManager(address(yieldManager));
+        ethToBoldRouter.grantRole(ethToBoldRouter.YIELD_MANAGER_ROLE(), address(yieldManager));
         vm.stopPrank();
 
         contracts.sBOLD = address(sBOLD);

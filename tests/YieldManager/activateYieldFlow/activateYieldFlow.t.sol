@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/*import { BaseTest } from "tests/Base.t.sol";
+import { BaseTest } from "tests/Base.t.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
@@ -14,30 +14,31 @@ contract ActivateYieldFlowTest is BaseTest {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 caller,
-                boostPool.AUTOMATOR_ROLE()
+                yieldManager.AUTOMATOR_ROLE()
             )
         );
         resetPrank(caller);
         yieldManager.activateYieldFlow();
     }
 
-    function test_WhenTheAutomatorRole() external {
-        resetPrank(contracts.yieldManager);
-        vm.deal(contracts.yieldManager, 1 ether);
-        yieldManager.depositFunds{ value: 1 ether }();
-        apxETH.setPricePerShare(1.2 ether);
+    function test_RevertWhen_TheYieldFlowIsAlreadyActive() external whenTheAutomatorRole {
+        resetPrank(users.automator);
+        yieldManager.activateYieldFlow();
 
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.YieldFlowAlreadyActivated.selector));
+        yieldManager.activateYieldFlow();
+    }
+
+    function test_WhenTheYieldFlowIsNotYetActive() external whenTheAutomatorRole {
         resetPrank(users.automator);
 
-        // it should emit FundsDeposited
-        vm.expectEmit();
-        emit IYieldManager.FundsDeposited(0, contracts.yieldManager, 0.198 ether);
         // it should emit YieldFlowActivated
+        vm.expectEmit();
         emit IYieldManager.YieldFlowActivated();
         yieldManager.activateYieldFlow();
 
-        // it should add the pending interest to the yield manager deposit amount
-        (, uint128 amount, ) = yieldManager.deposits(0);
-        assertEq(amount, 1.188 ether, "amount is not correct");
+        // it should set yieldFlowActive to true
+        assertTrue(yieldManager.yieldFlowActive());
     }
-}*/
+}

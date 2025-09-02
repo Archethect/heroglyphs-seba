@@ -12,8 +12,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             address(0),
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
@@ -27,8 +27,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             address(0),
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
@@ -43,7 +43,7 @@ contract ConstructorTest is BaseTest {
             users.admin,
             users.yieldManager,
             address(0),
-            contracts.USDC,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
@@ -57,7 +57,7 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
+            contracts.weth,
             address(0),
             contracts.swapRouter,
             contracts.quoter,
@@ -78,8 +78,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             address(0),
             contracts.quoter,
             contracts.curvePool,
@@ -100,8 +100,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             address(0),
             contracts.curvePool,
@@ -123,8 +123,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             address(0),
@@ -147,8 +147,8 @@ contract ConstructorTest is BaseTest {
         new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
@@ -169,8 +169,8 @@ contract ConstructorTest is BaseTest {
         EUSDUSDCBeefyYieldVault localEUSDUSDCBeefyYieldVault = new EUSDUSDCBeefyYieldVault(
             users.admin,
             users.yieldManager,
-            contracts.WETH,
-            contracts.USDC,
+            contracts.weth,
+            contracts.usdc,
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
@@ -201,9 +201,9 @@ contract ConstructorTest is BaseTest {
         );
 
         // it should set the correct weth
-        assertEq(address(contracts.WETH), localEUSDUSDCBeefyYieldVault.WETH(), "WETH is not correct");
+        assertEq(address(contracts.weth), localEUSDUSDCBeefyYieldVault.WETH(), "weth is not correct");
         // it should set the correct usdc
-        assertEq(address(contracts.USDC), localEUSDUSDCBeefyYieldVault.USDC(), "USDC is not correct");
+        assertEq(address(contracts.usdc), localEUSDUSDCBeefyYieldVault.USDC(), "usdc is not correct");
         // it should set the correct swapRouter
         assertEq(
             address(contracts.swapRouter),

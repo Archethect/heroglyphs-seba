@@ -10,7 +10,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SwapExactEthForBoldTest is BaseTest {
     function test_RevertWhen_TheCallerIsNotTheYieldManager(address invocator) external {
-        vm.assume(invocator != users.yieldManager);
+        vm.assume(invocator != users.yieldManager && invocator != contracts.yieldManager);
         // it should revert
         vm.expectRevert(
             abi.encodeWithSelector(

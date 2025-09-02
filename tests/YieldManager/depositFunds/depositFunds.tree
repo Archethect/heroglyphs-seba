@@ -1,10 +1,15 @@
 DepositFundsTest
-├── given the depositor is the boostpool
-│   ├── it should correctly add the amount to the yieldmanager deposit object
-│   ├── it should deposit the amount to the apxEthVault
-│   └── it should emit FundsDeposited
-└── given the depositor is not the boostpool
-    ├── it should create a new deposit object
-    ├── it should increase the depositId
-    ├── it should deposit the amount to the apxEthVault
-    └── it should emit FundsDeposited
+├── when the value is 0
+│   └── it should revert
+└── when the value is not zero
+    ├── when the sender is the sebapool
+    │   ├── it should set the correct pendingBoldConversion
+    │   ├── it should set the correct principalValue
+    │   ├── it should deposit half of the value in the yieldvault
+    │   └── it shoud emit DepositReceived
+    └── when the sender is not the sebapool
+        ├── it should deposit the complete value in the yieldvault
+        ├── it should increase the depositId
+        ├── it should add a new deposit object
+        ├── it should emit DepositReceived
+        └── it should emit FundsDeposited

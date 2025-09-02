@@ -1,18 +1,16 @@
 RetrieveFundsTest
-├── when the depositor is the yield manager
-│   ├── when the sender is not an admin
-│   │   └── it should revert
-│   └── when the sender is an admin
-│       ├── it should delete the deposit object
-│       ├── it should withdraw the deposited amount to the sender
-│       └── it should emit FundsRetrieved
-└── when the depositor is not the yield manager
-    ├── when the sender is not the depositor
+├── when the deposit amount is 0
+│   └── it should revert
+└── when the deposit amount is not zero
+    ├── when the depositor is not the sender
     │   └── it should revert
-    └── when the sender is the depositor
-        ├── when the deposit is not unlockable yet
+    └── when the depositor is the sender
+        ├── when the unlock time has not been reached
         │   └── it should revert
-        └── when the deposit is unlockabled
-            ├── it should delete the deposit object
-            ├── it should withdraw the deposited amount to the sender
-            └── it should emit FundsRetrieved
+        └── when the unlock time has been reached
+            ├── when the transfer of the funds to the receiver fails
+            │   └── it should revert
+            └── when the transfer of the funds to teh receiver succeeds
+                ├── it should delete the deposits object
+                ├── it should sent the funds back to the receiver
+                └── it should emit FundsRetrieved

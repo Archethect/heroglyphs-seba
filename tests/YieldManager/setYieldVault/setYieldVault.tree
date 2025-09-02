@@ -1,0 +1,13 @@
+SetYieldVaultTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the principalValue is bigger than 0
+    │   ├── it should retrieve the principal from the current vault
+    │   ├── it should set principalValue to 0
+    │   ├── it should emit PrincipalRetrieved
+    │   ├── it should set the new yieldvault
+    │   └── it should emit NewYieldVaultSet
+    └── when the principalValue is 0
+        ├── it should set the new yieldvault
+        └── it should emit NewYieldVaultSet

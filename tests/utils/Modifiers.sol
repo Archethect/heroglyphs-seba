@@ -173,4 +173,40 @@ abstract contract Modifiers is Helpers {
     modifier whenTheAdmin() {
         _;
     }
+
+    modifier whenSebaPoolIsNotZero() {
+        _;
+    }
+
+    modifier whenRouterIsNotZero() {
+        _;
+    }
+
+    modifier whenSBOLDIsNotZero() {
+        _;
+    }
+
+    modifier whenSebaVaultIsNotZero() {
+        _;
+    }
+
+    modifier whenThereIsYieldClaimed() {
+        _;
+    }
+
+    modifier whenTheDepositAmountIsNotZero() {
+        _;
+    }
+
+    modifier whenTheDepositorIsTheSender() {
+        _;
+    }
+
+    modifier whenTheUnlockTimeHasBeenReached() {
+        _;
+    }
+
+    modifier whenTheConversionTimeoutIsFinished() {
+        _;
+    }
 }

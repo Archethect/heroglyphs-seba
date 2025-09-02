@@ -1,0 +1,9 @@
+SetRouterSlippageBpsTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the slippage exceeds 10000
+    │   └── it should revert
+    └── when the slippage does not exceed 10000
+        ├── it should set the new router slippage
+        └── it should emit RouterSlippageBpsSet
