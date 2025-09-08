@@ -41,7 +41,7 @@ contract FinalizeIntentTest is BaseTest {
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
         vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
+        vm.assume(fee < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
@@ -126,7 +126,7 @@ contract FinalizeIntentTest is BaseTest {
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
         vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
+        vm.assume(fee < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);

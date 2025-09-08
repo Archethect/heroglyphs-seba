@@ -31,23 +31,10 @@ contract SwapExactEthForBoldTest is BaseTest {
         ethToBoldRouter.swapExactEthForBold(0, 0, 0);
     }
 
-    function test_RevertWhen_TheFeeIsBiggerOrEqualToTheBpsDenominator(
-        uint16 fee
-    ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero {
-        resetPrank(users.yieldManager);
-
-        vm.assume(fee >= 10000);
-        vm.assume(fee < type(uint16).max);
-        vm.deal(users.yieldManager, 1 ether);
-        // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidFee.selector, fee, 10000));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, 0, 0);
-    }
-
     function test_RevertWhen_TheSlippageIsBiggerOrEqualToTheBpsDenominator(
         uint16 fee,
         uint16 slippage
-    ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero whenTheFeeIsSmallerThanTheBpsDenominator {
+    ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero {
         resetPrank(users.yieldManager);
 
         vm.assume(fee >= 0);
@@ -68,7 +55,6 @@ contract SwapExactEthForBoldTest is BaseTest {
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
-        whenTheFeeIsSmallerThanTheBpsDenominator
         whenTheSlippageIsSmallerThanTheBpsDenominator
     {
         resetPrank(users.yieldManager);
@@ -138,7 +124,6 @@ contract SwapExactEthForBoldTest is BaseTest {
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
-        whenTheFeeIsSmallerThanTheBpsDenominator
         whenTheSlippageIsSmallerThanTheBpsDenominator
         whenThereIsNoOpenOrderYet
     {
@@ -181,7 +166,6 @@ contract SwapExactEthForBoldTest is BaseTest {
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
-        whenTheFeeIsSmallerThanTheBpsDenominator
         whenTheSlippageIsSmallerThanTheBpsDenominator
         whenThereIsNoOpenOrderYet
         whenTheOraclePriceIsBiggerThanZero
@@ -216,7 +200,6 @@ contract SwapExactEthForBoldTest is BaseTest {
         external
         whenTheCallerIsTheYieldManager
         whenTheValueIsNotZero
-        whenTheFeeIsSmallerThanTheBpsDenominator
         whenTheSlippageIsSmallerThanTheBpsDenominator
         whenThereIsNoOpenOrderYet
         whenTheOraclePriceIsBiggerThanZero
@@ -226,7 +209,7 @@ contract SwapExactEthForBoldTest is BaseTest {
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
         vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
+        vm.assume(fee < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);

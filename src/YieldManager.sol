@@ -34,7 +34,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     /// @inheritdoc IYieldManager
     uint16 public ROUTER_SLIPPAGE_BPS = 50; // 0.50 %
     /// @inheritdoc IYieldManager
-    uint16 public FEE_BPS = 100; // 1 %
+    uint16 public MAX_FEE_BPS = 1000; // 10 %
     /// @inheritdoc IYieldManager
     uint32 public ROUTER_VALIDITY_SECS = 15 minutes;
 
@@ -203,7 +203,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    function runBoldConversion() external override {
+    function runBoldConversion(uint256 feeAmount) external override {
         /* Cancel expired router intent & reclaim ETH */
         if (block.timestamp > lastConversionStartTimestamp + ROUTER_VALIDITY_SECS) {
             lastConversionStartTimestamp = block.timestamp;
@@ -220,10 +220,10 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
             _runSBoldConversion();
 
             /* Start a new ETH→BOLD intent if funds pending */
-            if (pendingBoldConversion > 0) {
+            if (pendingBoldConversion > 0 && feeAmount < (pendingBoldConversion * MAX_FEE_BPS) / 10000) {
                 uint256 ethIn = pendingBoldConversion;
                 bytes32 uid = router.swapExactEthForBold{ value: ethIn }(
-                    FEE_BPS,
+                    feeAmount,
                     ROUTER_SLIPPAGE_BPS,
                     ROUTER_VALIDITY_SECS
                 );
@@ -310,6 +310,13 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
         uint32 prev = ROUTER_VALIDITY_SECS;
         ROUTER_VALIDITY_SECS = _secs;
         emit RouterValiditySecsSet(prev, _secs);
+    }
+
+    function setMaxFeeBPS(uint16 _bps) external override onlyRole(ADMIN_ROLE) {
+        if (_bps > 10_000) revert MaxFeeTooHigh();
+        uint16 prev = MAX_FEE_BPS;
+        MAX_FEE_BPS = _bps;
+        emit MaxFeeBpsSet(prev, _bps);
     }
 
     /*//////////////////////////////////////////////////////////////

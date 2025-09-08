@@ -64,8 +64,8 @@ abstract contract Helpers is PRBTest, StdCheats, StdUtils {
         uint16 fee,
         uint16 slippage
     ) internal pure returns (uint256 sellAmount, uint256 feeAmount, uint256 minBold) {
-        sellAmount = (amount * (10000 - uint256(fee))) / 10000;
-        feeAmount = amount - sellAmount;
+        feeAmount = fee;
+        sellAmount = amount - feeAmount;
         uint256 boldRaw = (sellAmount * uint256(price)) / (10 ** 8);
         minBold = (boldRaw * (10000 - slippage)) / 10000;
     }

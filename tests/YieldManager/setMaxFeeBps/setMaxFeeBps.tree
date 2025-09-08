@@ -1,0 +1,9 @@
+SetMaxFeeBpsTest
+├── when not the admin
+│   └── it should revert
+└── when the admin
+    ├── when the max fee exceeds 10000
+    │   └── it should revert
+    └── when the max fee does not exceed 10000
+        ├── it should set the new max fee
+        └── it should emit MaxFeeBpsSet

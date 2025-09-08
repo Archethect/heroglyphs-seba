@@ -95,12 +95,11 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
 
     /// @inheritdoc IEthToBoldRouter
     function swapExactEthForBold(
-        uint16 feeBps,
+        uint256 feeAmount,
         uint16 slippageBps,
         uint32 validity
     ) external payable override onlyRole(YIELD_MANAGER_ROLE) returns (bytes32 uid) {
         if (msg.value == 0) revert NoEthSent();
-        if (feeBps >= BPS_DENOMINATOR) revert InvalidFee(feeBps, BPS_DENOMINATOR);
         if (slippageBps >= BPS_DENOMINATOR) revert InvalidSlippage(slippageBps, BPS_DENOMINATOR);
         if (order.active) revert OrderAlreadyOpen();
 
@@ -111,8 +110,7 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
         uint8 d = ETH_USD_FEED.decimals(); // typically 8
 
         // 2) Compute min BOLD out (1 BOLD = 1 USD; BOLD assumed 18 decimals)
-        uint256 sellAmount = (msg.value * (BPS_DENOMINATOR - feeBps)) / BPS_DENOMINATOR;
-        uint256 feeAmount = msg.value - sellAmount;
+        uint256 sellAmount = msg.value - feeAmount;
         uint256 boldRaw = (sellAmount * uint256(px)) / (10 ** d);
         uint256 minBold = (boldRaw * (BPS_DENOMINATOR - slippageBps)) / BPS_DENOMINATOR;
 

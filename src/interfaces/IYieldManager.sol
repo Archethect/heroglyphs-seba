@@ -69,6 +69,9 @@ interface IYieldManager {
     /// Thrown when the slippage is configured too high
     error SlippageTooHigh();
 
+    /// Thrown when the max fee is configured too high
+    error MaxFeeTooHigh();
+
     /// Thrown when the invalidity is set to 0
     error InvalidValidity();
 
@@ -105,6 +108,9 @@ interface IYieldManager {
     /// Emitted when slippage tolerance for CowSwap intents is adjusted.
     event RouterSlippageBpsSet(uint16 previous, uint16 current);
 
+    /// Emitted when max fee tolerance for CowSwap intents is adjusted.
+    event MaxFeeBpsSet(uint16 previous, uint16 current);
+
     /// Emitted when validity window for CowSwap intents is adjusted.
     event RouterValiditySecsSet(uint32 previous, uint32 current);
 
@@ -131,7 +137,7 @@ interface IYieldManager {
     function USER_LOCK_SECS() external view returns (uint32);
 
     /// @notice CowSwap fee (basis-points, 1 bp = 0.01 %).
-    function FEE_BPS() external view returns (uint16);
+    function MAX_FEE_BPS() external view returns (uint16);
 
     /// @notice CowSwap slippage tolerance (basis-points, 1 bp = 0.01 %).
     function ROUTER_SLIPPAGE_BPS() external view returns (uint16);
@@ -203,7 +209,7 @@ interface IYieldManager {
      *
      * @dev Emits {BoldConversionFinalised} and/or {BoldConversionStarted}.
      */
-    function runBoldConversion() external;
+    function runBoldConversion(uint256 feeAmount) external;
 
     /**
      * @notice Claim yield from the active vault.
@@ -244,4 +250,7 @@ interface IYieldManager {
 
     /// Adjust CowSwap order validity window (seconds).
     function setRouterValiditySecs(uint32 _secs) external;
+
+    /// Adjust CowSwap Max fee tolerance (basis-points).
+    function setMaxFeeBPS(uint16 _bps) external;
 }
