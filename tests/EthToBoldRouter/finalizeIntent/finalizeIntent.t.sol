@@ -32,7 +32,7 @@ contract FinalizeIntentTest is BaseTest {
 
     function test_WhenTheIntentReverted(
         uint256 amount,
-        uint16 fee,
+        uint16 minBoldBeforeSlippage,
         uint16 slippage,
         uint32 validity
     ) external whenTheYieldManager whenThereIsAnActiveOrder {
@@ -40,40 +40,25 @@ contract FinalizeIntentTest is BaseTest {
 
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
-        vm.assume(fee >= 0);
-        vm.assume(fee < amount * 10 / 100);
+        vm.assume(minBoldBeforeSlippage >= 0);
+        vm.assume(minBoldBeforeSlippage < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
         vm.deal(users.yieldManager, amount);
 
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(1 ether), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
-
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(uint8(8))
-        );
-
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
-            amount,
-            int256(1 ether),
-            fee,
+        (uint256 minBold) = calculateOrderAmounts(
+            minBoldBeforeSlippage,
             slippage
         );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
             receiver: contracts.ethToBoldRouter,
-            sellAmount: sellAmount,
+            sellAmount: amount,
             buyAmount: minBold,
             appData: bytes32(uint256(0x53ba1)),
-            feeAmount: feeAmount,
+            feeAmount: 0,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
             quoteId: 0
@@ -88,7 +73,7 @@ contract FinalizeIntentTest is BaseTest {
             abi.encode(uid)
         );
 
-        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(minBoldBeforeSlippage, slippage, validity);
 
         // it should call invalidateOrder
         vm.mockCallRevert(
@@ -117,7 +102,7 @@ contract FinalizeIntentTest is BaseTest {
 
     function test_WhenTheIntentSucceeded(
         uint256 amount,
-        uint16 fee,
+        uint16 minBoldBeforeSlippage,
         uint16 slippage,
         uint32 validity
     ) external whenTheYieldManager whenThereIsAnActiveOrder {
@@ -125,40 +110,25 @@ contract FinalizeIntentTest is BaseTest {
 
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
-        vm.assume(fee >= 0);
-        vm.assume(fee < amount * 10 / 100);
+        vm.assume(minBoldBeforeSlippage >= 0);
+        vm.assume(minBoldBeforeSlippage < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
         vm.deal(users.yieldManager, amount);
 
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(1 ether), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
-
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(uint8(8))
-        );
-
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
-            amount,
-            int256(1 ether),
-            fee,
+        (uint256 minBold) = calculateOrderAmounts(
+            minBoldBeforeSlippage,
             slippage
         );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
             receiver: contracts.ethToBoldRouter,
-            sellAmount: sellAmount,
+            sellAmount: amount,
             buyAmount: minBold,
             appData: bytes32(uint256(0x53ba1)),
-            feeAmount: feeAmount,
+            feeAmount: 0,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
             quoteId: 0
@@ -173,7 +143,7 @@ contract FinalizeIntentTest is BaseTest {
             abi.encode(uid)
         );
 
-        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(minBoldBeforeSlippage, slippage, validity);
 
         // it should call invalidateOrder
         vm.mockCall(

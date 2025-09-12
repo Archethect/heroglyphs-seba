@@ -10,7 +10,7 @@ import { Users, Contracts } from "./Types.sol";
 
 abstract contract Helpers is PRBTest, StdCheats, StdUtils {
     error DoesNotHandleBigCreateCount();
-    error UIDMustBe56Buytes();
+    error UIDMustBe56Bytes();
 
     Users internal users;
     Contracts internal contracts;
@@ -55,19 +55,14 @@ abstract contract Helpers is PRBTest, StdCheats, StdUtils {
 
     function makeCOWUid(bytes32 orderHash, address owner, uint32 validTo) internal pure returns (bytes memory uid) {
         uid = abi.encodePacked(orderHash, owner, validTo);
-        if (uid.length != 56) revert UIDMustBe56Buytes();
+        if (uid.length != 56) revert UIDMustBe56Bytes();
     }
 
     function calculateOrderAmounts(
-        uint256 amount,
-        int256 price,
-        uint16 fee,
+        uint256 minBoldBeforeSlippage,
         uint16 slippage
-    ) internal pure returns (uint256 sellAmount, uint256 feeAmount, uint256 minBold) {
-        feeAmount = fee;
-        sellAmount = amount - feeAmount;
-        uint256 boldRaw = (sellAmount * uint256(price)) / (10 ** 8);
-        minBold = (boldRaw * (10000 - slippage)) / 10000;
+    ) internal pure returns (uint256 minBold) {
+        minBold = (minBoldBeforeSlippage * (10000 - slippage)) / 10000;
     }
 
     function accessControlMissingRoleForAccountRevert(

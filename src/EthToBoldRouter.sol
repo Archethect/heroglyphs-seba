@@ -95,7 +95,7 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
 
     /// @inheritdoc IEthToBoldRouter
     function swapExactEthForBold(
-        uint256 feeAmount,
+        uint256 minBoldBeforeSlippage,
         uint16 slippageBps,
         uint32 validity
     ) external payable override onlyRole(YIELD_MANAGER_ROLE) returns (bytes32 uid) {
@@ -103,25 +103,17 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
         if (slippageBps >= BPS_DENOMINATOR) revert InvalidSlippage(slippageBps, BPS_DENOMINATOR);
         if (order.active) revert OrderAlreadyOpen();
 
-        // 1) On-chain ETH/USD
-        (, int256 px, , uint256 updatedAt, ) = ETH_USD_FEED.latestRoundData();
-        if (px <= 0) revert OraclePriceInvalid(px);
-        if (updatedAt + 3600 < block.timestamp) revert StaleOracle();
-        uint8 d = ETH_USD_FEED.decimals(); // typically 8
-
-        // 2) Compute min BOLD out (1 BOLD = 1 USD; BOLD assumed 18 decimals)
-        uint256 sellAmount = msg.value - feeAmount;
-        uint256 boldRaw = (sellAmount * uint256(px)) / (10 ** d);
-        uint256 minBold = (boldRaw * (BPS_DENOMINATOR - slippageBps)) / BPS_DENOMINATOR;
+        // 2) Compute min BOLD out (applying slippage)
+        uint256 minBold = (minBoldBeforeSlippage * (BPS_DENOMINATOR - slippageBps)) / BPS_DENOMINATOR;
 
         // 3) Create Eth-flow intent
         IEthFlow.Data memory data = IEthFlow.Data({
             buyToken: BOLD,
             receiver: address(this),
-            sellAmount: sellAmount,
+            sellAmount: msg.value,
             buyAmount: minBold,
             appData: bytes32(uint256(0x53ba1)),
-            feeAmount: feeAmount,
+            feeAmount: 0,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
             quoteId: quoteCounter

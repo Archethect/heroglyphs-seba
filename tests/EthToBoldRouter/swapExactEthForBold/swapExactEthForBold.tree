@@ -11,12 +11,6 @@ SwapExactEthForBoldTest
             ├── when there is already an open order
             │   └── it should revert
             └── when there is no open order yet
-                ├── when the oracle price is equal or smaller than zero
-                │   └── it should revert
-                └── when the oracle price is bigger than zero
-                    ├── when the price data is older than 1 hour
-                    │   └── it should revert
-                    └── when the price is 1 hour or less old
-                        ├── it should call createOrder with the correct order data and value
-                        ├── it should register the pending order in the contract
-                        └── it should emit IntentCreated
+                ├── it should call createOrder with the correct order data and value
+                ├── it should register the pending order in the contract
+                └── it should emit IntentCreated

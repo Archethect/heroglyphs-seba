@@ -32,23 +32,23 @@ contract SwapExactEthForBoldTest is BaseTest {
     }
 
     function test_RevertWhen_TheSlippageIsBiggerOrEqualToTheBpsDenominator(
-        uint16 fee,
+        uint256 minBoldBeforeSlippage,
         uint16 slippage
     ) external whenTheCallerIsTheYieldManager whenTheValueIsNotZero {
         resetPrank(users.yieldManager);
 
-        vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
+        vm.assume(minBoldBeforeSlippage >= 0);
+        vm.assume(minBoldBeforeSlippage < 10000);
         vm.assume(slippage >= 10000);
         vm.assume(slippage < type(uint16).max);
         vm.deal(users.yieldManager, 1 ether);
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidSlippage.selector, slippage, 10000));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, 0);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(minBoldBeforeSlippage, slippage, 0);
     }
 
     function test_RevertWhen_ThereIsAlreadyAnOpenOrder(
-        uint16 fee,
+        uint256 minBoldBeforeSlippage,
         uint16 slippage,
         uint32 validity
     )
@@ -59,41 +59,26 @@ contract SwapExactEthForBoldTest is BaseTest {
     {
         resetPrank(users.yieldManager);
 
-        vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
+        vm.assume(minBoldBeforeSlippage >= 0);
+        vm.assume(minBoldBeforeSlippage < 10000);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity > 10000);
         vm.assume(validity < 50000);
         vm.deal(users.yieldManager, 2 ether);
 
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(1 ether), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
-
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(uint8(8))
-        );
-
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
-            1 ether,
-            int256(1 ether),
-            fee,
+        (uint256 minBold) = calculateOrderAmounts(
+            minBoldBeforeSlippage,
             slippage
         );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
             receiver: contracts.ethToBoldRouter,
-            sellAmount: sellAmount,
+            sellAmount: 1 ether,
             buyAmount: minBold,
             appData: bytes32(uint256(0x53ba1)),
-            feeAmount: feeAmount,
+            feeAmount: 0,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
             quoteId: 0
@@ -109,91 +94,16 @@ contract SwapExactEthForBoldTest is BaseTest {
         );
 
         // open first order
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(minBoldBeforeSlippage, slippage, validity);
 
         // it should revert on second order
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OrderAlreadyOpen.selector));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
+        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(minBoldBeforeSlippage, slippage, validity);
     }
 
-    function test_RevertWhen_TheOraclePriceIsEqualOrSmallerThanZero(
-        uint16 fee,
-        uint16 slippage,
-        uint32 validity
-    )
-        external
-        whenTheCallerIsTheYieldManager
-        whenTheValueIsNotZero
-        whenTheSlippageIsSmallerThanTheBpsDenominator
-        whenThereIsNoOpenOrderYet
-    {
-        resetPrank(users.yieldManager);
-
-        vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
-        vm.assume(slippage >= 0);
-        vm.assume(slippage < 10000);
-        vm.assume(validity < 10000);
-        vm.deal(users.yieldManager, 1 ether);
-
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(0), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
-
-        // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OraclePriceInvalid.selector, 0));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
-
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(-1), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
-
-        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.OraclePriceInvalid.selector, -1));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
-    }
-
-    function test_RevertWhen_ThePriceDataIsOlderThan1hour(
-        uint16 fee,
-        uint16 slippage,
-        uint32 validity
-    )
-        external
-        whenTheCallerIsTheYieldManager
-        whenTheValueIsNotZero
-        whenTheSlippageIsSmallerThanTheBpsDenominator
-        whenThereIsNoOpenOrderYet
-        whenTheOraclePriceIsBiggerThanZero
-    {
-        resetPrank(users.yieldManager);
-
-        vm.assume(fee >= 0);
-        vm.assume(fee < 10000);
-        vm.assume(slippage >= 0);
-        vm.assume(slippage < 10000);
-        vm.assume(validity < 10000);
-        vm.deal(users.yieldManager, 1 ether);
-
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(1 ether), uint256(0), uint256(block.timestamp - 3601), uint80(0))
-        );
-
-        // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.StaleOracle.selector));
-        ethToBoldRouter.swapExactEthForBold{ value: 1 ether }(fee, slippage, validity);
-    }
-
-    function test_WhenThePrice1hourOrLessOld(
+    function test_WhenThereIsNoOpenOrderYet(
         uint256 amount,
-        uint16 fee,
+        uint16 minBoldBeforeSlippage,
         uint16 slippage,
         uint32 validity
     )
@@ -202,46 +112,31 @@ contract SwapExactEthForBoldTest is BaseTest {
         whenTheValueIsNotZero
         whenTheSlippageIsSmallerThanTheBpsDenominator
         whenThereIsNoOpenOrderYet
-        whenTheOraclePriceIsBiggerThanZero
     {
         resetPrank(users.yieldManager);
 
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
-        vm.assume(fee >= 0);
-        vm.assume(fee < amount * 10 / 100);
+        vm.assume(minBoldBeforeSlippage >= 0);
+        vm.assume(minBoldBeforeSlippage < amount * 10 / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
         vm.deal(users.yieldManager, amount);
 
-        // Mock first order calls
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
-            abi.encode(uint80(0), int256(1 ether), uint256(0), uint256(block.timestamp - 500), uint80(0))
-        );
 
-        mockAndExpectCall(
-            contracts.ethUsdFeed,
-            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-            abi.encode(uint8(8))
-        );
-
-        (uint256 sellAmount, uint256 feeAmount, uint256 minBold) = calculateOrderAmounts(
-            amount,
-            int256(1 ether),
-            fee,
+        (uint256 minBold) = calculateOrderAmounts(
+            minBoldBeforeSlippage,
             slippage
         );
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
             receiver: contracts.ethToBoldRouter,
-            sellAmount: sellAmount,
+            sellAmount: amount,
             buyAmount: minBold,
             appData: bytes32(uint256(0x53ba1)),
-            feeAmount: feeAmount,
+            feeAmount: 0,
             validTo: uint32(block.timestamp) + validity,
             partiallyFillable: false,
             quoteId: 0
@@ -269,7 +164,7 @@ contract SwapExactEthForBoldTest is BaseTest {
         // it should call createOrder with the correct order data and value
         vm.expectCall(contracts.ethFlow, amount, abi.encodeWithSelector(IEthFlow.createOrder.selector, expected));
 
-        ethToBoldRouter.swapExactEthForBold{ value: amount }(fee, slippage, validity);
+        ethToBoldRouter.swapExactEthForBold{ value: amount }(minBoldBeforeSlippage, slippage, validity);
 
         // it should register the pending order in the contract
         (

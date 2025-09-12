@@ -203,7 +203,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYieldManager
-    function runBoldConversion(uint256 feeAmount) external override {
+    function runBoldConversion(uint256 minBoldBeforeSlippage) external override onlyRole(AUTOMATOR_ROLE) {
         /* Cancel expired router intent & reclaim ETH */
         if (block.timestamp > lastConversionStartTimestamp + ROUTER_VALIDITY_SECS) {
             lastConversionStartTimestamp = block.timestamp;
@@ -220,10 +220,10 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
             _runSBoldConversion();
 
             /* Start a new ETH→BOLD intent if funds pending */
-            if (pendingBoldConversion > 0 && feeAmount < (pendingBoldConversion * MAX_FEE_BPS) / 10000) {
+            if (pendingBoldConversion > 0) {
                 uint256 ethIn = pendingBoldConversion;
                 bytes32 uid = router.swapExactEthForBold{ value: ethIn }(
-                    feeAmount,
+                    minBoldBeforeSlippage,
                     ROUTER_SLIPPAGE_BPS,
                     ROUTER_VALIDITY_SECS
                 );

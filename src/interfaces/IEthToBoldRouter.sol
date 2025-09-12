@@ -99,13 +99,13 @@ interface IEthToBoldRouter {
      * @dev Uses Chainlink ETH/USD to size `minOut` with the provided slippage bps and validity.
      *      Reverts with {NoEthSent}, {InvalidSlippage}, {OrderAlreadyOpen},
      *      {OraclePriceInvalid}, {StaleOracle} on failure.
-     * @param feeAmount Maximum fee that can be paid in ETH.
+     * @param minBoldBeforeSlippage Minimum amount of BOLD to expect before slippage taken into account.
      * @param slippageBps Maximum slippage in basis points (0 … 9,999).
      * @param validity Validity window (seconds) added to current timestamp.
      * @return uid The 56-byte UID of the created order.
      */
     function swapExactEthForBold(
-        uint256 feeAmount,
+        uint256 minBoldBeforeSlippage,
         uint16 slippageBps,
         uint32 validity
     ) external payable returns (bytes32 uid);

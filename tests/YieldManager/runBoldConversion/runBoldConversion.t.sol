@@ -8,6 +8,8 @@ import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interfac
 
 contract RunBoldConversionTest is BaseTest {
     function test_WhenThereIsAnOpenRouterIntent() external whenTheConversionTimeoutIsFinished {
+        resetPrank(users.automator);
+
         vm.deal(contracts.sebaPool, 1 ether);
         sebaPool.sweepRewards();
 
@@ -19,7 +21,7 @@ contract RunBoldConversionTest is BaseTest {
         assertEq(yieldManager.pendingBoldConversion(), 0.5 ether);
         assertEq(
             yieldManager.activeRouterUid(),
-            bytes32(0xf7b86a67314fdc9a0d22fbc714addf0f0a903707b91730aa4db7aeaa43d7f2b7)
+            bytes32(0x55b60a88ba6f2a12bbda09394367a8dece72bffa2e135130b1f5a8d361444dbf)
         );
 
         vm.warp(block.timestamp + yieldManager.ROUTER_VALIDITY_SECS() + 1);
@@ -27,13 +29,15 @@ contract RunBoldConversionTest is BaseTest {
         // it should finalize the intent and reset the activeRouterId when a new one is instantiated
         assertEq(
             yieldManager.activeRouterUid(),
-            bytes32(0x429c536f31a76734ac14a3614fc922e5039db97414991bc64103447b431ccd87)
+            bytes32(0x4b7c0e6047404cb902865aa3c39e63e0f016ebcdc3edc167934923c4b849c6c1)
         );
         // it should set the correct pendingBoldConversion
         assertEq(yieldManager.pendingBoldConversion(), 0);
     }
 
     function test_WhenTheBoldBalanceInTheContractIsBiggerThan0() external whenTheConversionTimeoutIsFinished {
+        resetPrank(users.automator);
+
         deal(address(bold), contracts.yieldManager, 1 ether);
 
         // it should emit BoldConversionFinalised
@@ -48,7 +52,9 @@ contract RunBoldConversionTest is BaseTest {
         assertEq(IERC20(contracts.sBOLD).balanceOf(contracts.pybSeba), 986249800864924383);
     }
 
-    function test_WhenThePendingPendingBoldConversionIsBiggerThan0AndTheFeeAmountIsNotBiggerThan10PercentOfTheConversionAmount() external whenTheConversionTimeoutIsFinished {
+    function test_WhenThePendingPendingBoldConversionIsBiggerThan0() external whenTheConversionTimeoutIsFinished {
+        resetPrank(users.automator);
+
         vm.deal(contracts.sebaPool, 1 ether);
         sebaPool.sweepRewards();
 
@@ -60,30 +66,22 @@ contract RunBoldConversionTest is BaseTest {
         assertEq(yieldManager.pendingBoldConversion(), 0.5 ether);
         assertEq(
             yieldManager.activeRouterUid(),
-            bytes32(0xf7b86a67314fdc9a0d22fbc714addf0f0a903707b91730aa4db7aeaa43d7f2b7)
+            bytes32(0x55b60a88ba6f2a12bbda09394367a8dece72bffa2e135130b1f5a8d361444dbf)
         );
 
         vm.warp(block.timestamp + yieldManager.ROUTER_VALIDITY_SECS() + 1);
 
-        // simulate 10% fee (should not create the intent)
-        yieldManager.runBoldConversion(0.1 ether);
-        assertEq(yieldManager.pendingBoldConversion(), 1 ether);
-
-
-        vm.warp(block.timestamp + yieldManager.ROUTER_VALIDITY_SECS() + 1);
-        mockAndExpectCall(contracts.ethUsdFeed, abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector), abi.encode(129127208515966878730, 437862922915, 1756800029, 1756800047 + yieldManager.ROUTER_VALIDITY_SECS(), 129127208515966878730));
-
         // it should emit BoldConversionStarted
         vm.expectEmit();
         emit IYieldManager.BoldConversionStarted(
-        0x429c536f31a76734ac14a3614fc922e5039db97414991bc64103447b431ccd87,
+        0x4b7c0e6047404cb902865aa3c39e63e0f016ebcdc3edc167934923c4b849c6c1,
             1 ether
         );
         yieldManager.runBoldConversion(0);
         // it should set the activeRouterUid
         assertEq(
             yieldManager.activeRouterUid(),
-            bytes32(0x429c536f31a76734ac14a3614fc922e5039db97414991bc64103447b431ccd87)
+            bytes32(0x4b7c0e6047404cb902865aa3c39e63e0f016ebcdc3edc167934923c4b849c6c1)
         );
         // it should reset the pendingBoldConversion
         assertEq(yieldManager.pendingBoldConversion(), 0);

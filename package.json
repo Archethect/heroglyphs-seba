@@ -37,7 +37,7 @@
     "deploy:hoodi": "bash -c 'source .env && forge script Deploy --rpc-url $HOODI_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --broadcast --verify --resume --chain 560048 -vvvvv'",
     "deploy:holesky": "bash -c 'source .env && forge script Deploy --rpc-url $HOLESKY_RPC --account $HOLESKY_DEPLOYER_NAME --sender $HOLESKY_SENDER --verify --resume --chain holesky -vvvvv'",
     "deploy:mainnet": "bash -c 'source .env && forge script Deploy --rpc-url $MAINNET_RPC --account $MAINNET_DEPLOYER_NAME --sender $MAINNET_SENDER --verify --chain mainnet -vvvvv --resume'",
-    "deploy:mainnet_test": "bash -c 'source .env && forge script DeployEthereumTest --rpc-url $MAINNET_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --verify --chain mainnet -vvvvv --broadcast'",
+    "deploy:mainnet_test": "bash -c 'source .env && forge script DeployEthereumTest --rpc-url $MAINNET_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --verify --chain mainnet -vvvvv --broadcast --resume'",
     "test": "forge test",
     "test:coverage": "forge coverage",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
