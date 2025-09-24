@@ -18,6 +18,8 @@ interface IPYBSeba {
     error NotSebaPool(address sender);
     /// @notice Thrown when a deposit or mint operation would result in zero shares.
     error ZeroShares();
+    /// @notice Thrown when a deposit or mint operation would result in zero assets.
+    error ZeroAssets();
     /// @notice Thrown when a deposit or mint would cause the total share supply to exceed the cap.
     error SupplyCapExceeded();
 
