@@ -35,6 +35,12 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
     /// Curve or Uniswap swap / mint returned less than the min-out.
     error SlippageExceeded();
 
+    // No shares minted on Beefy
+    error NoSharesMinted();
+
+    // Value of deposit is zero
+    error ZeroDepositValue();
+
     /// Asked to retrieve 0 principal.
     error CannotRetrieveZero();
 

@@ -54,8 +54,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
     function topup(uint256 _amount) public override {
         uint256 preBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 postBalance = asset.balanceOf(address(this));
-        uint256 delta = postBalance - preBalance;
+        uint256 delta = asset.balanceOf(address(this)) - preBalance;
         emit Topup(msg.sender, delta);
         afterDeposit(delta, 0);
     }
@@ -82,8 +81,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
 
         uint256 preBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), _assets);
-        uint256 postBalance = asset.balanceOf(address(this));
-        uint256 delta = postBalance - preBalance;
+        uint256 delta = asset.balanceOf(address(this)) - preBalance;
         _mint(_receiver, shares);
 
         emit Deposit(msg.sender, _receiver, delta, shares);
@@ -106,8 +104,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
         if(assets == 0) revert ZeroAssets();
         uint256 preBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), assets);
-        uint256 postBalance = asset.balanceOf(address(this));
-        uint256 delta = postBalance - preBalance;
+        uint256 delta = asset.balanceOf(address(this)) - preBalance;
         _mint(_receiver, _shares);
 
         emit Deposit(msg.sender, _receiver, delta, _shares);

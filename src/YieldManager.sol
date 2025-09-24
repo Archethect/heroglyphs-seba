@@ -151,6 +151,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
             pendingBoldConversion += half;
             depositValue = yieldVault.deposit{ value: other }();
+            if(depositValue == 0) revert ZeroDepositValue();
             principalValue += depositValue;
 
             emit DepositReceived(msg.sender, depositValue);
@@ -159,6 +160,7 @@ contract YieldManager is AccessControl, ReentrancyGuard, IYieldManager {
 
         /* ---------- External user deposit ------------ */
         depositValue = yieldVault.deposit{ value: msg.value }();
+        if(depositValue == 0) revert ZeroDepositValue();
 
         unchecked {
             ++depositId;

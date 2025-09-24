@@ -165,11 +165,13 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         IERC20(beefy.want()).approve(address(beefy), lpMinted);
         beefy.depositAll();
         uint256 sharesMinted = beefy.balanceOf(address(this)) - preShares;
+        if(sharesMinted == 0) revert NoSharesMinted();
 
         /* Bookkeeping */
         uint256 ppsNow = beefy.getPricePerFullShare();
         principalShares += sharesMinted;
         depositValue = (sharesMinted * ppsNow) / 1e18;
+        if(depositValue == 0) revert ZeroDepositValue();
         principalValue += depositValue;
 
         emit Deposited(msg.sender, msg.value, sharesMinted);
