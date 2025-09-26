@@ -11,7 +11,22 @@ ClaimYieldTest
             ├── when the yieldShares are zero
             │   └── it should revert
             └── when the yieldshares are not zero
-                ├── it should subtract the yieldShares from the principalShares
-                ├── it should set the new principalValue
-                ├── it should sent the converted WETH to the sender
-                └── it should emit YieldClaimed
+                ├── when the ethUsdFeed returns zero
+                │   └── it should revert
+                └── when the ethUsdFeed does not return zero
+                    ├── when the usdcUsdFeed returns zero
+                    │   └── it should revert
+                    └── when the usdcUsdFeed does not return zero
+                        ├── when the ethUsdFeed is stale
+                        │   └── it should revert
+                        └── when the ethUsdFeed is not stale
+                            ├── when the usdcUsdFeed is stale
+                            │   └── it should revert
+                            └── when the usdcUsdFeed is not stale
+                                ├── when the quoted uniswap price is too low
+                                │   └── it should revert
+                                └── when the quoted uniswap price is not too low
+                                    ├── it should subtract the yieldShares from the principalShares
+                                    ├── it should set the new principalValue
+                                    ├── it should sent the converted WETH to the sender
+                                    └── it should emit YieldClaimed

@@ -12,7 +12,36 @@ contract DepositFundsTest is BaseTest {
         yieldManager.depositFunds();
     }
 
-    function test_WhenTheSenderIsTheSebapool() external whenTheValueIsNotZero {
+    function test_RevertWhen_TheDepositValueIs0AndTheSenderIsNotTheSebaPool() external whenTheValueIsNotZero {
+        vm.deal(users.admin, 1 ether);
+        resetPrank(users.admin);
+
+        mockAndExpectCall(
+            contracts.eUsdUsdcBeefyYieldVault,
+            1 ether,
+            abi.encodeWithSelector(IYieldVault.deposit.selector),
+            abi.encode(0)
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.ZeroDepositValue.selector));
+        yieldManager.depositFunds{ value: 1 ether }();
+    }
+
+    function test_RevertWhen_TheDepositValueIs0AndTheSenderIsTheSebaPool() external whenTheValueIsNotZero {
+        vm.deal(contracts.sebaPool, 1 ether);
+
+        mockAndExpectCall(
+            contracts.eUsdUsdcBeefyYieldVault,
+            0.5 ether,
+            abi.encodeWithSelector(IYieldVault.deposit.selector),
+            abi.encode(0)
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.ZeroDepositValue.selector));
+        sebaPool.sweepRewards();
+    }
+
+    function test_WhenTheSenderIsTheSebapool() external whenTheValueIsNotZero whenTheDepositValueIsNotZero {
         vm.deal(contracts.sebaPool, 1 ether);
 
         // it should emit DepositReceived

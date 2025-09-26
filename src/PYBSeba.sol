@@ -101,7 +101,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
         if (_shares + totalSupply > supplyCap) revert SupplyCapExceeded();
 
         assets = previewMint(_shares);
-        if(assets == 0) revert ZeroAssets();
+        if (assets == 0) revert ZeroAssets();
         uint256 preBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), assets);
         uint256 delta = asset.balanceOf(address(this)) - preBalance;

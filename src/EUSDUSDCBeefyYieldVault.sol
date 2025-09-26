@@ -2,21 +2,23 @@
 pragma solidity ^0.8.28;
 
 /*────────────────────────────── OpenZeppelin ──────────────────────────*/
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
+import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
 
 /*─────────────────────────────── Interfaces ───────────────────────────*/
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
-import { IYieldVault } from "src/interfaces/IYieldVault.sol";
-import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
 import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
-import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
-import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
+import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
 import { IWETH } from "src/vendor/various/IWETH.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
+import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 
 /**
  * @title EUSDUSDCBeefyYieldVault
@@ -55,6 +57,10 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
     ICurvePool public immutable curvePool;
     /// @inheritdoc IEUSDUSDCBeefyYieldVault
     IBeefyVault public immutable beefy;
+    /// @inheritdoc IEUSDUSDCBeefyYieldVault
+    AggregatorV3Interface public immutable ethUsdFeed;
+    /// @inheritdoc IEUSDUSDCBeefyYieldVault
+    AggregatorV3Interface public immutable usdcUsdFeed;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -62,6 +68,8 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
 
     /// @inheritdoc IEUSDUSDCBeefyYieldVault
     uint24 public constant UNIV3_FEE_TIER = 500; // 0.05 %
+    uint24 public constant ETH_USD_ORACLE_MAX_AGE = 3600; // 1 hour
+    uint24 public constant USDC_USD_ORACLE_MAX_AGE = 82800; // 23 hours
 
     /*//////////////////////////////////////////////////////////////
                              CONFIGURABLES
@@ -102,7 +110,9 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         address _swapRouter,
         address _quoter,
         address _curvePool,
-        address _beefy
+        address _beefy,
+        address _ethUsdFeed,
+        address _usdcUsdFeed
     ) {
         if (admin == address(0)) revert InvalidAddress();
         if (yieldManager == address(0)) revert InvalidAddress();
@@ -112,6 +122,8 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         if (_quoter == address(0)) revert InvalidAddress();
         if (_curvePool == address(0)) revert InvalidAddress();
         if (_beefy == address(0)) revert InvalidAddress();
+        if (_ethUsdFeed == address(0)) revert InvalidAddress();
+        if (_usdcUsdFeed == address(0)) revert InvalidAddress();
 
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(YIELDMANAGER_ROLE, yieldManager);
@@ -124,6 +136,8 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         quoter = IQuoter(_quoter);
         curvePool = ICurvePool(_curvePool);
         beefy = IBeefyVault(_beefy);
+        ethUsdFeed = AggregatorV3Interface(_ethUsdFeed);
+        usdcUsdFeed = AggregatorV3Interface(_usdcUsdFeed);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -144,16 +158,18 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         /* Wrap ETH → WETH */
         IWETH(WETH).deposit{ value: msg.value }();
 
-        /* WETH → USDC via UniV3, using quoter for min-out */
-        uint256 quotedUsdc = _quoteEthToUsdc(msg.value);
-        uint256 usdcMin = (quotedUsdc * (10_000 - slippageBps)) / 10_000;
-        uint256 usdcOut = _swapExactInput(WETH, USDC, msg.value, usdcMin);
+        /* WETH → USDC via UniV3, using Chainlink Oracle for min-out */
+        uint256 chainLinkQuoteUsdc = _chainlinkQuoteEthToUsdc(msg.value);
+        uint256 usdcMin = (chainLinkQuoteUsdc * (10_000 - slippageBps)) / 10_000;
+        uint256 uniV3Quote = _quoteEthToUsdc(msg.value);
+        if (uniV3Quote < usdcMin) revert SlippageExceeded();
+        uint256 usdcOut = _swapExactInput(WETH, USDC, msg.value, uniV3Quote);
 
         /* Add liquidity (USDe/USDC) → LP tokens */
         uint256[] memory amounts = new uint256[](2); // [USDe, USDC]; we only fill USDC index 1
         amounts[0] = 0;
         amounts[1] = usdcOut;
-        uint256 lpExpected = curvePool.calc_token_amount(amounts, true);
+        uint256 lpExpected = (usdcOut * 1e30) / curvePool.get_virtual_price();
         uint256 minMint = (lpExpected * (10_000 - slippageBps)) / 10_000;
 
         IERC20(USDC).approve(address(curvePool), usdcOut);
@@ -165,13 +181,13 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         IERC20(beefy.want()).approve(address(beefy), lpMinted);
         beefy.depositAll();
         uint256 sharesMinted = beefy.balanceOf(address(this)) - preShares;
-        if(sharesMinted == 0) revert NoSharesMinted();
+        if (sharesMinted == 0) revert NoSharesMinted();
 
         /* Bookkeeping */
         uint256 ppsNow = beefy.getPricePerFullShare();
         principalShares += sharesMinted;
         depositValue = (sharesMinted * ppsNow) / 1e18;
-        if(depositValue == 0) revert ZeroDepositValue();
+        if (depositValue == 0) revert ZeroDepositValue();
         principalValue += depositValue;
 
         emit Deposited(msg.sender, msg.value, sharesMinted);
@@ -201,15 +217,17 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         uint256 lpOut = IERC20(beefy.want()).balanceOf(address(this)) - lpBefore;
 
         /* LP → USDC */
-        uint256 expectedUsdc = curvePool.calc_withdraw_one_coin(lpOut, 1);
+        uint256 expectedUsdc = (lpOut * curvePool.get_virtual_price()) / 1e30;
         uint256 minUsdc = (expectedUsdc * (10_000 - slippageBps)) / 10_000;
         IERC20(beefy.want()).approve(address(curvePool), lpOut);
         uint256 usdcOut = curvePool.remove_liquidity_one_coin(lpOut, 1, minUsdc);
 
         /* USDC → ETH */
-        uint256 quotedEth = _quoteUsdcToEth(usdcOut);
-        uint256 ethMin = (quotedEth * (10_000 - slippageBps)) / 10_000;
-        uint256 wethOut = _swapExactInput(USDC, WETH, usdcOut, ethMin);
+        uint256 chainLinkQuoteEth = _chainlinkQuoteUsdcToEth(usdcOut);
+        uint256 ethMin = (chainLinkQuoteEth * (10_000 - slippageBps)) / 10_000;
+        uint256 uniV3Quote = _quoteUsdcToEth(usdcOut);
+        if (uniV3Quote < ethMin) revert SlippageExceeded();
+        uint256 wethOut = _swapExactInput(USDC, WETH, usdcOut, uniV3Quote);
         IWETH(WETH).withdraw(wethOut);
 
         /* Update principal BEFORE transfer */
@@ -248,14 +266,17 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         uint256 lpOut = IERC20(beefy.want()).balanceOf(address(this)) - lpBefore;
 
         /* LP → USDC */
-        uint256 minUsdc = (curvePool.calc_withdraw_one_coin(lpOut, 1) * (10_000 - slippageBps)) / 10_000;
+        uint256 expectedUsdc = (lpOut * curvePool.get_virtual_price()) / 1e30;
+        uint256 minUsdc = (expectedUsdc * (10_000 - slippageBps)) / 10_000;
         IERC20(beefy.want()).approve(address(curvePool), lpOut);
         uint256 usdcOut = curvePool.remove_liquidity_one_coin(lpOut, 1, minUsdc);
 
         /* USDC → ETH */
-        uint256 ethQuoted = _quoteUsdcToEth(usdcOut);
-        uint256 ethMin = (ethQuoted * (10_000 - slippageBps)) / 10_000;
-        uint256 wethOut = _swapExactInput(USDC, WETH, usdcOut, ethMin);
+        uint256 chainLinkQuoteEth = _chainlinkQuoteUsdcToEth(usdcOut);
+        uint256 ethMin = (chainLinkQuoteEth * (10_000 - slippageBps)) / 10_000;
+        uint256 uniV3Quote = _quoteUsdcToEth(usdcOut);
+        if (uniV3Quote < ethMin) revert SlippageExceeded();
+        uint256 wethOut = _swapExactInput(USDC, WETH, usdcOut, uniV3Quote);
         IWETH(WETH).withdraw(wethOut);
 
         /* Transfer */
@@ -308,7 +329,31 @@ contract EUSDUSDCBeefyYieldVault is AccessControl, ReentrancyGuard, IEUSDUSDCBee
         amountOut = swapRouter.exactInputSingle(p);
     }
 
-    /* ---------- UniV3 quoter wrappers ---------- */
+    /* ---------- Chainlink quoter wrappers ---------- */
+
+    function _chainlinkQuoteEthToUsdc(uint256 ethIn) internal view returns (uint256) {
+        uint256 q = _getUSDCperETH_6d(); // USDC per ETH (6d)
+        return Math.mulDiv(ethIn, q, 1e18);
+    }
+
+    function _chainlinkQuoteUsdcToEth(uint256 usdcIn) internal view returns (uint256) {
+        uint256 q = _getUSDCperETH_6d(); // USDC per ETH (6d)
+        return Math.mulDiv(usdcIn, 1e18, q);
+    }
+
+    /// @dev Returns USDC per 1 ETH, 6 decimals
+    function _getUSDCperETH_6d() internal view returns (uint256 qUsdcPerEth6) {
+        (, int256 ethUsd, , uint256 ethUpdated, ) = ethUsdFeed.latestRoundData();
+        (, int256 usdcUsd, , uint256 usdcUpdated, ) = usdcUsdFeed.latestRoundData();
+        if (ethUsd <= 0 || usdcUsd <= 0) revert OracleInvalid();
+        if (block.timestamp - ethUpdated > ETH_USD_ORACLE_MAX_AGE) revert OracleStale();
+        if (block.timestamp - usdcUpdated > USDC_USD_ORACLE_MAX_AGE) revert OracleStale();
+
+        // Both feeds 8 decimals. USDC/ETH = (ETH/USD) / (USDC/USD).
+        qUsdcPerEth6 = Math.mulDiv(uint256(ethUsd), 1e6, uint256(usdcUsd)); // scale to 6d
+    }
+
+    /* ---------- Uni V3 quoter wrappers ---------- */
 
     function _quoteEthToUsdc(uint256 ethIn) internal returns (uint256) {
         return quoter.quoteExactInputSingle(WETH, USDC, UNIV3_FEE_TIER, ethIn, 0);

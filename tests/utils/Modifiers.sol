@@ -209,4 +209,40 @@ abstract contract Modifiers is Helpers {
     modifier whenTheConversionTimeoutIsFinished() {
         _;
     }
+
+    modifier whenBeefyIsNotZero() {
+        _;
+    }
+
+    modifier whenTheEthUsdFeedDoesNotReturnZero() {
+        _;
+    }
+
+    modifier whenTheUsdcUsdFeedDoesNotReturnZero() {
+        _;
+    }
+
+    modifier whenTheEthUsdFeedIsNotStale() {
+        _;
+    }
+
+    modifier whenTheUsdcUsdFeedIsNotStale() {
+        _;
+    }
+
+    modifier whenTheQuotedUniswapPriceIsNotTooLow() {
+        _;
+    }
+
+    modifier whenTheYieldSharesAreNotZero() {
+        _;
+    }
+
+    modifier whenTheLpMintedIsNotZero() {
+        _;
+    }
+
+    modifier whenTheSharesMintedIsNotZero() {
+        _;
+    }
 }

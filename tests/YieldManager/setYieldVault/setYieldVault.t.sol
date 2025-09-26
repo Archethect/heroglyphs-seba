@@ -38,7 +38,9 @@ contract SetYieldVaultTest is BaseTest {
             address(swapRouter),
             address(quoter),
             address(curvePool),
-            address(beefy)
+            address(beefy),
+            address(ethUsdFeed),
+            address(usdcUsdFeed)
         );
 
         // it should emit PrincipalRetrieved
@@ -66,7 +68,9 @@ contract SetYieldVaultTest is BaseTest {
             address(swapRouter),
             address(quoter),
             address(curvePool),
-            address(beefy)
+            address(beefy),
+            address(ethUsdFeed),
+            address(usdcUsdFeed)
         );
 
         // it should emit NewYieldVaultSet

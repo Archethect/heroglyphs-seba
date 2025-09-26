@@ -5,20 +5,17 @@ ConstructorTest
     ├── when bold is zero
     │   └── it should revert
     └── when bold is not zero
-        ├── when ethUsdFeed is zero
+        ├── when settlement is zero
         │   └── it should revert
-        └── when ethUsdFeed is not zero
-            ├── when settlement is zero
+        └── when settlement is not zero
+            ├── when admin is zero
             │   └── it should revert
-            └── when settlement is not zero
-                ├── when admin is zero
+            └── when admin is not zero
+                ├── when yield manager is zero
                 │   └── it should revert
-                └── when admin is not zero
-                    ├── when yield manager is zero
-                    │   └── it should revert
-                    └── when yield manager is not zero
-                        ├── it should grant the correct roles
-                        ├── it should set the correct ethFlow
-                        ├── it should set the correct bold
-                        ├── it should set the correct ethUsdFeed
-                        └── it should set the correct settlement
+                └── when yield manager is not zero
+                    ├── it should grant the correct roles
+                    ├── it should set the correct ethFlow
+                    ├── it should set the correct bold
+                    ├── it should set the correct ethUsdFeed
+                    └── it should set the correct settlement

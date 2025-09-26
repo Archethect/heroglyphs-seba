@@ -5,8 +5,12 @@ import { BaseTest } from "tests/Base.t.sol";
 import { IPYBSeba } from "src/interfaces/IPYBSeba.sol";
 import { ERC4626 } from "solmate/src/tokens/ERC4626.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { StdStorage, stdStorage } from "forge-std/src/StdStorage.sol";
 
 contract MintTest is BaseTest {
+    using stdStorage for StdStorage;
+    StdStorage private stdstore;
+
     function test_RevertWhen_AddingTheSharesWouldExceedTheSupplycap() external {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IPYBSeba.SupplyCapExceeded.selector));
@@ -14,7 +18,18 @@ contract MintTest is BaseTest {
         pybSeba.mint(1, users.validator);
     }
 
-    function test_WhenAddingTheSharesWouldNotExceedTheSupplycap() external {
+    function test_RevertWhen_TheAmountOfAssetsIsZero() external {
+        resetPrank(contracts.sebaPool);
+        pybSeba.distributeShares(users.validator, 1 ether);
+        resetPrank(users.validator);
+
+        stdstore.target(contracts.pybSeba).sig("supplyCap()").checked_write(2e18);
+
+        vm.expectRevert(abi.encodeWithSelector(IPYBSeba.ZeroAssets.selector));
+        pybSeba.mint(0.5 ether, users.validator);
+    }
+
+    function test_WhenTheAmountOfAssetsIsNotZero() external {
         resetPrank(contracts.sebaPool);
 
         deal(address(bold), contracts.sebaPool, 1 ether);

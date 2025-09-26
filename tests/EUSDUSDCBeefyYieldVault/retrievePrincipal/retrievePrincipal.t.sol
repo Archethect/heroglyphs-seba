@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import { BaseTest } from "tests/Base.t.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
+import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
+import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
 
 contract RetrievePrincipalTest is BaseTest {
     function test_RevertWhen_NotTheYieldManager(address invocator) external {
@@ -34,11 +36,131 @@ contract RetrievePrincipalTest is BaseTest {
         eUsdUsdcBeefyYieldVault.retrievePrincipal(1);
     }
 
+    function test_RevertWhen_TheEthUsdFeedReturnsZero()
+        external
+        whenTheYieldManager
+        whenTheDepositValueIsNotZero
+        whenThereAreSharesToWithdraw
+    {
+        resetPrank(users.yieldManager);
+        vm.deal(users.yieldManager, 1 ether);
+        uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
+
+        mockAndExpectCall(
+            contracts.ethUsdFeed,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 0, 0, 0, 0)
+        );
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.OracleInvalid.selector));
+        eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
+    }
+
+    function test_RevertWhen_TheUsdcUsdFeedReturnsZero()
+        external
+        whenTheYieldManager
+        whenTheDepositValueIsNotZero
+        whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+    {
+        resetPrank(users.yieldManager);
+        vm.deal(users.yieldManager, 1 ether);
+        uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
+
+        mockAndExpectCall(
+            contracts.usdcUsdFeed,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 0, 0, 0, 0)
+        );
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.OracleInvalid.selector));
+        eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
+    }
+
+    function test_RevertWhen_TheEthUsdFeedIsStale()
+        external
+        whenTheYieldManager
+        whenTheDepositValueIsNotZero
+        whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+        whenTheUsdcUsdFeedDoesNotReturnZero
+    {
+        resetPrank(users.yieldManager);
+        vm.deal(users.yieldManager, 1 ether);
+        uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
+
+        mockAndExpectCall(
+            contracts.ethUsdFeed,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1, 0, 0, 0)
+        );
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.OracleStale.selector));
+        eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
+    }
+
+    function test_RevertWhen_TheUsdcUsdFeedIsStale()
+        external
+        whenTheYieldManager
+        whenTheDepositValueIsNotZero
+        whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+        whenTheUsdcUsdFeedDoesNotReturnZero
+        whenTheEthUsdFeedIsNotStale
+    {
+        resetPrank(users.yieldManager);
+        vm.deal(users.yieldManager, 1 ether);
+        uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
+
+        mockAndExpectCall(
+            contracts.usdcUsdFeed,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1, 0, 0, 0)
+        );
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.OracleStale.selector));
+        eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
+    }
+
+    function test_RevertWhen_TheQuotedUniswapPriceIsTooLow()
+        external
+        whenTheYieldManager
+        whenTheDepositValueIsNotZero
+        whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+        whenTheUsdcUsdFeedDoesNotReturnZero
+        whenTheEthUsdFeedIsNotStale
+        whenTheUsdcUsdFeedIsNotStale
+    {
+        resetPrank(users.yieldManager);
+        vm.deal(users.yieldManager, 1 ether);
+        uint256 depositValue = eUsdUsdcBeefyYieldVault.deposit{ value: 1 ether }();
+
+        mockAndExpectCall(
+            contracts.quoter,
+            abi.encodeWithSelector(IQuoter.quoteExactInputSingle.selector),
+            abi.encode(0)
+        );
+
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.SlippageExceeded.selector));
+        eUsdUsdcBeefyYieldVault.retrievePrincipal(depositValue * 2);
+    }
+
     function test_WhenTheSharesToWithdrawAreBiggerThanThePrincipalShares()
         external
         whenTheYieldManager
         whenTheDepositValueIsNotZero
         whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+        whenTheUsdcUsdFeedDoesNotReturnZero
+        whenTheEthUsdFeedIsNotStale
+        whenTheUsdcUsdFeedIsNotStale
+        whenTheQuotedUniswapPriceIsNotTooLow
     {
         resetPrank(users.yieldManager);
         vm.deal(users.yieldManager, 1 ether);
@@ -67,6 +189,11 @@ contract RetrievePrincipalTest is BaseTest {
         whenTheYieldManager
         whenTheDepositValueIsNotZero
         whenThereAreSharesToWithdraw
+        whenTheEthUsdFeedDoesNotReturnZero
+        whenTheUsdcUsdFeedDoesNotReturnZero
+        whenTheEthUsdFeedIsNotStale
+        whenTheUsdcUsdFeedIsNotStale
+        whenTheQuotedUniswapPriceIsNotTooLow
     {
         resetPrank(users.yieldManager);
         vm.deal(users.yieldManager, 1 ether);

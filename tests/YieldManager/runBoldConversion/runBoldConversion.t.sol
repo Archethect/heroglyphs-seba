@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import { BaseTest } from "tests/Base.t.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 
 contract RunBoldConversionTest is BaseTest {
     function test_WhenThereIsAnOpenRouterIntent() external whenTheConversionTimeoutIsFinished {
@@ -74,7 +73,7 @@ contract RunBoldConversionTest is BaseTest {
         // it should emit BoldConversionStarted
         vm.expectEmit();
         emit IYieldManager.BoldConversionStarted(
-        0x4b7c0e6047404cb902865aa3c39e63e0f016ebcdc3edc167934923c4b849c6c1,
+            0x4b7c0e6047404cb902865aa3c39e63e0f016ebcdc3edc167934923c4b849c6c1,
             1 ether
         );
         yieldManager.runBoldConversion(0);

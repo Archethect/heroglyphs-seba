@@ -5,6 +5,7 @@ import { BaseTest } from "tests/Base.t.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
 import { Noop } from "../../../src/mocks/Noop.sol";
+import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 
 contract RetrieveFundsTest is BaseTest {
     function test_RevertWhen_TheDepositAmountIs0() external {
@@ -59,6 +60,20 @@ contract RetrieveFundsTest is BaseTest {
         yieldManager.depositFunds{ value: 1 ether }();
         vm.warp(block.timestamp + yieldManager.USER_LOCK_SECS());
 
+        // Mock updated oracles after user unlock timestamp
+        mockAndExpectCall(
+            contracts.ethUsdFeed,
+            0,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(36893488147419104687, 437542000000, 1756799439, block.timestamp - 1, 36893488147419104687)
+        );
+        mockAndExpectCall(
+            contracts.usdcUsdFeed,
+            0,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(55340232221128655310, 99985439, 1756800004, block.timestamp - 1, 55340232221128655310)
+        );
+
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IYieldManager.TransferFailed.selector));
         yieldManager.retrieveFunds(1);
@@ -75,6 +90,20 @@ contract RetrieveFundsTest is BaseTest {
         resetPrank(users.admin);
         yieldManager.depositFunds{ value: 1 ether }();
         vm.warp(block.timestamp + yieldManager.USER_LOCK_SECS());
+
+        // Mock updated oracles after user unlock timestamp
+        mockAndExpectCall(
+            contracts.ethUsdFeed,
+            0,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(36893488147419104687, 437542000000, 1756799439, block.timestamp - 1, 36893488147419104687)
+        );
+        mockAndExpectCall(
+            contracts.usdcUsdFeed,
+            0,
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(55340232221128655310, 99985439, 1756800004, block.timestamp - 1, 55340232221128655310)
+        );
 
         // it should emit FundsRetrieved
         vm.expectEmit();
