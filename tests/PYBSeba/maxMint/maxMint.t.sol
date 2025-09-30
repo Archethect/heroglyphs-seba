@@ -15,14 +15,13 @@ contract MaxMintTest is BaseTest {
         pybSeba.topup(sBoldBalanceSeba);
         pybSeba.distributeShares(users.validator, 1 ether);
         resetPrank(users.validator);
-        uint256 shares = pybSeba.withdraw(0.5 ether, users.validator, users.validator);
 
         resetPrank(users.nonValidator);
         deal(address(bold), users.nonValidator, 1.2 ether);
         bold.approve(contracts.sBOLD, 1.2 ether);
         sBOLD.deposit(1.2 ether, users.nonValidator);
         // it should return the maximum shares that can be minted looking at the supplycap
-        assertEq(pybSeba.maxMint(users.nonValidator), shares, "maxMint should take the supplycap into account");
+        assertEq(pybSeba.maxMint(users.nonValidator), 0, "maxMint should take the supplycap into account");
     }
 
     function test_GivenTheUserCanNotConvertMoreAssetsToSharesThenCanBeMinted() external {
@@ -41,12 +40,11 @@ contract MaxMintTest is BaseTest {
         deal(address(bold), users.nonValidator, 0.4 ether);
         bold.approve(contracts.sBOLD, 0.4 ether);
         sBOLD.deposit(0.4 ether, users.nonValidator);
-        uint256 sBoldBalanceNonValidator = IERC20(address(sBOLD)).balanceOf(users.nonValidator);
-        // it should return the total amount of shares the user can minted based on his assets
+        // it should return the maximum shares that can be minted looking at the supplycap
         assertEq(
             pybSeba.maxMint(users.nonValidator),
-            pybSeba.convertToShares(sBoldBalanceNonValidator),
-            "maxMint should be the total amount of shares the user can minted based on his assets"
+            0,
+            "maxMint should take the supplycap into account"
         );
     }
 }

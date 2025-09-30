@@ -22,6 +22,10 @@ interface IPYBSeba {
     error ZeroAssets();
     /// @notice Thrown when a deposit or mint would cause the total share supply to exceed the cap.
     error SupplyCapExceeded();
+    /// @notice Thrown when a deposit is tried as it is not allowed.
+    error DepositNotAllowed();
+    /// @notice Thrown when a mint is tried as it is not allowed.
+    error MintNotAllowed();
 
     /*//////////////////////////////////////////////////////////////
                               EVENTS
@@ -43,8 +47,6 @@ interface IPYBSeba {
                          PUBLIC VARIABLES (Getters)
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the current supply cap.
-    function supplyCap() external view returns (uint256);
     /// @notice Returns the total assets held in the vault.
     function assetTotal() external view returns (uint256);
     /// @notice Returns the SebaPool contract address.

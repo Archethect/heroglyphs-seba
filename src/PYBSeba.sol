@@ -21,8 +21,6 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
     /// @notice Role identifier for administrative functions.
     bytes32 public constant override ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    /// @notice The current share supply cap.
-    uint256 public supplyCap;
     /// @notice The total assets currently deposited in the vault.
     uint256 public assetTotal;
     /// @notice The SebaPool contract address.
@@ -39,6 +37,8 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
 
         _grantRole(ADMIN_ROLE, _admin);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+
+        _mint(_admin, 1);
     }
 
     /**
@@ -62,54 +62,25 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
     /// @inheritdoc IPYBSeba
     function distributeShares(address _receiver, uint256 _shares) public override onlyBoostPool {
         _mint(_receiver, _shares);
-        supplyCap += _shares;
         emit SharesDistributed(_receiver, _shares);
     }
 
     /**
      * @notice Deposits assets into the vault.
-     * @dev Overrides ERC4626 {deposit} with a supply cap check and vault state update.
-     * Emits a {Deposit} event.
-     * @param _assets The amount of assets to deposit.
-     * @param _receiver The address that will receive the minted shares.
+     * @dev this is a noop because we don't allow deposits
      * @return shares The number of shares minted.
      */
-    function deposit(uint256 _assets, address _receiver) public override returns (uint256 shares) {
-        shares = previewDeposit(_assets);
-        if (shares == 0) revert ZeroShares();
-        if (shares + totalSupply > supplyCap) revert SupplyCapExceeded();
-
-        uint256 preBalance = asset.balanceOf(address(this));
-        asset.safeTransferFrom(msg.sender, address(this), _assets);
-        uint256 delta = asset.balanceOf(address(this)) - preBalance;
-        _mint(_receiver, shares);
-
-        emit Deposit(msg.sender, _receiver, delta, shares);
-
-        afterDeposit(delta, shares);
+    function deposit(uint256, address) public pure override returns (uint256) {
+        revert DepositNotAllowed();
     }
 
     /**
      * @notice Mints a specified number of shares by depositing the equivalent amount of assets.
-     * @dev Overrides ERC4626 {mint} with a supply cap check and vault state update.
-     * Emits a {Deposit} event.
-     * @param _shares The number of shares to mint.
-     * @param _receiver The address that will receive the minted shares.
+     * @dev this is a noop because we don't allow mints
      * @return assets The amount of assets deposited.
      */
-    function mint(uint256 _shares, address _receiver) public override returns (uint256 assets) {
-        if (_shares + totalSupply > supplyCap) revert SupplyCapExceeded();
-
-        assets = previewMint(_shares);
-        if (assets == 0) revert ZeroAssets();
-        uint256 preBalance = asset.balanceOf(address(this));
-        asset.safeTransferFrom(msg.sender, address(this), assets);
-        uint256 delta = asset.balanceOf(address(this)) - preBalance;
-        _mint(_receiver, _shares);
-
-        emit Deposit(msg.sender, _receiver, delta, _shares);
-
-        afterDeposit(delta, _shares);
+    function mint(uint256, address) public pure override returns (uint256) {
+        revert MintNotAllowed();
     }
 
     /**
@@ -134,27 +105,20 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
      * @notice Returns the maximum amount of assets a user can deposit.
      * @dev Overrides ERC4626 {maxDeposit}. It calculates the maximum deposit based on the user's asset balance
      * and the remaining supply capacity.
-     * @param _user The address of the user.
      * @return The maximum deposit amount for the user.
      */
-    function maxDeposit(address _user) public view override returns (uint256) {
-        uint256 userAssets = asset.balanceOf(_user);
-        uint256 maxPotentialDeposit = convertToAssets(supplyCap - totalSupply);
-        return userAssets > maxPotentialDeposit ? maxPotentialDeposit : userAssets;
+    function maxDeposit(address) public pure override returns (uint256) {
+        return 0;
     }
 
     /**
      * @notice Returns the maximum number of shares a user can mint.
      * @dev Overrides ERC4626 {maxMint}. It calculates the maximum shares based on the user's asset balance
      * and the remaining supply capacity.
-     * @param _user The address of the user.
      * @return The maximum number of shares the user can mint.
      */
-    function maxMint(address _user) public view override returns (uint256) {
-        uint256 userAssets = asset.balanceOf(_user);
-        uint256 maxPotentialMint = convertToShares(userAssets);
-        uint256 maxSharesToReachCap = supplyCap - totalSupply;
-        return maxPotentialMint > maxSharesToReachCap ? maxSharesToReachCap : maxPotentialMint;
+    function maxMint(address) public pure override returns (uint256) {
+        return 0;
     }
 
     /**

@@ -24,7 +24,7 @@ contract DistributeSharesTest is BaseTest {
 
         // it should mint new shares to the receiver
         assertEq(pybSeba.balanceOf(users.validator), 1 ether, "shares balance of the receiver should be 1 ether");
-        // it should increase the supplyCap with shares
-        assertEq(pybSeba.supplyCap(), 1 ether, "total supplyCap should be 1 ether");
+        // it should increase the supply with 1 ethers in shares
+        assertEq(pybSeba.totalSupply(), 1.000000000000000001 ether, "total supply should be 1.000000000000000001 ether");
     }
 }

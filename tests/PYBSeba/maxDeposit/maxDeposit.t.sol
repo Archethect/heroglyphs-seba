@@ -15,7 +15,6 @@ contract MaxDepositTest is BaseTest {
         pybSeba.topup(sBoldBalanceSeba);
         pybSeba.distributeShares(users.validator, 1 ether);
         resetPrank(users.validator);
-        uint256 shares = pybSeba.withdraw(0.5 ether, users.validator, users.validator);
 
         resetPrank(users.nonValidator);
         deal(address(bold), users.nonValidator, 1.2 ether);
@@ -24,7 +23,7 @@ contract MaxDepositTest is BaseTest {
         // it should return the maximum potential deposit looking at the supplycap
         assertEq(
             pybSeba.maxDeposit(users.nonValidator),
-            pybSeba.convertToAssets(shares),
+            0,
             "maxDeposit should take the supplycap into account"
         );
     }
@@ -45,12 +44,11 @@ contract MaxDepositTest is BaseTest {
         deal(address(bold), users.nonValidator, 0.4 ether);
         bold.approve(contracts.sBOLD, 0.4 ether);
         sBOLD.deposit(0.4 ether, users.nonValidator);
-        uint256 sBoldBalanceNonValidator = IERC20(address(sBOLD)).balanceOf(users.nonValidator);
         // it should return the total amount of assets the user holds
         assertEq(
             pybSeba.maxDeposit(users.nonValidator),
-            sBoldBalanceNonValidator,
-            "maxDeposit should be the total amount of assets the user holds"
+            0,
+            "maxDeposit should take the supplycap into account"
         );
     }
 }

@@ -11,76 +11,10 @@ contract MintTest is BaseTest {
     using stdStorage for StdStorage;
     StdStorage private stdstore;
 
-    function test_RevertWhen_AddingTheSharesWouldExceedTheSupplycap() external {
+    function test_Revert() external {
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IPYBSeba.SupplyCapExceeded.selector));
+        vm.expectRevert(abi.encodeWithSelector(IPYBSeba.MintNotAllowed.selector));
         resetPrank(users.validator);
         pybSeba.mint(1, users.validator);
-    }
-
-    function test_RevertWhen_TheAmountOfAssetsIsZero() external {
-        resetPrank(contracts.sebaPool);
-        pybSeba.distributeShares(users.validator, 1 ether);
-        resetPrank(users.validator);
-
-        stdstore.target(contracts.pybSeba).sig("supplyCap()").checked_write(2e18);
-
-        vm.expectRevert(abi.encodeWithSelector(IPYBSeba.ZeroAssets.selector));
-        pybSeba.mint(0.5 ether, users.validator);
-    }
-
-    function test_WhenTheAmountOfAssetsIsNotZero() external {
-        resetPrank(contracts.sebaPool);
-
-        deal(address(bold), contracts.sebaPool, 1 ether);
-        bold.approve(contracts.sBOLD, 1 ether);
-        sBOLD.deposit(1 ether, contracts.sebaPool);
-        uint256 sBoldBalanceSeba = IERC20(address(sBOLD)).balanceOf(contracts.sebaPool);
-        IERC20(address(sBOLD)).approve(contracts.pybSeba, sBoldBalanceSeba);
-
-        pybSeba.topup(sBoldBalanceSeba);
-        pybSeba.distributeShares(users.validator, 1 ether);
-        resetPrank(users.validator);
-        pybSeba.withdraw(0.5 ether, users.validator, users.validator);
-
-        assertEq(
-            IERC20(address(sBOLD)).balanceOf(users.validator),
-            0.5 ether,
-            "sBOLD balance of the sender should be 0.5"
-        );
-        assertEq(
-            IERC20(address(sBOLD)).balanceOf(contracts.pybSeba),
-            sBoldBalanceSeba - 0.5 ether,
-            "sBOLD balance of the vault should be the remainder"
-        );
-        assertEq(
-            pybSeba.balanceOf(users.validator),
-            pybSeba.convertToShares(sBoldBalanceSeba - 0.5 ether),
-            "shares balance of the receiver should be the remainder converted into shares"
-        );
-        assertEq(pybSeba.assetTotal(), sBoldBalanceSeba - 0.5 ether, "assetTotal should be the remainder");
-
-        IERC20(address(sBOLD)).approve(contracts.pybSeba, 0.5 ether);
-
-        // it should emit Deposit
-        vm.expectEmit();
-        emit ERC4626.Deposit(users.validator, users.validator, 0.5 ether, pybSeba.convertToShares(0.5 ether));
-        pybSeba.mint(pybSeba.convertToShares(0.5 ether), users.validator);
-
-        // it should transfer the assets from the sender to the vault
-        assertEq(IERC20(address(sBOLD)).balanceOf(users.validator), 0, "sBOLD balance of the sender should be 0");
-        assertEq(
-            IERC20(address(sBOLD)).balanceOf(contracts.pybSeba),
-            sBoldBalanceSeba,
-            "sBOLD balance of the vault should be the initial sBoldBalance"
-        );
-        // it should mint new shares to the receiver
-        assertEq(
-            pybSeba.balanceOf(users.validator),
-            pybSeba.totalSupply(),
-            "shares balance of the receiver should be the total supply"
-        );
-        // it should increase the assetTotal with the amount of assets
-        assertEq(pybSeba.assetTotal(), sBoldBalanceSeba, "assetTotal should be the initial sBoldBalance");
     }
 }
