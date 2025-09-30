@@ -12,4 +12,5 @@ interface ICurvePool {
     /* -------- view helpers -------- */
     function calc_token_amount(uint256[] calldata amounts, bool isDeposit) external view returns (uint256);
     function calc_withdraw_one_coin(uint256 lpAmount, int128 i) external view returns (uint256 outAmount);
+    function get_virtual_price() external view returns (uint256);
 }

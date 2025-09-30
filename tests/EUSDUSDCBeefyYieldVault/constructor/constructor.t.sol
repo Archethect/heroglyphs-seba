@@ -17,7 +17,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -32,7 +34,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -47,7 +51,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -62,7 +68,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -83,7 +91,9 @@ contract ConstructorTest is BaseTest {
             address(0),
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -105,7 +115,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             address(0),
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -128,7 +140,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             address(0),
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
@@ -152,11 +166,13 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            address(0)
+            address(0),
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
     }
 
-    function test_WhenBeefyIsNotZero()
+    function test_RevertWhen_EthUsdFeedIsZero()
         external
         whenAdminIsNotZero
         whenYieldManagerIsNotZero
@@ -165,6 +181,63 @@ contract ConstructorTest is BaseTest {
         whenSwapRouterIsNotZero
         whenQuoterIsNotZero
         whenCurvePoolIsNotZero
+        whenBeefyIsNotZero
+    {
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.weth,
+            contracts.usdc,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy,
+            address(0),
+            contracts.usdcUsdFeed
+        );
+    }
+
+    function test_RevertWhen_UsdcUsdFeedIsZero()
+        external
+        whenAdminIsNotZero
+        whenYieldManagerIsNotZero
+        whenWethIsNotZero
+        whenUsdcIsNotZero
+        whenSwapRouterIsNotZero
+        whenQuoterIsNotZero
+        whenCurvePoolIsNotZero
+        whenBeefyIsNotZero
+        whenEthUsdFeedIsNotZero
+    {
+        // it should revert
+        vm.expectRevert(abi.encodeWithSelector(IEUSDUSDCBeefyYieldVault.InvalidAddress.selector));
+        new EUSDUSDCBeefyYieldVault(
+            users.admin,
+            users.yieldManager,
+            contracts.weth,
+            contracts.usdc,
+            contracts.swapRouter,
+            contracts.quoter,
+            contracts.curvePool,
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            address(0)
+        );
+    }
+
+    function test_WhenUsdcUsdFeedIsNotZero()
+        external
+        whenAdminIsNotZero
+        whenYieldManagerIsNotZero
+        whenWethIsNotZero
+        whenUsdcIsNotZero
+        whenSwapRouterIsNotZero
+        whenQuoterIsNotZero
+        whenCurvePoolIsNotZero
+        whenBeefyIsNotZero
+        whenEthUsdFeedIsNotZero
     {
         EUSDUSDCBeefyYieldVault localEUSDUSDCBeefyYieldVault = new EUSDUSDCBeefyYieldVault(
             users.admin,
@@ -174,7 +247,9 @@ contract ConstructorTest is BaseTest {
             contracts.swapRouter,
             contracts.quoter,
             contracts.curvePool,
-            contracts.beefy
+            contracts.beefy,
+            contracts.ethUsdFeed,
+            contracts.usdcUsdFeed
         );
 
         // it should grant the correct roles
@@ -220,5 +295,17 @@ contract ConstructorTest is BaseTest {
         );
         // it should set the correct beefy
         assertEq(address(contracts.beefy), address(localEUSDUSDCBeefyYieldVault.beefy()), "beefy is not correct");
+        // it should set the correct ethUsdFeed
+        assertEq(
+            address(contracts.ethUsdFeed),
+            address(localEUSDUSDCBeefyYieldVault.ethUsdFeed()),
+            "ethUsdFeed is not correct"
+        );
+        // it should set the correct usdcUsdFeed
+        assertEq(
+            address(contracts.usdcUsdFeed),
+            address(localEUSDUSDCBeefyYieldVault.usdcUsdFeed()),
+            "usdcUsdFeed is not correct"
+        );
     }
 }

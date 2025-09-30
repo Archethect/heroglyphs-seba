@@ -1,5 +1,2 @@
 MaxMintTest
-├── given the user can convert more assets to shares then can be minted
-│   └── it should return the maximum shares that can be minted looking at the supplycap
-└── given the user can not convert more assets to shares then can be minted
-    └── it should return the total amount of shares the user can minted based on his assets
+└── it should return 0

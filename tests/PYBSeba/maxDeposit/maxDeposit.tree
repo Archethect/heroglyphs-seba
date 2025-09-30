@@ -1,5 +1,2 @@
 MaxDepositTest
-├── given the user has more assets then can be deposited
-│   └── it should return the maximum potential deposit looking at the supplycap
-└── given the user has not more assets then can be deposited
-    └── it should return the total amount of assets the user holds
+└── it should return 0

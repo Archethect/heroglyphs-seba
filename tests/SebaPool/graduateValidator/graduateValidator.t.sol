@@ -65,8 +65,9 @@ contract GraduateValidatorTest is BaseTest {
         address receiverAddress,
         uint256 attestationPoints
     ) external whenTheAutomatorRole whenTheValidatorRegistrationBlockIsNotZero whenTheValidatorIsNotYetGraduated {
-        vm.assume(attestationPoints <= type(uint256).max);
+        vm.assume(attestationPoints < type(uint256).max);
         assumeNotZeroAddress(receiverAddress);
+        vm.assume(receiverAddress != users.admin);
         resetPrank(users.validator);
         sebaPool.subscribeValidator(1);
         sebaPool.setRewardRecipient(receiverAddress);
@@ -89,8 +90,9 @@ contract GraduateValidatorTest is BaseTest {
         uint256 attestationPoints,
         address withdrawalAddress
     ) external whenTheAutomatorRole whenTheValidatorRegistrationBlockIsNotZero whenTheValidatorIsNotYetGraduated {
-        vm.assume(attestationPoints <= type(uint256).max);
+        vm.assume(attestationPoints < type(uint256).max);
         assumeNotZeroAddress(withdrawalAddress);
+        vm.assume(withdrawalAddress != users.admin);
         resetPrank(users.validator);
         sebaPool.subscribeValidator(1);
 

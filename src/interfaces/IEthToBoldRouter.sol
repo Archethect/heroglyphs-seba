@@ -81,9 +81,6 @@ interface IEthToBoldRouter {
     /// @notice Returns the BOLD ERC-20 token.
     function BOLD() external view returns (IERC20);
 
-    /// @notice Returns the Chainlink ETH/USD aggregator.
-    function ETH_USD_FEED() external view returns (AggregatorV3Interface);
-
     /// @notice Public getter for the pending order.
     function order()
         external

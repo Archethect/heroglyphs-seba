@@ -22,6 +22,7 @@ struct Contracts {
     address eUsdUsdcBeefyYieldVault;
     address ethFlow;
     address ethUsdFeed;
+    address usdcUsdFeed;
     address settlement;
     address swapRouter;
     address quoter;

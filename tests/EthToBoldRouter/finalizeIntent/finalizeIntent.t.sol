@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import { BaseTest } from "tests/Base.t.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
-import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -41,16 +40,13 @@ contract FinalizeIntentTest is BaseTest {
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
         vm.assume(minBoldBeforeSlippage >= 0);
-        vm.assume(minBoldBeforeSlippage < amount * 10 / 100);
+        vm.assume(minBoldBeforeSlippage < (amount * 10) / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
         vm.deal(users.yieldManager, amount);
 
-        (uint256 minBold) = calculateOrderAmounts(
-            minBoldBeforeSlippage,
-            slippage
-        );
+        uint256 minBold = calculateOrderAmounts(minBoldBeforeSlippage, slippage);
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),
@@ -111,16 +107,13 @@ contract FinalizeIntentTest is BaseTest {
         vm.assume(amount > 0);
         vm.assume(amount < type(uint128).max);
         vm.assume(minBoldBeforeSlippage >= 0);
-        vm.assume(minBoldBeforeSlippage < amount * 10 / 100);
+        vm.assume(minBoldBeforeSlippage < (amount * 10) / 100);
         vm.assume(slippage >= 0);
         vm.assume(slippage < 10000);
         vm.assume(validity < 10000);
         vm.deal(users.yieldManager, amount);
 
-        (uint256 minBold) = calculateOrderAmounts(
-            minBoldBeforeSlippage,
-            slippage
-        );
+        uint256 minBold = calculateOrderAmounts(minBoldBeforeSlippage, slippage);
 
         IEthFlow.Data memory expected = IEthFlow.Data({
             buyToken: IERC20(contracts.bold),

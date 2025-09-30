@@ -35,6 +35,7 @@ contract BaseTest is Modifiers {
     IERC20 internal usdc;
     IEthFlow internal ethFlow;
     AggregatorV3Interface internal ethUsdFeed;
+    AggregatorV3Interface internal usdcUsdFeed;
     ISwapRouter internal swapRouter;
     IQuoter internal quoter;
     ICurvePool internal curvePool;
@@ -70,19 +71,15 @@ contract BaseTest is Modifiers {
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); // Mainnet USDC contract
         ethFlow = IEthFlow(0xbA3cB449bD2B4ADddBc894D8697F5170800EAdeC); // Mainnet CowSwap EthFlow contract
         // Mainnet Chainlink ETH/USD contract
-        ethUsdFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+        ethUsdFeed = AggregatorV3Interface(0xc0053f3FBcCD593758258334Dfce24C2A9A673aD);
+        // Mainnet Chainlink USDC/USD contract
+        usdcUsdFeed = AggregatorV3Interface(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
         swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564); // Mainnet Uniswap SwapRouter contract
         quoter = IQuoter(0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6); // Mainnet Uniswap Quoter contract
         curvePool = ICurvePool(0x08BfA22bB3e024CDfEB3eca53c0cb93bF59c4147); // Mainnet USDe/USDC CurvePool contract
         beefy = IBeefyVault(0x1817CFfc44c78d5aED61420bF48Cc273E504B7BE); // Mainnet Beefy contract
 
-        ethToBoldRouter = new EthToBoldRouter(
-            address(ethFlow),
-            address(bold),
-            address(ethUsdFeed),
-            users.admin,
-            users.yieldManager
-        );
+        ethToBoldRouter = new EthToBoldRouter(address(ethFlow), address(bold), users.admin, users.yieldManager);
         pybSeba = new PYBSeba(users.admin, ERC20(address(sBOLD)));
         sebaPool = new SebaPool(users.admin, users.automator);
         eUsdUsdcBeefyYieldVault = new EUSDUSDCBeefyYieldVault(
@@ -93,7 +90,9 @@ contract BaseTest is Modifiers {
             address(swapRouter),
             address(quoter),
             address(curvePool),
-            address(beefy)
+            address(beefy),
+            address(ethUsdFeed),
+            address(usdcUsdFeed)
         );
         yieldManager = new YieldManager(
             users.admin,
@@ -120,6 +119,7 @@ contract BaseTest is Modifiers {
         contracts.curvePool = address(curvePool);
         contracts.swapRouter = address(swapRouter);
         contracts.ethUsdFeed = address(ethUsdFeed);
+        contracts.usdcUsdFeed = address(usdcUsdFeed);
         contracts.quoter = address(quoter);
         contracts.ethFlow = address(ethFlow);
         contracts.sebaPool = address(sebaPool);

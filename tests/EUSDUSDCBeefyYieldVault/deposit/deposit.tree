@@ -5,10 +5,31 @@ DepositTest
     ├── when the value is zero
     │   └── it should revert
     └── when the value is not zero
-        ├── when the lpMinted is zero
+        ├── when the ethUsdFeed returns zero
         │   └── it should revert
-        └── when the lpMinted is not zero
-            ├── it should mint new shares
-            ├── it should increase the principalShares
-            ├── it should increase the principalValue
-            └── it should emit Deposited
+        └── when the ethUsdFeed does not return zero
+            ├── when the usdcUsdFeed returns zero
+            │   └── it should revert
+            └── when the usdcUsdFeed does not return zero
+                ├── when the ethUsdFeed is stale
+                │   └── it should revert
+                └── when the ethUsdFeed is not stale
+                    ├── when the usdcUsdFeed is stale
+                    │   └── it should revert
+                    └── when the usdcUsdFeed is not stale
+                        ├── when the quoted uniswap price is too low
+                        │   └── it should revert
+                        └── when the quoted uniswap price is not too low
+                            ├── when the lpMinted is zero
+                            │   └── it should revert
+                            └── when the lpMinted is not zero
+                                ├── when the sharesMinted is zero
+                                │   └── it should revert
+                                └── when the sharesMinted is not zero
+                                    ├── when the depositValue is zero
+                                    │   └── it should revert
+                                    └── when the depositValue is not zero
+                                        ├── it should mint new shares
+                                        ├── it should increase the principalShares
+                                        ├── it should increase the principalValue
+                                        └── it should emit Deposited

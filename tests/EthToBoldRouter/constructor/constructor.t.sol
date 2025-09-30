@@ -9,44 +9,31 @@ contract ConstructorTest is BaseTest {
     function test_WhenEthFlowIsZero() external {
         // it whould revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(address(0), contracts.bold, contracts.ethUsdFeed, users.admin, users.yieldManager);
+        new EthToBoldRouter(address(0), contracts.bold, users.admin, users.yieldManager);
     }
 
     function test_RevertWhen_BoldIsZero() external whenEthFlowIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, address(0), contracts.ethUsdFeed, users.admin, users.yieldManager);
+        new EthToBoldRouter(contracts.ethFlow, address(0), users.admin, users.yieldManager);
     }
 
-    function test_RevertWhen_EthUsdFeedIsZero() external whenEthFlowIsNotZero whenBoldIsNotZero {
+    function test_RevertWhen_AdminIsZero() external whenEthFlowIsNotZero whenBoldIsNotZero whenSettlementIsNotZero {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, contracts.bold, address(0), users.admin, users.yieldManager);
-    }
-
-    function test_RevertWhen_AdminIsZero()
-        external
-        whenEthFlowIsNotZero
-        whenBoldIsNotZero
-        whenEthUsdFeedIsNotZero
-        whenSettlementIsNotZero
-    {
-        // it should revert
-        vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, contracts.bold, contracts.ethUsdFeed, address(0), users.yieldManager);
+        new EthToBoldRouter(contracts.ethFlow, contracts.bold, address(0), users.yieldManager);
     }
 
     function test_RevertWhen_YieldManagerIsZero()
         external
         whenEthFlowIsNotZero
         whenBoldIsNotZero
-        whenEthUsdFeedIsNotZero
         whenSettlementIsNotZero
         whenAdminIsNotZero
     {
         // it should revert
         vm.expectRevert(abi.encodeWithSelector(IEthToBoldRouter.InvalidAddress.selector));
-        new EthToBoldRouter(contracts.ethFlow, contracts.bold, contracts.ethUsdFeed, users.admin, address(0));
+        new EthToBoldRouter(contracts.ethFlow, contracts.bold, users.admin, address(0));
     }
 
     function test_WhenYieldManagerIsNotZero()
@@ -60,7 +47,6 @@ contract ConstructorTest is BaseTest {
         EthToBoldRouter localEthToBoldROuter = new EthToBoldRouter(
             contracts.ethFlow,
             contracts.bold,
-            contracts.ethUsdFeed,
             users.admin,
             users.yieldManager
         );
@@ -92,7 +78,5 @@ contract ConstructorTest is BaseTest {
         assertEq(address(localEthToBoldROuter.ETH_FLOW()), contracts.ethFlow, "EthFlow is not correct");
         // it should set the correct bold
         assertEq(address(localEthToBoldROuter.BOLD()), contracts.bold, "BOLD is not correct");
-        // it should set the correct ethUsdFeed
-        assertEq(address(localEthToBoldROuter.ETH_USD_FEED()), contracts.ethUsdFeed, "EthUsdFeed is not correct");
     }
 }

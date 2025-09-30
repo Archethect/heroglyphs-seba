@@ -23,10 +23,16 @@ ConstructorTest
                             ├── when beefy is zero
                             │   └── it should revert
                             └── when beefy is not zero
-                                ├── it should configure the correct roles
-                                ├── it should set the correct weth
-                                ├── it should set the correct usdc
-                                ├── it should set the correct swapRouter
-                                ├── it should set the correct quoter
-                                ├── it should set the correct curvePool
-                                └── it should set the correct beefy
+                                ├── when ethUsdFeed is zero
+                                │   └── it should revert
+                                └── when ethUsdFeed is not zero
+                                    ├── when usdcUsdFeed is zero
+                                    │   └── it should revert
+                                    └── when usdcUsdFeed is not zero
+                                        ├── it should configure the correct roles
+                                        ├── it should set the correct weth
+                                        ├── it should set the correct usdc
+                                        ├── it should set the correct swapRouter
+                                        ├── it should set the correct quoter
+                                        ├── it should set the correct curvePool
+                                        └── it should set the correct beefy

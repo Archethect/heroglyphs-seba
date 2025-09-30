@@ -51,6 +51,9 @@ interface IYieldManager {
     /// Thrown if {activateYieldFlow} is called more than once.
     error YieldFlowAlreadyActivated();
 
+    // Value of deposit is zero
+    error ZeroDepositValue();
+
     /// Thrown when a referenced deposit‐ID does not exist.
     error NonExistingDeposit(uint256 id);
 

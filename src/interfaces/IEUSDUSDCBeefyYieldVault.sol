@@ -6,6 +6,7 @@ import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
 import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
 import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
 import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
+import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
 
 /**
  * @title IEUSDUSDCBeefyYieldVault
@@ -35,6 +36,12 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
     /// Curve or Uniswap swap / mint returned less than the min-out.
     error SlippageExceeded();
 
+    // No shares minted on Beefy
+    error NoSharesMinted();
+
+    // Value of deposit is zero
+    error ZeroDepositValue();
+
     /// Asked to retrieve 0 principal.
     error CannotRetrieveZero();
 
@@ -43,6 +50,12 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
 
     /// Configured slippage is too high
     error SlippageTooHigh();
+
+    // Oracle is invalid
+    error OracleInvalid();
+
+    // Oracle is stale
+    error OracleStale();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -81,6 +94,8 @@ interface IEUSDUSDCBeefyYieldVault is IYieldVault {
     function quoter() external view returns (IQuoter);
     function curvePool() external view returns (ICurvePool);
     function beefy() external view returns (IBeefyVault);
+    function ethUsdFeed() external view returns (AggregatorV3Interface);
+    function usdcUsdFeed() external view returns (AggregatorV3Interface);
 
     /// Accounting snapshots.
     function principalShares() external view returns (uint256);

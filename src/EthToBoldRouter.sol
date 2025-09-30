@@ -2,8 +2,7 @@
 pragma solidity ^0.8.28;
 
 /*───────────────────────────── Dependencies ───────────────────────────*/
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
@@ -26,8 +25,6 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
     IEthFlow public immutable ETH_FLOW;
     /// @inheritdoc IEthToBoldRouter
     IERC20 public immutable BOLD;
-    /// @inheritdoc IEthToBoldRouter
-    AggregatorV3Interface public immutable ETH_USD_FEED;
 
     /*//////////////////////////////////////////////////////////////
                                ROLES
@@ -61,12 +58,12 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
      * @notice Initializes the EthToBoldRouter.
      * @param ethFlow CowSwap Eth-flow contract address.
      * @param bold BOLD ERC-20 token address.
-     * @param ethUsdFeed Chainlink ETH/USD aggregator address.
+     * @param admin Admin of the contract
+     * @param yieldManager YieldManager address
      */
-    constructor(address ethFlow, address bold, address ethUsdFeed, address admin, address yieldManager) {
+    constructor(address ethFlow, address bold, address admin, address yieldManager) {
         if (ethFlow == address(0)) revert InvalidAddress();
         if (bold == address(0)) revert InvalidAddress();
-        if (ethUsdFeed == address(0)) revert InvalidAddress();
         if (admin == address(0)) revert InvalidAddress();
         if (yieldManager == address(0)) revert InvalidAddress();
 
@@ -77,7 +74,6 @@ contract EthToBoldRouter is AccessControl, IEthToBoldRouter {
 
         ETH_FLOW = IEthFlow(ethFlow);
         BOLD = IERC20(bold);
-        ETH_USD_FEED = AggregatorV3Interface(ethUsdFeed);
     }
 
     /*//////////////////////////////////////////////////////////////
