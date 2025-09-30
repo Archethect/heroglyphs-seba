@@ -103,7 +103,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
 
     /**
      * @notice Returns the maximum amount of assets a user can deposit.
-     * @dev Overrides ERC4626 {maxDeposit}. It calculates the maximum deposit based on the user's asset balance
+     * @dev Overrides ERC4626 {maxDeposit} and returns 0.
      * and the remaining supply capacity.
      * @return The maximum deposit amount for the user.
      */
@@ -113,8 +113,7 @@ contract PYBSeba is AccessControl, ERC4626, IPYBSeba {
 
     /**
      * @notice Returns the maximum number of shares a user can mint.
-     * @dev Overrides ERC4626 {maxMint}. It calculates the maximum shares based on the user's asset balance
-     * and the remaining supply capacity.
+     * @dev Overrides ERC4626 {maxMint} and returns 0.
      * @return The maximum number of shares the user can mint.
      */
     function maxMint(address) public pure override returns (uint256) {
