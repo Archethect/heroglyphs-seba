@@ -22,7 +22,7 @@
   verbosity = 4
 
 [etherscan]
-  mainnet = { key = "${ETHERSCAN_API_KEY}" }
+  mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 1, url= "${MAINNET_ETHERSCAN_API}" }
   holesky = { key = "${ETHERSCAN_API_KEY}" }
   hoodi = { key = "${ETHERSCAN_API_KEY}", chain = 560048, url = "${HOODI_ETHERSCAN_API}" }
 
