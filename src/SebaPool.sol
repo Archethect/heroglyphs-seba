@@ -17,8 +17,8 @@ contract SebaPool is AccessControl, ISebaPool {
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The duration of the graduation period in blocks (approximately 1 day for testing).
-    uint256 public constant GRADUATION_DURATION_IN_BLOCKS = 7200;
+    /// @notice The duration of the graduation period in blocks (6 months).
+    uint256 public constant GRADUATION_DURATION_IN_BLOCKS = 1314872;
 
     /// @notice Role identifier for administrative functions.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
