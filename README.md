@@ -146,6 +146,14 @@ Monte Carlo simulations (1000 iterations, 1000 validators) demonstrate:
 
 ---
 
+## Audits
+
+0xRiptide bot: https://gist.github.com/0xriptide/d7994a953b86b90ff3a1f8703e20b77c 
+
+0xZarf: [zarf.md](audits/zarf.md)
+
+Fixes for audits: https://github.com/Archethect/hero_boost/pull/1
+
 ## License
 
 All code in this repository is licensed under the [MIT License](LICENSE).
