@@ -7,6 +7,7 @@ import { EUSDUSDCBeefyYieldVault } from "src/EUSDUSDCBeefyYieldVault.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract SetYieldVaultTest is BaseTest {
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_RevertWhen_NotTheAdmin(address caller) external {
         vm.assume(caller != users.admin);
 

@@ -1,0 +1,13 @@
+BackPaySebaForMinipoolsTest
+├── when not the correct array length
+│   └── it should revert
+└── when the correct array length
+    ├── when the correct amount is not paid
+    │   └── it should revert
+    └── when the correct amount is paid
+        ├── when transfering the payment to the seba pool fails
+        │   └── it should revert
+        └── when transfering the payment to the sebapool succeeds
+            ├── it should emit BackPayMinipool
+            ├── it should set the correct back paid amount per minipool
+            └── it should send the correct payment amount to the seba pool

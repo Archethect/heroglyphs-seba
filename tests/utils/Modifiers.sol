@@ -245,4 +245,12 @@ abstract contract Modifiers is Helpers {
     modifier whenTheSharesMintedIsNotZero() {
         _;
     }
+
+    modifier whenTheCorrectArrayLength() {
+        _;
+    }
+
+    modifier whenTheCorrectAmountIsPaid() {
+        _;
+    }
 }

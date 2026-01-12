@@ -18,6 +18,8 @@ import { IQuoter } from "src/vendor/uniswap_v3/IQuoter.sol";
 import { ICurvePool } from "src/vendor/curve/ICurvePool.sol";
 import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
 import { ERC20 } from "solmate/src/tokens/ERC20.sol";
+import {IRocketPoolBackPay} from "../src/interfaces/IRocketPoolBackPay.sol";
+import {RocketPoolBackPay} from "../src/RocketPoolBackPay.sol";
 
 /* solhint-disable max-states-count */
 contract BaseTest is Modifiers {
@@ -40,6 +42,7 @@ contract BaseTest is Modifiers {
     IQuoter internal quoter;
     ICurvePool internal curvePool;
     IBeefyVault internal beefy;
+    IRocketPoolBackPay internal rocketPoolBackPay;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual {
@@ -104,6 +107,7 @@ contract BaseTest is Modifiers {
             address(pybSeba),
             address(eUsdUsdcBeefyYieldVault)
         );
+        rocketPoolBackPay = new RocketPoolBackPay(address(sebaPool));
         eUsdUsdcBeefyYieldVault.grantRole(eUsdUsdcBeefyYieldVault.YIELDMANAGER_ROLE(), address(yieldManager));
         pybSeba.setSebaPool(address(sebaPool));
         sebaPool.setSebaVault(address(pybSeba));
@@ -128,6 +132,7 @@ contract BaseTest is Modifiers {
         contracts.mockSimpleYieldManager = address(mockSimpleYieldManager);
         contracts.ethToBoldRouter = address(ethToBoldRouter);
         contracts.eUsdUsdcBeefyYieldVault = address(eUsdUsdcBeefyYieldVault);
+        contracts.rocketPoolBackPay = address(rocketPoolBackPay);
     }
 
     /* solhint-disable no-empty-blocks */
