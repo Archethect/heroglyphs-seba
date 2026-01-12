@@ -28,4 +28,5 @@ struct Contracts {
     address quoter;
     address curvePool;
     address beefy;
+    address rocketPoolBackPay;
 }
