@@ -8,6 +8,7 @@ import { IBeefyVault } from "src/vendor/beefy/IBeefyVault.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract DistributeYieldTest is BaseTest {
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_RevertWhen_NotTheAutomatorRole(address caller) external {
         vm.assume(caller != users.automator);
 

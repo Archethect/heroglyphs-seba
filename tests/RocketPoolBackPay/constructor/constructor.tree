@@ -1,0 +1,5 @@
+ConstructorTest
+├── when seba pool is zero
+│   └── it should revert
+└── when seba pool is not zero
+    └── it should set the correct seba pool
