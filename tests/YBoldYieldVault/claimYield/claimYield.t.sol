@@ -10,7 +10,9 @@ contract YBoldClaimYieldTest is YBoldYieldVaultTestBase {
     function test_RevertWhenCallerIsNotYieldManager() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), vault.YIELDMANAGER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(this),
+                vault.YIELDMANAGER_ROLE()
             )
         );
         vault.claimYield();

@@ -10,7 +10,9 @@ import { MockToken } from "tests/mocks/MockYBoldIntegrations.sol";
 contract YBoldAdminTest is YBoldYieldVaultTestBase {
     function test_RevertWhenNonAdminCallsConfigurationMethods() external {
         bytes memory expected = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), vault.ADMIN_ROLE()
+            IAccessControl.AccessControlUnauthorizedAccount.selector,
+            address(this),
+            vault.ADMIN_ROLE()
         );
         vm.expectRevert(expected);
         vault.setSwapSlippageBps(1, 1);

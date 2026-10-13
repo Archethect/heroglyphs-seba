@@ -2,7 +2,9 @@ retrievePrincipal
 ├── caller lacks YIELDMANAGER_ROLE → revert
 ├── request is zero or no principal exists → revert
 ├── partial request cannot quote valid shares → revert
-├── partial request → redeem previewWithdraw shares and reduce book value exactly
-├── request is at least all principal → redeem all shares and zero accounting
+├── partial request with healthy backing → redeem previewWithdraw shares and reduce book value exactly
+├── partial request after a loss → redeem pro-rata shares so early callers cannot export the loss
+├── request is at least all principal → preserve unclaimed yield shares when the strategy is profitable
+├── request is at least all principal after a loss → redeem remaining shares and zero principal accounting
 ├── Yearn liquidity or exit protection fails → revert atomically
 └── paused/emergency mode → retrieval remains available with configured emergency maxLoss

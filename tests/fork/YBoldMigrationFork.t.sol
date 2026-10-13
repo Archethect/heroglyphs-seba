@@ -7,6 +7,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
 import { PYBSeba } from "src/PYBSeba.sol";
 import { YBoldYieldVault } from "src/YBoldYieldVault.sol";
 import { YieldManager } from "src/YieldManager.sol";
@@ -82,6 +83,45 @@ contract YBoldMigrationForkTest is Test {
         assertEq(isolatedAdapter.principalShares(), 0);
     }
 
+    function test_EmergencyPauseWithdrawalAndCoreRescueBlockOnLiveIntegrations() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        vm.deal(address(this), 2 ether);
+        uint256 value = isolatedManager.deposit{ value: 1 ether }(address(isolatedAdapter));
+
+        vm.startPrank(GOVERNANCE_ADMIN);
+        isolatedAdapter.pause();
+        isolatedAdapter.setEmergencyMode(true);
+        vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.CoreAsset.selector, ST_YBOLD));
+        isolatedAdapter.rescueToken(ST_YBOLD, GOVERNANCE_ADMIN, 1);
+        vm.stopPrank();
+
+        vm.expectRevert(IYBoldYieldVault.StrategyNotOperational.selector);
+        isolatedManager.deposit{ value: 1 ether }(address(isolatedAdapter));
+        vm.expectRevert(IYBoldYieldVault.StrategyNotOperational.selector);
+        isolatedManager.claim(address(isolatedAdapter));
+
+        isolatedManager.retrieve(address(isolatedAdapter), value);
+        assertGt(address(isolatedManager).balance, 0.98 ether);
+        assertEq(isolatedAdapter.principalValue(), 0);
+    }
+
+    function test_EmergencyWithdrawalStillFailsClosedOnStaleOracle() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        vm.deal(address(this), 1 ether);
+        uint256 value = isolatedManager.deposit{ value: 1 ether }(address(isolatedAdapter));
+
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.setEmergencyMode(true);
+        (, , , uint256 updatedAt, ) = AggregatorV3Interface(ETH_USD_FEED).latestRoundData();
+        vm.warp(block.timestamp + 2 hours);
+
+        vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.OracleStale.selector, ETH_USD_FEED, updatedAt));
+        isolatedManager.retrieve(address(isolatedAdapter), value);
+        assertEq(isolatedAdapter.principalValue(), value);
+    }
+
     function test_LiveSwitchWithNoProtocolPositionLeavesUserPositionsOnOldVault() external {
         vm.prank(GOVERNANCE_ADMIN);
         manager.retrievePrincipalFromYieldVault();
@@ -106,7 +146,7 @@ contract YBoldMigrationForkTest is Test {
 
         assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
         for (uint256 id = 1; id <= 4; ++id) {
-            (,, uint256 deletedAmount,) = manager.deposits(id);
+            (, , uint256 deletedAmount, ) = manager.deposits(id);
             assertEq(deletedAmount, 0);
         }
         for (uint256 id = 5; id <= 9; ++id) {
@@ -209,7 +249,7 @@ contract YBoldMigrationForkTest is Test {
         manager.retrieveFunds(10);
         assertGt(DEPOSITOR_ADMIN.balance, depositorBeforeWithdrawal);
 
-        (,, uint256 deletedAmount,) = manager.deposits(10);
+        (, , uint256 deletedAmount, ) = manager.deposits(10);
         assertEq(deletedAmount, 0);
         assertEq(adapter.principalValue(), manager.principalValue() + secondTranche.amount);
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
@@ -232,15 +272,16 @@ contract YBoldMigrationForkTest is Test {
         );
     }
 
-    function _depositorAndDeposit(uint256 id)
-        internal
-        view
-        returns (address depositor, IYieldManager.Deposit memory depositData)
-    {
+    function _depositorAndDeposit(
+        uint256 id
+    ) internal view returns (address depositor, IYieldManager.Deposit memory depositData) {
         (address owner, IYieldVault vaultAtDeposit, uint256 amount, uint32 unlockTime) = manager.deposits(id);
         depositor = owner;
         depositData = IYieldManager.Deposit({
-            depositor: owner, vaultAtDeposit: vaultAtDeposit, amount: amount, unlockTime: unlockTime
+            depositor: owner,
+            vaultAtDeposit: vaultAtDeposit,
+            amount: amount,
+            unlockTime: unlockTime
         });
     }
 
@@ -254,7 +295,7 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function _mockFreshChainlinkRound(address feed) internal {
-        (uint80 roundId, int256 answer,,,) = AggregatorV3Interface(feed).latestRoundData();
+        (uint80 roundId, int256 answer, , , ) = AggregatorV3Interface(feed).latestRoundData();
         vm.mockCall(
             feed,
             abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
@@ -266,7 +307,9 @@ contract YBoldMigrationForkTest is Test {
         IPythLike.Price memory price = IPythLike(PYTH).getPriceUnsafe(BOLD_USD_PRICE_ID);
         price.publishTime = block.timestamp;
         vm.mockCall(
-            PYTH, abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID), abi.encode(price)
+            PYTH,
+            abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID),
+            abi.encode(price)
         );
     }
 

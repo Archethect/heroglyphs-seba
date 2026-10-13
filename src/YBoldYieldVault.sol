@@ -52,6 +52,8 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     uint16 public constant MAX_BOLD_PEG_DEVIATION_BPS = 500;
     /// Maximum configurable Yearn redemption loss tolerance (10%).
     uint16 public constant MAX_YEARN_LOSS_BPS = 1000;
+    /// Yearn ERC-4626 share rounding dust tolerated when checking for a strategy loss (0.000001 yBOLD).
+    uint256 public constant MAX_ACCOUNTING_DUST = 1e12;
     /// Maximum ETH/USD oracle age (one hour).
     uint256 public constant ETH_USD_ORACLE_MAX_AGE = 1 hours;
     /// Maximum USDC/USD oracle age (23 hours).
@@ -203,6 +205,12 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     {
         _requireOperational();
         if (msg.value == 0) revert NoEthProvided();
+        if (principalValue != 0) {
+            uint256 currentAssets = stYBold.convertToAssets(principalShares);
+            if (currentAssets < principalValue && principalValue - currentAssets > MAX_ACCOUNTING_DUST) {
+                revert StrategyUnderwater();
+            }
+        }
         _requireYearnDepositAvailable(yBold, 1);
         _requireYearnDepositAvailable(stYBold, 1);
 
@@ -211,7 +219,7 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
 
         _checkBoldPeg();
         uint256 nominalBold = Math.mulDiv(usdcOut, 1e18, 1e6);
-        uint256 boldMin = _subtractBps(nominalBold, boldUsdcSlippageBps);
+        uint256 boldMin = _minBoldSwapOutput(nominalBold);
         uint256 boldOut = _swapCurve(1, 0, USDC, usdcOut, boldMin);
 
         uint256 yBoldCapacity = yBold.maxDeposit(address(this));
@@ -282,14 +290,18 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
 
         uint256 valueToRemove;
         uint256 sharesToRedeem;
+        uint256 currentAssets = stYBold.convertToAssets(principalShares);
         if (depositValue >= principalValue) {
             valueToRemove = principalValue;
-            sharesToRedeem = principalShares;
+            sharesToRedeem = currentAssets > principalValue ? stYBold.previewWithdraw(principalValue) : principalShares;
+            if (sharesToRedeem == 0 || sharesToRedeem > principalShares) revert NoPrincipal();
             principalValue = 0;
-            principalShares = 0;
+            principalShares -= sharesToRedeem;
         } else {
             valueToRemove = depositValue;
-            sharesToRedeem = stYBold.previewWithdraw(depositValue);
+            sharesToRedeem = currentAssets < principalValue
+                ? Math.mulDiv(principalShares, depositValue, principalValue, Math.Rounding.Ceil)
+                : stYBold.previewWithdraw(depositValue);
             if (sharesToRedeem == 0 || sharesToRedeem > principalShares) revert NoPrincipal();
             principalValue -= depositValue;
             principalShares -= sharesToRedeem;
@@ -374,7 +386,7 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
         _checkBoldPeg();
         uint256 nominalUsdc = Math.mulDiv(boldOut, 1e6, 1e18);
         if (nominalUsdc == 0) revert ZeroOutput();
-        uint256 usdcMin = _subtractBps(nominalUsdc, boldUsdcSlippageBps);
+        uint256 usdcMin = _minBoldSwapOutput(nominalUsdc);
         uint256 usdcOut = _swapCurve(0, 1, BOLD, boldOut, usdcMin);
 
         uint256 wethOut = _swapUniswap(USDC, WETH, usdcOut, _minUsdcToEth(usdcOut));
@@ -402,10 +414,7 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
         address tokenOut,
         uint256 amountIn,
         uint256 amountOutMinimum
-    )
-        internal
-        returns (uint256 amountOut)
-    {
+    ) internal returns (uint256 amountOut) {
         IERC20(tokenIn).forceApprove(address(swapRouter), amountIn);
         amountOut = swapRouter.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
@@ -429,10 +438,7 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
         address tokenIn,
         uint256 amountIn,
         uint256 amountOutMinimum
-    )
-        internal
-        returns (uint256 amountOut)
-    {
+    ) internal returns (uint256 amountOut) {
         IERC20(tokenIn).forceApprove(address(curvePool), amountIn);
         amountOut = curvePool.exchange(i, j, amountIn, amountOutMinimum, address(this));
         IERC20(tokenIn).forceApprove(address(curvePool), 0);
@@ -457,12 +463,8 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
         AggregatorV3Interface feed,
         uint8 decimals_,
         uint256 maxAge
-    )
-        internal
-        view
-        returns (uint256 price)
-    {
-        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) = feed.latestRoundData();
+    ) internal view returns (uint256 price) {
+        (uint80 roundId, int256 answer, , uint256 updatedAt, uint80 answeredInRound) = feed.latestRoundData();
         if (answer <= 0 || updatedAt == 0 || updatedAt > block.timestamp || answeredInRound < roundId) {
             revert OracleInvalid(address(feed));
         }
@@ -493,6 +495,12 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
 
     function _subtractBps(uint256 amount, uint16 bps) internal pure returns (uint256) {
         return Math.mulDiv(amount, BPS_DENOMINATOR - bps, BPS_DENOMINATOR);
+    }
+
+    function _minBoldSwapOutput(uint256 nominalOutput) internal view returns (uint256) {
+        // The peg guard permits this much deviation from parity before execution slippage is applied.
+        // A stricter nominal swap floor would reject prices that the peg guard explicitly accepts.
+        return _subtractBps(nominalOutput, boldUsdcSlippageBps + maxBoldPegDeviationBps);
     }
 
     function _isCoreAsset(address token) internal view returns (bool) {

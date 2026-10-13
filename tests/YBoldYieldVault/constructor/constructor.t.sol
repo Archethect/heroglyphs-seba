@@ -122,7 +122,10 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         MockCurveStableSwapNG reversedCurve = new MockCurveStableSwapNG(address(usdc), address(bold));
         vm.expectRevert(
             abi.encodeWithSelector(
-                IYBoldYieldVault.InvalidAsset.selector, address(reversedCurve), address(bold), address(usdc)
+                IYBoldYieldVault.InvalidAsset.selector,
+                address(reversedCurve),
+                address(bold),
+                address(usdc)
             )
         );
         new YBoldYieldVault(
@@ -145,7 +148,10 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         MockYearnVault wrongYBold = new MockYearnVault(IERC20(address(wrongAsset)), "Wrong", "WRONG");
         vm.expectRevert(
             abi.encodeWithSelector(
-                IYBoldYieldVault.InvalidAsset.selector, address(wrongYBold), address(bold), address(wrongAsset)
+                IYBoldYieldVault.InvalidAsset.selector,
+                address(wrongYBold),
+                address(bold),
+                address(wrongAsset)
             )
         );
         new YBoldYieldVault(
@@ -167,7 +173,10 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         MockYearnVault wrongStYBold = new MockYearnVault(IERC20(address(bold)), "Wrong", "WRONG");
         vm.expectRevert(
             abi.encodeWithSelector(
-                IYBoldYieldVault.InvalidAsset.selector, address(wrongStYBold), address(yBold), address(bold)
+                IYBoldYieldVault.InvalidAsset.selector,
+                address(wrongStYBold),
+                address(yBold),
+                address(bold)
             )
         );
         new YBoldYieldVault(
@@ -189,7 +198,10 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         MockAggregator invalidFeed = new MockAggregator(19, 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IYBoldYieldVault.InvalidDecimals.selector, address(invalidFeed), uint8(18), uint8(19)
+                IYBoldYieldVault.InvalidDecimals.selector,
+                address(invalidFeed),
+                uint8(18),
+                uint8(19)
             )
         );
         new YBoldYieldVault(
@@ -211,7 +223,10 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         MockAggregator invalidFeed = new MockAggregator(19, 1e18);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IYBoldYieldVault.InvalidDecimals.selector, address(invalidFeed), uint8(18), uint8(19)
+                IYBoldYieldVault.InvalidDecimals.selector,
+                address(invalidFeed),
+                uint8(18),
+                uint8(19)
             )
         );
         new YBoldYieldVault(

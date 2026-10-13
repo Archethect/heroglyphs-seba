@@ -8,7 +8,7 @@ contract YBoldReceiveTest is YBoldYieldVaultTestBase {
     function test_RevertWhenEthSenderIsNotWeth() external {
         vm.deal(address(this), 1 ether);
         vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.UnauthorizedEthSender.selector, address(this)));
-        (bool success,) = address(vault).call{ value: 1 ether }("");
+        (bool success, ) = address(vault).call{ value: 1 ether }("");
         success;
     }
 

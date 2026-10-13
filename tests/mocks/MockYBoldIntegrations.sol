@@ -29,7 +29,7 @@ contract MockToken is ERC20 {
 }
 
 contract MockWeth is MockToken {
-    constructor() MockToken("Wrapped Ether", "WETH", 18) { }
+    constructor() MockToken("Wrapped Ether", "WETH", 18) {}
 
     receive() external payable {
         deposit();
@@ -41,7 +41,7 @@ contract MockWeth is MockToken {
 
     function withdraw(uint256 amount) external {
         _burn(msg.sender, amount);
-        (bool success,) = msg.sender.call{ value: amount }("");
+        (bool success, ) = msg.sender.call{ value: amount }("");
         require(success, "ETH_TRANSFER");
     }
 }
@@ -177,7 +177,7 @@ contract MockYearnVault is ERC4626 {
     bool public customRedeemEnabled;
     uint256 public customRedeemAssets;
 
-    constructor(IERC20 asset_, string memory name_, string memory symbol_) ERC20(name_, symbol_) ERC4626(asset_) { }
+    constructor(IERC20 asset_, string memory name_, string memory symbol_) ERC20(name_, symbol_) ERC4626(asset_) {}
 
     function setRedeemLimit(uint256 limit) external {
         redeemLimit = limit;
@@ -208,6 +208,10 @@ contract MockYearnVault is ERC4626 {
         customRedeemAssets = assets;
     }
 
+    function simulateLoss(uint256 assets) external {
+        IERC20(asset()).safeTransfer(address(0xdead), assets);
+    }
+
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
         if (depositReturnsZero) return 0;
         return super.deposit(assets, receiver);
@@ -235,10 +239,12 @@ contract MockYearnVault is ERC4626 {
         return maxRedeem(owner);
     }
 
-    function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss)
-        external
-        returns (uint256 assets)
-    {
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 maxLoss
+    ) external returns (uint256 assets) {
         lastMaxLoss = maxLoss;
         if (customRedeemEnabled) {
             _burn(owner, shares);
@@ -252,7 +258,7 @@ contract MockYearnVault is ERC4626 {
 contract MockYBoldYieldManager {
     bool public yieldFlowActive = true;
 
-    receive() external payable { }
+    receive() external payable {}
 
     function setYieldFlowActive(bool active) external {
         yieldFlowActive = active;

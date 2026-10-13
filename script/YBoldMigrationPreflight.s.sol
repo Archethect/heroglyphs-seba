@@ -89,7 +89,10 @@ contract YBoldMigrationPreflight is Script {
         IEUSDUSDCBeefyYieldVault oldVault = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT);
         require(oldVault.principalShares() <= MAX_ACCEPTED_OLD_SHARES_DUST, "OLD_SHARES_DUST");
         require(oldVault.principalValue() <= MAX_ACCEPTED_OLD_VALUE_DUST, "OLD_VALUE_DUST");
-        require(newVault.principalShares() == IERC20(ST_YBOLD).balanceOf(address(newVault)), "NEW_SHARE_RECONCILIATION");
+        require(
+            newVault.principalShares() == IERC20(ST_YBOLD).balanceOf(address(newVault)),
+            "NEW_SHARE_RECONCILIATION"
+        );
         require(newVault.principalValue() >= manager.principalValue(), "NEW_VALUE_RECONCILIATION");
         console2.log("post-migration manager principal", manager.principalValue());
         console2.log("post-migration adapter principal", newVault.principalValue());

@@ -37,6 +37,10 @@ interface IYBoldYieldVault is IYieldVault {
      */
     error StrategyNotOperational();
     /**
+     * New deposits cannot recapitalize existing principal after a strategy loss.
+     */
+    error StrategyUnderwater();
+    /**
      * A Yearn vault is shut down or cannot accept the requested amount.
      */
     error StrategyUnavailable(address vault, uint256 requested, uint256 available);

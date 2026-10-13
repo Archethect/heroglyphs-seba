@@ -10,10 +10,41 @@ import { YBoldYieldVaultTestBase } from "tests/YBoldYieldVault/Base.t.sol";
 import { MockAggregator } from "tests/mocks/MockYBoldIntegrations.sol";
 
 contract YBoldDepositTest is YBoldYieldVaultTestBase {
+    function test_RevertWhenExistingPrincipalIsUnderwater() external {
+        _deposit(1 ether);
+        stYBold.simulateLoss(stYBold.totalAssets() / 2);
+
+        vm.expectRevert(IYBoldYieldVault.StrategyUnderwater.selector);
+        _deposit(1 ether);
+    }
+
+    function test_YearnShareRoundingDustDoesNotBlockNewDeposit() external {
+        _deposit(1 ether);
+        stYBold.simulateLoss(2);
+
+        uint256 secondValue = _deposit(1 ether);
+        assertGt(secondValue, 0);
+    }
+
+    function test_AcceptedBoldPegDoesNotContradictSwapMinimum() external {
+        curve.setOraclePrice(0.992e18);
+        curve.setOutputBps(9920);
+
+        uint256 principal = _deposit(1 ether);
+        manager.retrieve(address(vault), principal);
+        assertGt(address(manager).balance, 0.98 ether);
+
+        curve.setOutputBps(9849);
+        vm.expectRevert(bytes("CURVE_SLIPPAGE"));
+        _deposit(1 ether);
+    }
+
     function test_RevertWhenCallerIsNotYieldManager() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), vault.YIELDMANAGER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(this),
+                vault.YIELDMANAGER_ROLE()
             )
         );
         vault.deposit{ value: 1 ether }();
@@ -87,7 +118,7 @@ contract YBoldDepositTest is YBoldYieldVaultTestBase {
         assertEq(vault.principalValue(), 0);
 
         router.setOutputBps(10_000);
-        curve.setOutputBps(9900);
+        curve.setOutputBps(9849);
         vm.expectRevert(bytes("CURVE_SLIPPAGE"));
         manager.deposit{ value: 1 ether }(address(vault));
         assertEq(vault.principalValue(), 0);

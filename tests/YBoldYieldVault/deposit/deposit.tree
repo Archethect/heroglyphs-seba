@@ -3,7 +3,10 @@ deposit
 ├── msg.value is zero → revert
 └── strategy is operational
     ├── Yearn is shutdown or lacks capacity → revert
+    ├── existing principal is underwater beyond bounded share-rounding dust → revert
+    ├── only share-rounding dust remains → accept a new deposit
     ├── oracle round is invalid, stale, or cannot be safely normalized → revert
     ├── Curve EMA peg or either independent minimum-output check fails → revert atomically
+    ├── BOLD peg deviation within the accepted band → use the peg-plus-execution bound consistently
     ├── either Yearn deposit mints zero shares → revert atomically
     └── conversions succeed → book actual st-yBOLD shares and yBOLD principal value
