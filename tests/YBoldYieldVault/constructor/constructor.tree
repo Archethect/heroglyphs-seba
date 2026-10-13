@@ -1,0 +1,7 @@
+constructor
+├── zero admin or YieldManager → revert
+├── dependency is zero or has no bytecode → revert
+├── token or either oracle decimals invalid → revert
+├── Curve coin order invalid → revert
+├── yBOLD/st-yBOLD asset graph invalid → revert
+└── configuration valid → persist immutables, defaults, and roles

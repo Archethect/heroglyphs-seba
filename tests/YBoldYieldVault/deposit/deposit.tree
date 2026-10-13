@@ -1,0 +1,9 @@
+deposit
+├── caller lacks YIELDMANAGER_ROLE → revert
+├── msg.value is zero → revert
+└── strategy is operational
+    ├── Yearn is shutdown or lacks capacity → revert
+    ├── oracle round is invalid, stale, or cannot be safely normalized → revert
+    ├── Curve EMA peg or either independent minimum-output check fails → revert atomically
+    ├── either Yearn deposit mints zero shares → revert atomically
+    └── conversions succeed → book actual st-yBOLD shares and yBOLD principal value
