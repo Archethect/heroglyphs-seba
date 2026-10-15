@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { Test } from "forge-std/src/Test.sol";
+import { console2 } from "forge-std/src/console2.sol";
 import { YBoldMigrationPreflight } from "script/YBoldMigrationPreflight.s.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
@@ -33,7 +34,8 @@ interface IPythLike {
 }
 
 contract YBoldMigrationForkTest is Test {
-    uint256 internal constant PINNED_BLOCK = 25_831_161;
+    uint256 internal constant FRESH_BLOCK = 26_196_493;
+    uint256 internal constant HISTORIC_SUCCESS_BLOCK = 25_831_161;
 
     address internal constant SEBA_POOL = 0xe3B17b4533b339d3CBC26F57199d3fb937129894;
     address internal constant YIELD_MANAGER = 0xCAd999958e9619C3E5Bed96B8725Bb0b0fa45269;
@@ -42,6 +44,8 @@ contract YBoldMigrationForkTest is Test {
     address internal constant GOVERNANCE_ADMIN = 0xf83b11b09EEc073ACE4481b2F4c8357e156714b3;
     address internal constant DEPOSITOR_ADMIN = 0x888D768764A2E304215247F0bA3457cCb0f0ab4f;
     address internal constant AUTOMATOR = 0x8FbBC54D49b23F5b397dfE62AD2Fb0E09Cbe9379;
+    // Test-only custody address; this is not an assertion about the live treasury signer.
+    address internal constant TREASURY_STAND_IN = address(0xBEEFCAFE);
 
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -59,9 +63,8 @@ contract YBoldMigrationForkTest is Test {
     YBoldYieldVault internal adapter;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("MAINNET_RPC"), PINNED_BLOCK);
+        vm.createSelectFork(vm.envString("MAINNET_RPC"), FRESH_BLOCK);
         manager = YieldManager(payable(YIELD_MANAGER));
-        adapter = _deploy(YIELD_MANAGER);
     }
 
     function test_LiveYBoldDepositAndRoundTripWithdrawal() external {
@@ -81,6 +84,20 @@ contract YBoldMigrationForkTest is Test {
         assertGt(address(isolatedManager).balance - before, 0.98 ether);
         assertEq(isolatedAdapter.principalValue(), 0);
         assertEq(isolatedAdapter.principalShares(), 0);
+    }
+
+    function test_OversizedSingleTrancheRevertsWithoutMintingPrincipal() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        // Deliberately synthetic stress input; the full migration test uses only recovered user ETH.
+        vm.deal(address(this), 1000 ether);
+
+        vm.expectRevert(abi.encodeWithSignature("Error(string)", "Too little received"));
+        isolatedManager.deposit{ value: 1000 ether }(address(isolatedAdapter));
+
+        assertEq(isolatedAdapter.principalValue(), 0);
+        assertEq(isolatedAdapter.principalShares(), 0);
+        assertEq(IERC20(ST_YBOLD).balanceOf(address(isolatedAdapter)), 0);
     }
 
     function test_EmergencyPauseWithdrawalAndCoreRescueBlockOnLiveIntegrations() external {
@@ -114,7 +131,7 @@ contract YBoldMigrationForkTest is Test {
 
         vm.prank(GOVERNANCE_ADMIN);
         isolatedAdapter.setEmergencyMode(true);
-        (, , , uint256 updatedAt, ) = AggregatorV3Interface(ETH_USD_FEED).latestRoundData();
+        (,,, uint256 updatedAt,) = AggregatorV3Interface(ETH_USD_FEED).latestRoundData();
         vm.warp(block.timestamp + 2 hours);
 
         vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.OracleStale.selector, ETH_USD_FEED, updatedAt));
@@ -123,6 +140,7 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function test_LiveSwitchWithNoProtocolPositionLeavesUserPositionsOnOldVault() external {
+        adapter = _deploy(YIELD_MANAGER);
         vm.prank(GOVERNANCE_ADMIN);
         manager.retrievePrincipalFromYieldVault();
         assertEq(manager.principalValue(), 0);
@@ -138,6 +156,8 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function test_InterruptedUserUnwindCanResumeBeforeStrategySwitch() external {
+        _selectHistoricSuccessFork();
+        adapter = _deploy(YIELD_MANAGER);
         vm.startPrank(DEPOSITOR_ADMIN);
         for (uint256 id = 1; id <= 4; ++id) {
             manager.retrieveFunds(id);
@@ -146,7 +166,7 @@ contract YBoldMigrationForkTest is Test {
 
         assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
         for (uint256 id = 1; id <= 4; ++id) {
-            (, , uint256 deletedAmount, ) = manager.deposits(id);
+            (,, uint256 deletedAmount,) = manager.deposits(id);
             assertEq(deletedAmount, 0);
         }
         for (uint256 id = 5; id <= 9; ++id) {
@@ -172,13 +192,40 @@ contract YBoldMigrationForkTest is Test {
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
     }
 
-    function test_FullLiveBeefyMigrationHarvestPybDeliveryAndPostMigrationWithdrawal() external {
+    function test_FreshForkBeefyExitAbortsWithoutChangingFailedDepositOrShares() external {
+        for (uint256 id = 1; id <= 9; ++id) {
+            (address depositor, IYieldManager.Deposit memory beforeDeposit) = _depositorAndDeposit(id);
+            uint256 beforeShares = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT).principalShares();
+            uint256 beforePrincipal = manager.principalValue();
+            uint256 beforeEth = DEPOSITOR_ADMIN.balance;
+
+            vm.prank(DEPOSITOR_ADMIN);
+            try manager.retrieveFunds(id) {
+                continue;
+            } catch (bytes memory reason) {
+                assertEq(reason, abi.encodeWithSignature("Error(string)", "Not enough coins removed"));
+                (address afterDepositor, IYieldManager.Deposit memory afterDeposit) = _depositorAndDeposit(id);
+                assertEq(afterDepositor, depositor);
+                assertEq(afterDeposit.amount, beforeDeposit.amount);
+                assertEq(address(afterDeposit.vaultAtDeposit), address(beforeDeposit.vaultAtDeposit));
+                assertEq(IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT).principalShares(), beforeShares);
+                assertEq(manager.principalValue(), beforePrincipal);
+                assertEq(DEPOSITOR_ADMIN.balance, beforeEth);
+                console2.log("fresh Beefy exit failed at ID", id);
+                return;
+            }
+        }
+        revert("EXPECTED_FRESH_EXIT_FAILURE");
+    }
+
+    function test_FullHistoricalBeefyMigrationHarvestPybDeliveryAndPostMigrationWithdrawal() external {
+        _selectHistoricSuccessFork();
         assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
         assertEq(manager.depositId(), 9);
         assertEq(manager.pendingBoldConversion(), 0);
         assertEq(manager.activeRouterUid(), bytes32(0));
         assertTrue(manager.yieldFlowActive());
-        _runPreflight();
+        _runPreflight(address(0), 9);
 
         uint256 depositorBalanceBefore = DEPOSITOR_ADMIN.balance;
         vm.startPrank(DEPOSITOR_ADMIN);
@@ -187,15 +234,30 @@ contract YBoldMigrationForkTest is Test {
             ignored;
             assertEq(depositor, DEPOSITOR_ADMIN);
             manager.retrieveFunds(id);
+            if (id == 4) _runPreflight(address(0), 5);
         }
         vm.stopPrank();
         uint256 userEthReturned = DEPOSITOR_ADMIN.balance - depositorBalanceBefore;
         assertGt(userEthReturned, 100 ether);
+        _runPreflight(address(0), 0);
+
+        // The production route has a distinct ETH custody period before the new adapter is deployed.
+        vm.prank(DEPOSITOR_ADMIN);
+        (bool sentToTreasury,) = payable(TREASURY_STAND_IN).call{ value: userEthReturned }("");
+        assertTrue(sentToTreasury);
+        assertEq(TREASURY_STAND_IN.balance, userEthReturned);
+        assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
+        assertEq(manager.depositId(), 9);
+
+        adapter = _deploy(YIELD_MANAGER);
+        _runPreflight(address(adapter), 0);
 
         vm.prank(GOVERNANCE_ADMIN);
         manager.setYieldVault(address(adapter));
         assertEq(address(manager.yieldVault()), address(adapter));
         assertEq(manager.principalValue(), 0);
+        assertGt(YIELD_MANAGER.balance, 0);
+        _runPreflight(address(adapter), 0);
 
         IEUSDUSDCBeefyYieldVault oldVault = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT);
         assertLe(oldVault.principalShares(), 120);
@@ -205,6 +267,13 @@ contract YBoldMigrationForkTest is Test {
         manager.depositPrincipalIntoYieldVault();
         uint256 protocolPrincipal = manager.principalValue();
         assertGt(protocolPrincipal, 0);
+        _runPreflight(address(adapter), 0);
+
+        // Return only the ETH actually recovered from Beefy; no synthetic user capital is minted.
+        vm.prank(TREASURY_STAND_IN);
+        (bool releasedToDepositor,) = payable(DEPOSITOR_ADMIN).call{ value: userEthReturned }("");
+        assertTrue(releasedToDepositor);
+        assertEq(TREASURY_STAND_IN.balance, 0);
 
         uint256 firstTrancheEth = userEthReturned / 3;
         uint256 secondTrancheEth = userEthReturned - firstTrancheEth;
@@ -249,11 +318,11 @@ contract YBoldMigrationForkTest is Test {
         manager.retrieveFunds(10);
         assertGt(DEPOSITOR_ADMIN.balance, depositorBeforeWithdrawal);
 
-        (, , uint256 deletedAmount, ) = manager.deposits(10);
+        (,, uint256 deletedAmount,) = manager.deposits(10);
         assertEq(deletedAmount, 0);
         assertEq(adapter.principalValue(), manager.principalValue() + secondTranche.amount);
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
-        _runPreflight();
+        _runPreflight(address(adapter), 0);
     }
 
     function _deploy(address yieldManager) internal returns (YBoldYieldVault deployed) {
@@ -272,16 +341,20 @@ contract YBoldMigrationForkTest is Test {
         );
     }
 
-    function _depositorAndDeposit(
-        uint256 id
-    ) internal view returns (address depositor, IYieldManager.Deposit memory depositData) {
+    function _selectHistoricSuccessFork() internal {
+        vm.createSelectFork(vm.envString("MAINNET_RPC"), HISTORIC_SUCCESS_BLOCK);
+        manager = YieldManager(payable(YIELD_MANAGER));
+    }
+
+    function _depositorAndDeposit(uint256 id)
+        internal
+        view
+        returns (address depositor, IYieldManager.Deposit memory depositData)
+    {
         (address owner, IYieldVault vaultAtDeposit, uint256 amount, uint32 unlockTime) = manager.deposits(id);
         depositor = owner;
         depositData = IYieldManager.Deposit({
-            depositor: owner,
-            vaultAtDeposit: vaultAtDeposit,
-            amount: amount,
-            unlockTime: unlockTime
+            depositor: owner, vaultAtDeposit: vaultAtDeposit, amount: amount, unlockTime: unlockTime
         });
     }
 
@@ -295,7 +368,7 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function _mockFreshChainlinkRound(address feed) internal {
-        (uint80 roundId, int256 answer, , , ) = AggregatorV3Interface(feed).latestRoundData();
+        (uint80 roundId, int256 answer,,,) = AggregatorV3Interface(feed).latestRoundData();
         vm.mockCall(
             feed,
             abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
@@ -307,15 +380,14 @@ contract YBoldMigrationForkTest is Test {
         IPythLike.Price memory price = IPythLike(PYTH).getPriceUnsafe(BOLD_USD_PRICE_ID);
         price.publishTime = block.timestamp;
         vm.mockCall(
-            PYTH,
-            abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID),
-            abi.encode(price)
+            PYTH, abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID), abi.encode(price)
         );
     }
 
-    function _runPreflight() internal {
-        vm.setEnv("YBOLD_VAULT", vm.toString(address(adapter)));
+    function _runPreflight(address newVault, uint256 expectedOldActive) internal {
+        vm.setEnv("YBOLD_VAULT", vm.toString(newVault));
         vm.setEnv("YBOLD_MIGRATION_ADMIN", vm.toString(GOVERNANCE_ADMIN));
+        vm.setEnv("YBOLD_EXPECTED_OLD_ACTIVE", vm.toString(expectedOldActive));
         new YBoldMigrationPreflight().run();
     }
 }

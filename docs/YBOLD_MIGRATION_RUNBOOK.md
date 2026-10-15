@@ -27,19 +27,23 @@ The migration keeps the deployed Seba contracts and replaces only the `IYieldVau
 | yBOLD                 | `0x9F4330700a36B29952869fac9b33f45EEdd8A3d8` |
 | st-yBOLD              | `0x23346B04a7f55b8760E5860AA5A77383D63491cD` |
 
-The reproducible fork snapshot is Ethereum block `25,831,161`. At that snapshot, deposits 1 through 9 belong to the
-known depositor, point to the old adapter, and are unlocked. The manager has no pending BOLD conversion or open CowSwap
-intent. The fork migration leaves at most 120 old Beefy shares and 150 old principal-value units; the observed result is
-119 shares and 147 units. This accepted dust cannot be economically unwound through the old adapter.
+The fresh fork snapshot is Ethereum block `26,196,493`: deposits 1–9 still belong to the known depositor and point
+to the old adapter, but the staged unwind currently fails at deposit ID 4 with Curve's `Not enough coins removed`.
+The failed transaction preserves that deposit and the old adapter's shares. **This is a release blocker:** there is
+no successful full E2E migration proof at the fresh snapshot, and a historical success must not be treated as a live
+execution quote. The complete staged-route test is pinned separately to historical block `25,831,161`; it leaves
+119 old Beefy shares and 147 old principal-value units, within the fixed 120-share/150-value dust limits. These
+bounds are release assertions, not permission to ignore a larger residual.
 
 ## Required tools and environment
 
 - Foundry with Solidity 0.8.28.
-- An archive-capable Ethereum RPC.
+- An archive-capable Ethereum RPC. A fresh fork of the intended execution block must pass the full migration route
+  before Gate 2 can be considered; the currently pinned fresh block does not.
 - An Etherscan API key only for eventual source verification.
 - Controlled signers for the known depositor and a current `ADMIN_ROLE` holder.
-- A private bundle/simulation system capable of ordering transactions and keeping the migration out of the public
-  mempool.
+- Transaction simulation and protected submission for value-moving steps. The custody, deployment, and redeposit
+  stages are intentionally separate; they are not one atomic bundle.
 
 Set, without printing secrets:
 
@@ -50,7 +54,8 @@ YBOLD_EXPECTED_DEPLOYER=0x...
 YBOLD_ADMIN=0xf83b11b09EEc073ACE4481b2F4c8357e156714b3
 YBOLD_MIGRATION_ADMIN=0xf83b11b09EEc073ACE4481b2F4c8357e156714b3
 YBOLD_VERSION_SALT=0x...
-YBOLD_VAULT=0x... # predicted/deployed adapter
+YBOLD_EXPECTED_OLD_ACTIVE=9 # change to the exact count before each preflight rerun
+YBOLD_VAULT=0x... # omit before adapter deployment; set only to the deployed address afterward
 ```
 
 ## Dry run and fork proof
@@ -66,13 +71,20 @@ forge script script/YBoldMigrationPreflight.s.sol:YBoldMigrationPreflight --rpc-
 ```
 
 Do not add `--broadcast` or `--verify` before Gate 2 approval. The preflight script is read-only and prints exact
-calldata. With salt `0x00…01`, deployer `0x888D…ab4f`, and admin `0xf83b…14b3`, the 2026-10-13 dry run of this revised
-adapter predicts `0x1bE31C869caCF38F595DDAF252F337744148E429`. Any input, compiler setting, or bytecode change must
-produce and review a new prediction.
+calldata for the current stage. Before adapter deployment, leave `YBOLD_VAULT` unset; after deployment, set it to the
+verified address. Set `YBOLD_EXPECTED_OLD_ACTIVE` to the independently reconciled number of remaining old user deposits
+on every run: 9 initially, decreasing after each successful withdrawal, then 0 before the strategy switch. With salt
+`0x00…01`, deployer `0x888D…ab4f`, and admin `0xf83b…14b3`, the 2026-10-13 dry run predicted
+`0x1bE31C869caCF38F595DDAF252F337744148E429`; this is not a current deployment approval. Any input, compiler
+setting, or bytecode change requires a new reviewed prediction.
+
+The historical E2E uses actual ETH recovered from old user positions for its two redeposit tranches. Its yield
+harvest later injects synthetic Yearn profit/BOLD and refreshes oracle mocks; it does not prove live CowSwap solver
+settlement. The 1,000 ETH rejection test also uses test-only capital. Neither substitutes for an execution-day quote.
 
 ## Pre-migration inventory and abort conditions
 
-Immediately before bundle construction, record block number and timestamp, then verify:
+Before the first withdrawal, record block number and timestamp, then verify:
 
 1. `YieldManager.yieldVault()` is the old Beefy adapter.
 2. `depositId()` is still 9; deposits 1-9 have the expected depositor, old adapter, amount, and expired unlock time.
@@ -88,39 +100,56 @@ Immediately before bundle construction, record block number and timestamp, then 
 10. No new `FundsDeposited`, Cow intent, role change, pause, Yearn shutdown, or material liquidity change occurred while
     signatures were prepared.
 
+Before each later stage, rerun the applicable checks against live state: remaining old IDs and ETH actually recovered
+during unwind; treasury custody and a zero remaining-old count before the switch; manager-held ETH and old-adapter dust
+immediately after the switch; new adapter shares/value and new deposit IDs after redeployment. Re-simulate every
+value-moving transaction at its intended amount and current block.
+
 Abort on any mismatch, stale oracle, failed simulation, changed deposit ID, unexpected balance/dust, or output below a
 signed minimum. The old adapter has no hard deposit pause; use an off-chain intake freeze and watch `depositId` until
-the bundle lands.
+the switch is complete.
 
-## Exact private-bundle sequence
+## Staged migration sequence
 
 Before these steps, run the automator once if necessary to settle/cancel any Cow intent and require both pending fields
-to be zero. Then submit in this order:
+to be zero. Do not assume the following steps are atomic. Keep a signed ledger of deposit ID, principal, simulated
+minimum ETH, transaction hash, actual ETH received, and custody transfers.
 
-1. Known depositor calls `retrieveFunds(id)` for every ID 1 through 9. Each call is atomic; a failed Curve/Uniswap exit
-   leaves that deposit record and old-adapter accounting unchanged.
-2. Verify deposits 1-9 are deleted and reconcile ETH returned to the depositor against the old position exit simulation.
-3. Governance admin calls `setYieldVault(newAdapter)`. This atomically retrieves protocol-owned principal from Beefy,
-   zeros manager principal, and changes the active adapter.
-4. Verify the manager holds the returned protocol ETH, points to the new adapter, and the old adapter is within the
-   accepted 120-share/150-value dust bounds.
-5. Governance admin calls `depositPrincipalIntoYieldVault()`. Verify nonzero manager principal, st-yBOLD shares in the
-   new adapter, and zero residual core-token approvals.
-6. The known depositor calls payable `depositFunds()` once per newly chosen tranche. Tranche count and sizes are the
-   depositor's choice; they do not need to recreate the nine old records. Every new record receives a fresh 30-day lock.
-7. Verify `newAdapter.principalValue == YieldManager.principalValue + sum(active new deposit amounts)` and
-   `newAdapter.principalShares == st-yBOLD.balanceOf(newAdapter)`.
-8. Resume intake only after all checks pass.
+1. **Unwind to ETH.** The known depositor calls `retrieveFunds(id)` for each old ID 1–9. After each transaction,
+   reconcile the deleted record and actual ETH received, update `YBOLD_EXPECTED_OLD_ACTIVE`, and rerun preflight. A
+   failed Curve/Uniswap exit reverts that call without deleting the record. Transfer only the reconciled withdrawn ETH
+   to the approved treasury custody address; verify the receipt and treasury balance independently. This is a custody
+   transfer, not a `YieldManager` function, and requires its own authorized signer and transaction review.
+2. **Hold and deploy.** The treasury holds the ETH while the release is prepared. Do not infer that the ETH is in the
+   manager or available to the new adapter. Confirm all nine old records are gone and the preflight expected-old count
+   is 0. Deploy and verify the reviewed yBOLD adapter only after Gate 2 approval; compare code, constructor graph,
+   roles, salt, and predicted address. Set `YBOLD_VAULT` to the deployed address and rerun preflight.
+3. **Switch protocol position.** Governance calls `setYieldVault(newAdapter)`. This retrieves only the protocol-owned
+   Beefy position into the manager, zeroes manager principal, and selects the new adapter. Verify the manager's ETH
+   delta and the old adapter's ≤120-share/≤150-value dust limits. Rerun preflight in this legitimate idle-ETH state.
+   Then governance calls `depositPrincipalIntoYieldVault()` and verifies nonzero protocol principal, st-yBOLD shares,
+   and no residual core-token approvals.
+4. **Redeploy treasury ETH.** After a fresh live quote for each amount, treasury releases the agreed ETH to the known
+   depositor, who calls payable `depositFunds()` in separately simulated tranches of their choosing. Do not assume a
+   single transaction can pass the adapter's 50 bps execution bound: a separate fork stress test proves that a
+   synthetic 1,000 ETH single tranche reverts with Uniswap's `Too little received`. This is a risk-bound test, not
+   a claim that the actual recovered user ETH would fail in one transaction. Tranches do not recreate the old records;
+   each successful deposit gets a fresh 30-day lock. Reconcile treasury outflow, depositor receipt, each new deposit
+   ID, and remaining treasury ETH after every tranche. Never exceed the ETH actually recovered from old withdrawals.
+5. Verify `newAdapter.principalValue == YieldManager.principalValue + sum(active new deposit amounts)` and
+   `newAdapter.principalShares == st-yBOLD.balanceOf(newAdapter)`. Resume intake only after all checks pass.
 
-This is deliberately non-atomic across distinct authorized signers. Ordering, the off-chain freeze, private submission,
-and per-step reconciliation bound the intermediate risk. There is no migration helper contract with temporary custody.
+The test uses a stand-in treasury address solely to prove custody separation; it does not specify the live treasury
+signer. There is no migration helper contract with temporary custody. Use protected execution where appropriate, but
+do not rely on a multi-day private bundle or assume unchanged liquidity between stages.
 
 ## Recovery and rollback limits
 
 - Before `setYieldVault`, retry any failed old withdrawal after liquidity/oracle conditions recover. No accounting
   mutation survives a reverted call.
-- After user withdrawals but before the switch, funds are held by the known depositor. Coordinate a later private
-  bundle; do not redeposit into the old adapter unless abandoning the migration.
+- After user withdrawals but before the switch, funds are with the known depositor until the independently approved
+  treasury transfer, then held in treasury. Preserve transaction and balance proofs at each custody boundary; do not
+  redeposit into the old adapter unless abandoning the migration.
 - If `setYieldVault` fails, the manager remains on Beefy and protocol accounting rolls back.
 - If protocol deposit into yBOLD fails, the manager holds ETH and the admin can retry or set the old adapter again. A
   rollback to Beefy is only reasonable before new user yBOLD deposits and after a fresh fork simulation.
