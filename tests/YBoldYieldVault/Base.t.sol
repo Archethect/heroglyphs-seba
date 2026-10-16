@@ -3,9 +3,13 @@ pragma solidity ^0.8.28;
 
 import { Test } from "forge-std/src/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { YBoldYieldVault } from "src/YBoldYieldVault.sol";
+import { YBoldConfigValidator } from "src/YBoldConfigValidator.sol";
+import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
 import {
     MockAggregator,
+    MockAuthority,
     MockCurveStableSwapNG,
     MockSwapRouter,
     MockToken,
@@ -15,7 +19,9 @@ import {
 } from "tests/mocks/MockYBoldIntegrations.sol";
 
 abstract contract YBoldYieldVaultTestBase is Test {
-    address internal admin = makeAddr("admin");
+    address internal admin;
+    address internal upgrader;
+    address internal recoveryTreasury;
     address internal stranger = makeAddr("stranger");
 
     MockWeth internal weth;
@@ -28,9 +34,13 @@ abstract contract YBoldYieldVaultTestBase is Test {
     MockAggregator internal ethUsdFeed;
     MockAggregator internal usdcUsdFeed;
     MockYBoldYieldManager internal manager;
+    YBoldConfigValidator internal configValidator;
     YBoldYieldVault internal vault;
 
     function setUp() public virtual {
+        admin = address(new MockAuthority());
+        upgrader = address(new MockAuthority());
+        recoveryTreasury = address(new MockAuthority());
         weth = new MockWeth();
         usdc = new MockToken("USD Coin", "USDC", 6);
         bold = new MockToken("BOLD", "BOLD", 18);
@@ -41,25 +51,50 @@ abstract contract YBoldYieldVaultTestBase is Test {
         ethUsdFeed = new MockAggregator(8, 2000e8);
         usdcUsdFeed = new MockAggregator(8, 1e8);
         manager = new MockYBoldYieldManager();
+        configValidator = new YBoldConfigValidator();
 
         vault = _deploy(address(manager));
         _fundIntegrations();
     }
 
     function _deploy(address yieldManager) internal returns (YBoldYieldVault deployed) {
-        deployed = new YBoldYieldVault(
-            admin,
-            yieldManager,
-            address(weth),
-            address(usdc),
-            address(bold),
-            address(router),
-            address(curve),
-            address(yBold),
-            address(stYBold),
-            address(ethUsdFeed),
-            address(usdcUsdFeed)
+        IYBoldYieldVault.InitializationParams memory params = _initializationParams(yieldManager);
+        deployed = _deploy(params);
+    }
+
+    function _deploy(IYBoldYieldVault.InitializationParams memory params) internal returns (YBoldYieldVault deployed) {
+        YBoldYieldVault implementation = new YBoldYieldVault(address(configValidator));
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(implementation),
+            abi.encodeCall(YBoldYieldVault.initialize, (params))
         );
+        deployed = YBoldYieldVault(payable(address(proxy)));
+    }
+
+    function deployProxyForTest(
+        IYBoldYieldVault.InitializationParams memory params
+    ) external returns (YBoldYieldVault deployed) {
+        deployed = _deploy(params);
+    }
+
+    function _initializationParams(
+        address yieldManager
+    ) internal view returns (IYBoldYieldVault.InitializationParams memory params) {
+        params = IYBoldYieldVault.InitializationParams({
+            admin: admin,
+            yieldManager: yieldManager,
+            upgradeAuthority: upgrader,
+            recoveryTreasury: recoveryTreasury,
+            weth: address(weth),
+            usdc: address(usdc),
+            bold: address(bold),
+            router: address(router),
+            boldUsdcPool: address(curve),
+            yearnBold: address(yBold),
+            stakedYearnBold: address(stYBold),
+            ethUsd: address(ethUsdFeed),
+            usdcUsd: address(usdcUsdFeed)
+        });
     }
 
     function _fundIntegrations() internal {

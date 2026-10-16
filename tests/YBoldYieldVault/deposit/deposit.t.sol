@@ -155,19 +155,9 @@ contract YBoldDepositTest is YBoldYieldVaultTestBase {
 
     function test_RevertWhenOracleScaleWouldOverflow() external {
         MockAggregator overflowingFeed = new MockAggregator(0, type(int256).max);
-        YBoldYieldVault overflowVault = new YBoldYieldVault(
-            admin,
-            address(manager),
-            address(weth),
-            address(usdc),
-            address(bold),
-            address(router),
-            address(curve),
-            address(yBold),
-            address(stYBold),
-            address(overflowingFeed),
-            address(usdcUsdFeed)
-        );
+        IYBoldYieldVault.InitializationParams memory params = _initializationParams(address(manager));
+        params.ethUsd = address(overflowingFeed);
+        YBoldYieldVault overflowVault = _deploy(params);
 
         vm.deal(address(this), 1 ether);
         vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.OracleInvalid.selector, address(overflowingFeed)));

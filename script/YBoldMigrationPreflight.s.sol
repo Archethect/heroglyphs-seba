@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
+import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
 import { YBoldYieldVault } from "src/YBoldYieldVault.sol";
 
 /**
@@ -16,6 +17,7 @@ import { YBoldYieldVault } from "src/YBoldYieldVault.sol";
  * @dev This script contains no broadcast cheatcode and cannot submit migration transactions.
  */
 contract YBoldMigrationPreflight is Script {
+    bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     address internal constant YIELD_MANAGER = 0xCAd999958e9619C3E5Bed96B8725Bb0b0fa45269;
     address internal constant OLD_BEEFY_VAULT = 0x87Be53F4E45f3EAFa4b8f2dD8B852115Bb1f16Ba;
     address internal constant EXPECTED_DEPOSITOR = 0x888D768764A2E304215247F0bA3457cCb0f0ab4f;
@@ -37,7 +39,13 @@ contract YBoldMigrationPreflight is Script {
         require(IAccessControl(YIELD_MANAGER).hasRole(manager.ADMIN_ROLE(), migrationAdmin), "MIGRATION_ADMIN_ROLE");
         if (newVaultAddress != address(0)) {
             require(newVaultAddress.code.length > 0, "NEW_VAULT_CODE");
-            _validateNewVault(YBoldYieldVault(payable(newVaultAddress)), migrationAdmin);
+            _validateNewVault(
+                YBoldYieldVault(payable(newVaultAddress)),
+                migrationAdmin,
+                vm.envAddress("YBOLD_EXPECTED_IMPLEMENTATION"),
+                vm.envAddress("YBOLD_UPGRADE_AUTHORITY"),
+                vm.envAddress("YBOLD_RECOVERY_TREASURY")
+            );
         }
 
         if (address(manager.yieldVault()) == OLD_BEEFY_VAULT) {
@@ -49,11 +57,36 @@ contract YBoldMigrationPreflight is Script {
         }
     }
 
-    function _validateNewVault(YBoldYieldVault newVault, address migrationAdmin) internal view {
+    function _validateNewVault(
+        YBoldYieldVault newVault,
+        address migrationAdmin,
+        address expectedImplementation,
+        address upgradeAuthority,
+        address recoveryTreasury
+    ) internal view {
+        address implementation = address(uint160(uint256(vm.load(address(newVault), IMPLEMENTATION_SLOT))));
+        require(implementation == expectedImplementation && implementation.code.length > 0, "PROXY_IMPLEMENTATION");
         require(newVault.hasRole(newVault.ADMIN_ROLE(), migrationAdmin), "VAULT_ADMIN_ROLE");
         require(newVault.hasRole(newVault.YIELDMANAGER_ROLE(), YIELD_MANAGER), "VAULT_MANAGER_ROLE");
+        require(newVault.hasRole(newVault.UPGRADER_ROLE(), upgradeAuthority), "VAULT_UPGRADER_ROLE");
+        require(newVault.hasRole(newVault.RECOVERY_ROLE(), recoveryTreasury), "VAULT_RECOVERY_ROLE");
+        require(newVault.recoveryTreasury() == recoveryTreasury, "RECOVERY_TREASURY");
+        require(newVault.getRoleAdmin(newVault.UPGRADER_ROLE()) == newVault.UPGRADER_ROLE(), "UPGRADER_ROLE_ADMIN");
+        require(newVault.getRoleAdmin(newVault.RECOVERY_ROLE()) == newVault.UPGRADER_ROLE(), "RECOVERY_ROLE_ADMIN");
         require(address(newVault.stYBold()) == ST_YBOLD, "ST_YBOLD");
         require(!newVault.emergencyMode() && !newVault.paused(), "NEW_VAULT_NOT_OPERATIONAL");
+        require(newVault.recoveryState() == IYBoldYieldVault.RecoveryState.Normal, "RECOVERY_STATE");
+        IYBoldYieldVault.RecoveryAccounting memory recovery = newVault.recoveryAccounting();
+        require(
+            recovery.principalSnapshot == 0 &&
+                recovery.sharesTransferred == 0 &&
+                recovery.ethFunded == 0 &&
+                recovery.settlementEth == 0 &&
+                recovery.payoutRateWad == 0 &&
+                recovery.principalSettled == 0 &&
+                recovery.ethPaid == 0,
+            "RECOVERY_ACCOUNTING"
+        );
     }
 
     function _validateBefore(IYieldManager manager, address newVaultAddress) internal view {
@@ -98,14 +131,17 @@ contract YBoldMigrationPreflight is Script {
     function _validateAfter(IYieldManager manager, YBoldYieldVault newVault) internal view {
         require(manager.yieldFlowActive(), "YIELD_FLOW_INACTIVE");
         for (uint256 id = FIRST_OLD_DEPOSIT_ID; id <= LAST_OLD_DEPOSIT_ID; ++id) {
-            (,, uint256 amount,) = manager.deposits(id);
+            (, , uint256 amount, ) = manager.deposits(id);
             require(amount == 0, "OLD_DEPOSIT_STILL_ACTIVE");
         }
         require(manager.principalValue() > 0 || YIELD_MANAGER.balance > 0, "PROTOCOL_FUNDS_MISSING");
         IEUSDUSDCBeefyYieldVault oldVault = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT);
         require(oldVault.principalShares() <= MAX_ACCEPTED_OLD_SHARES_DUST, "OLD_SHARES_DUST");
         require(oldVault.principalValue() <= MAX_ACCEPTED_OLD_VALUE_DUST, "OLD_VALUE_DUST");
-        require(newVault.principalShares() == IERC20(ST_YBOLD).balanceOf(address(newVault)), "NEW_SHARE_RECONCILIATION");
+        require(
+            newVault.principalShares() == IERC20(ST_YBOLD).balanceOf(address(newVault)),
+            "NEW_SHARE_RECONCILIATION"
+        );
         require(newVault.principalValue() >= manager.principalValue(), "NEW_VALUE_RECONCILIATION");
         console2.log("post-migration manager principal", manager.principalValue());
         console2.log("post-migration adapter principal", newVault.principalValue());

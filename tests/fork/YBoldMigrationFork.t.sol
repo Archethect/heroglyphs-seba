@@ -5,16 +5,21 @@ import { Test } from "forge-std/src/Test.sol";
 import { console2 } from "forge-std/src/console2.sol";
 import { YBoldMigrationPreflight } from "script/YBoldMigrationPreflight.s.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
 import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
 import { PYBSeba } from "src/PYBSeba.sol";
 import { YBoldYieldVault } from "src/YBoldYieldVault.sol";
+import { YBoldConfigValidator } from "src/YBoldConfigValidator.sol";
 import { YieldManager } from "src/YieldManager.sol";
 import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
+import { ICurveStableSwapNG } from "src/vendor/curve/ICurveStableSwapNG.sol";
+import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
 import { IYearnVault } from "src/vendor/yearn/IYearnVault.sol";
 import { MockYBoldYieldManager } from "tests/mocks/MockYBoldIntegrations.sol";
+import { YBoldYieldVaultV2Mock } from "tests/mocks/YBoldYieldVaultV2Mock.sol";
 
 interface IReportableYearnVault {
     function keeper() external view returns (address);
@@ -34,6 +39,22 @@ interface IPythLike {
 }
 
 contract YBoldMigrationForkTest is Test {
+    bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+    struct RecoveryTestState {
+        uint256 userDepositId;
+        uint256 userAmount;
+        uint256 secondDepositId;
+        uint256 secondAmount;
+        uint256 protocolPrincipal;
+        uint256 totalPrincipal;
+        uint256 payoutRate;
+        uint256 userPaid;
+        uint256 secondPaid;
+        uint256 protocolPaid;
+        uint32 unlockTime;
+        uint32 secondUnlockTime;
+    }
+
     uint256 internal constant FRESH_BLOCK = 26_196_493;
     uint256 internal constant HISTORIC_SUCCESS_BLOCK = 25_831_161;
 
@@ -44,6 +65,7 @@ contract YBoldMigrationForkTest is Test {
     address internal constant GOVERNANCE_ADMIN = 0xf83b11b09EEc073ACE4481b2F4c8357e156714b3;
     address internal constant DEPOSITOR_ADMIN = 0x888D768764A2E304215247F0bA3457cCb0f0ab4f;
     address internal constant AUTOMATOR = 0x8FbBC54D49b23F5b397dfE62AD2Fb0E09Cbe9379;
+    address internal constant SECOND_DEPOSITOR = address(0xA11CE);
     // Test-only custody address; this is not an assertion about the live treasury signer.
     address internal constant TREASURY_STAND_IN = address(0xBEEFCAFE);
 
@@ -131,12 +153,200 @@ contract YBoldMigrationForkTest is Test {
 
         vm.prank(GOVERNANCE_ADMIN);
         isolatedAdapter.setEmergencyMode(true);
-        (,,, uint256 updatedAt,) = AggregatorV3Interface(ETH_USD_FEED).latestRoundData();
+        (, , , uint256 updatedAt, ) = AggregatorV3Interface(ETH_USD_FEED).latestRoundData();
         vm.warp(block.timestamp + 2 hours);
 
         vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.OracleStale.selector, ETH_USD_FEED, updatedAt));
         isolatedManager.retrieve(address(isolatedAdapter), value);
         assertEq(isolatedAdapter.principalValue(), value);
+    }
+
+    function test_FaultInjectedCurveImbalanceCanUseFullTreasuryRecovery() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        vm.deal(address(this), 2 ether);
+        uint256 value = isolatedManager.deposit{ value: 2 ether }(address(isolatedAdapter));
+        uint256 shares = isolatedAdapter.principalShares();
+        uint256 treasurySharesBefore = IERC20(ST_YBOLD).balanceOf(GOVERNANCE_ADMIN);
+
+        // Fault injection: the live pool is healthy at this block; this models an unusable BOLD/USDC exit.
+        vm.mockCall(
+            BOLD_USDC_POOL,
+            abi.encodeWithSelector(ICurveStableSwapNG.price_oracle.selector, 0),
+            abi.encode(2e18)
+        );
+        vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.BoldPegDeviationExceeded.selector, 2e18, 100));
+        isolatedManager.retrieve(address(isolatedAdapter), value);
+
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.initiateRecovery();
+        assertEq(IERC20(ST_YBOLD).balanceOf(GOVERNANCE_ADMIN) - treasurySharesBefore, shares);
+
+        // Synthetic funding proves settlement mechanics, not that treasury can liquidate st-yBOLD at par.
+        vm.deal(GOVERNANCE_ADMIN, 2 ether);
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.fundRecovery{ value: 2 ether }();
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.activateRecoverySettlement(2 ether);
+        uint256 committedEth = isolatedAdapter.recoveryAccounting().settlementEth;
+
+        uint256 before = address(isolatedManager).balance;
+        isolatedManager.retrieve(address(isolatedAdapter), value);
+        assertEq(address(isolatedManager).balance - before, committedEth);
+        assertEq(uint256(isolatedAdapter.recoveryState()), uint256(IYBoldYieldVault.RecoveryState.Settled));
+        assertEq(isolatedAdapter.principalValue(), 0);
+        assertEq(IERC20(ST_YBOLD).balanceOf(address(isolatedAdapter)), 0);
+    }
+
+    function test_FaultInjectedSwapVenueFailureDoesNotBlockShareRecovery() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        vm.deal(address(this), 1 ether);
+        uint256 value = isolatedManager.deposit{ value: 1 ether }(address(isolatedAdapter));
+        uint256 shares = isolatedAdapter.principalShares();
+
+        // Fault injection: force the live Uniswap router call to fail only after the real deposit succeeded.
+        vm.mockCallRevert(
+            SWAP_ROUTER,
+            abi.encodeWithSelector(ISwapRouter.exactInputSingle.selector),
+            abi.encodeWithSignature("Error(string)", "FAULT_INJECTED_ROUTER_UNAVAILABLE")
+        );
+        vm.expectRevert(abi.encodeWithSignature("Error(string)", "FAULT_INJECTED_ROUTER_UNAVAILABLE"));
+        isolatedManager.retrieve(address(isolatedAdapter), value);
+
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.initiateRecovery();
+        assertEq(IERC20(ST_YBOLD).balanceOf(address(isolatedAdapter)), 0);
+        assertGe(IERC20(ST_YBOLD).balanceOf(GOVERNANCE_ADMIN), shares);
+    }
+
+    function test_AuthorizedForkUpgradePreservesARealYBoldPosition() external {
+        MockYBoldYieldManager isolatedManager = new MockYBoldYieldManager();
+        YBoldYieldVault isolatedAdapter = _deploy(address(isolatedManager));
+        vm.deal(address(this), 1 ether);
+        uint256 value = isolatedManager.deposit{ value: 1 ether }(address(isolatedAdapter));
+        uint256 shares = isolatedAdapter.principalShares();
+        YBoldYieldVaultV2Mock implementationV2 = new YBoldYieldVaultV2Mock(address(new YBoldConfigValidator()));
+
+        vm.prank(GOVERNANCE_ADMIN);
+        isolatedAdapter.upgradeToAndCall(
+            address(implementationV2),
+            abi.encodeCall(YBoldYieldVaultV2Mock.initializeV2, (2026))
+        );
+
+        YBoldYieldVaultV2Mock upgraded = YBoldYieldVaultV2Mock(payable(address(isolatedAdapter)));
+        assertEq(upgraded.upgradeMarker(), 2026);
+        assertEq(upgraded.principalValue(), value);
+        assertEq(upgraded.principalShares(), shares);
+        assertEq(IERC20(ST_YBOLD).balanceOf(address(upgraded)), shares);
+        assertTrue(upgraded.hasRole(upgraded.UPGRADER_ROLE(), GOVERNANCE_ADMIN));
+    }
+
+    function test_RealManagerRecoverySettlesUserIdAndProtocolPrincipalAtOnePartialLossRate() external {
+        RecoveryTestState memory state;
+        adapter = _deploy(YIELD_MANAGER);
+        vm.prank(GOVERNANCE_ADMIN);
+        manager.retrievePrincipalFromYieldVault();
+        assertEq(manager.principalValue(), 0);
+        vm.prank(GOVERNANCE_ADMIN);
+        manager.setYieldVault(address(adapter));
+
+        vm.deal(DEPOSITOR_ADMIN, 1 ether);
+        vm.prank(DEPOSITOR_ADMIN);
+        manager.depositFunds{ value: 1 ether }();
+        state.userDepositId = manager.depositId();
+        (, IYieldManager.Deposit memory userDeposit) = _depositorAndDeposit(state.userDepositId);
+        state.userAmount = userDeposit.amount;
+        state.unlockTime = userDeposit.unlockTime;
+
+        vm.deal(SECOND_DEPOSITOR, 2 ether);
+        vm.prank(SECOND_DEPOSITOR);
+        manager.depositFunds{ value: 2 ether }();
+        state.secondDepositId = manager.depositId();
+        (, IYieldManager.Deposit memory secondDeposit) = _depositorAndDeposit(state.secondDepositId);
+        state.secondAmount = secondDeposit.amount;
+        state.secondUnlockTime = secondDeposit.unlockTime;
+
+        // Keep the manager's pending conversion reserved and create exactly 1 ETH of test protocol principal.
+        vm.deal(YIELD_MANAGER, manager.pendingBoldConversion() + 1 ether);
+        vm.prank(GOVERNANCE_ADMIN);
+        manager.depositPrincipalIntoYieldVault();
+        state.protocolPrincipal = manager.principalValue();
+        state.totalPrincipal = state.userAmount + state.secondAmount + state.protocolPrincipal;
+        assertEq(adapter.principalValue(), state.totalPrincipal);
+
+        vm.warp(uint256(state.secondUnlockTime) + 1);
+        // Fault injection: the real Yearn position exists, but maxRedeem is made unavailable.
+        uint256 unavailableShares = IYearnVault(ST_YBOLD).previewWithdraw(state.userAmount);
+        vm.mockCall(ST_YBOLD, abi.encodeWithSelector(IYearnVault.maxRedeem.selector), abi.encode(0));
+        vm.prank(DEPOSITOR_ADMIN);
+        vm.expectRevert(
+            abi.encodeWithSelector(IYBoldYieldVault.InsufficientLiquidity.selector, ST_YBOLD, unavailableShares, 0)
+        );
+        manager.retrieveFunds(state.userDepositId);
+        (, , uint256 stillClaimable, ) = manager.deposits(state.userDepositId);
+        assertEq(stillClaimable, state.userAmount);
+
+        uint256 shares = adapter.principalShares();
+        uint256 treasurySharesBefore = IERC20(ST_YBOLD).balanceOf(GOVERNANCE_ADMIN);
+        vm.prank(GOVERNANCE_ADMIN);
+        adapter.initiateRecovery();
+        assertEq(IERC20(ST_YBOLD).balanceOf(GOVERNANCE_ADMIN) - treasurySharesBefore, shares);
+
+        // Synthetic funding isolates fixed-rate settlement from offchain treasury liquidation quality.
+        vm.deal(GOVERNANCE_ADMIN, 1.5 ether);
+        vm.prank(GOVERNANCE_ADMIN);
+        adapter.fundRecovery{ value: 1.5 ether }();
+        vm.prank(GOVERNANCE_ADMIN);
+        adapter.activateRecoverySettlement(1.5 ether);
+        state.payoutRate = adapter.recoveryAccounting().payoutRateWad;
+
+        // The larger second user settles first; the fixed rate makes claim ordering irrelevant.
+        uint256 secondBefore = SECOND_DEPOSITOR.balance;
+        vm.prank(SECOND_DEPOSITOR);
+        manager.retrieveFunds(state.secondDepositId);
+        state.secondPaid = SECOND_DEPOSITOR.balance - secondBefore;
+        assertEq(state.secondPaid, (state.secondAmount * state.payoutRate) / 1e18);
+        (, , uint256 secondDeletedAmount, ) = manager.deposits(state.secondDepositId);
+        assertEq(secondDeletedAmount, 0);
+
+        uint256 depositorBefore = DEPOSITOR_ADMIN.balance;
+        vm.prank(DEPOSITOR_ADMIN);
+        manager.retrieveFunds(state.userDepositId);
+        state.userPaid = DEPOSITOR_ADMIN.balance - depositorBefore;
+        assertEq(state.userPaid, (state.userAmount * state.payoutRate) / 1e18);
+        (, , uint256 deletedAmount, ) = manager.deposits(state.userDepositId);
+        assertEq(deletedAmount, 0);
+        vm.prank(DEPOSITOR_ADMIN);
+        vm.expectRevert(abi.encodeWithSelector(IYieldManager.NonExistingDeposit.selector, state.userDepositId));
+        manager.retrieveFunds(state.userDepositId);
+
+        uint256 managerBefore = YIELD_MANAGER.balance;
+        vm.prank(GOVERNANCE_ADMIN);
+        manager.setYieldVault(OLD_BEEFY_VAULT);
+        state.protocolPaid = YIELD_MANAGER.balance - managerBefore;
+        assertEq(state.protocolPaid, (state.protocolPrincipal * state.payoutRate) / 1e18);
+
+        _assertAndSweepCompletedRecovery(state);
+    }
+
+    function _assertAndSweepCompletedRecovery(RecoveryTestState memory state) internal {
+        assertEq(manager.principalValue(), 0);
+        assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
+        assertEq(adapter.principalValue(), 0);
+        assertEq(adapter.principalShares(), 0);
+        assertEq(IERC20(ST_YBOLD).balanceOf(address(adapter)), 0);
+        assertEq(uint256(adapter.recoveryState()), uint256(IYBoldYieldVault.RecoveryState.Settled));
+
+        IYBoldYieldVault.RecoveryAccounting memory accounting = adapter.recoveryAccounting();
+        assertEq(accounting.principalSnapshot, state.totalPrincipal);
+        assertEq(accounting.principalSettled, state.totalPrincipal);
+        assertEq(accounting.ethPaid, state.userPaid + state.secondPaid + state.protocolPaid);
+        if (address(adapter).balance != 0) {
+            vm.prank(GOVERNANCE_ADMIN);
+            adapter.sweepRecoveryExcess();
+        }
+        assertEq(address(adapter).balance, 0);
     }
 
     function test_LiveSwitchWithNoProtocolPositionLeavesUserPositionsOnOldVault() external {
@@ -166,7 +376,7 @@ contract YBoldMigrationForkTest is Test {
 
         assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
         for (uint256 id = 1; id <= 4; ++id) {
-            (,, uint256 deletedAmount,) = manager.deposits(id);
+            (, , uint256 deletedAmount, ) = manager.deposits(id);
             assertEq(deletedAmount, 0);
         }
         for (uint256 id = 5; id <= 9; ++id) {
@@ -243,7 +453,7 @@ contract YBoldMigrationForkTest is Test {
 
         // The production route has a distinct ETH custody period before the new adapter is deployed.
         vm.prank(DEPOSITOR_ADMIN);
-        (bool sentToTreasury,) = payable(TREASURY_STAND_IN).call{ value: userEthReturned }("");
+        (bool sentToTreasury, ) = payable(TREASURY_STAND_IN).call{ value: userEthReturned }("");
         assertTrue(sentToTreasury);
         assertEq(TREASURY_STAND_IN.balance, userEthReturned);
         assertEq(address(manager.yieldVault()), OLD_BEEFY_VAULT);
@@ -271,7 +481,7 @@ contract YBoldMigrationForkTest is Test {
 
         // Return only the ETH actually recovered from Beefy; no synthetic user capital is minted.
         vm.prank(TREASURY_STAND_IN);
-        (bool releasedToDepositor,) = payable(DEPOSITOR_ADMIN).call{ value: userEthReturned }("");
+        (bool releasedToDepositor, ) = payable(DEPOSITOR_ADMIN).call{ value: userEthReturned }("");
         assertTrue(releasedToDepositor);
         assertEq(TREASURY_STAND_IN.balance, 0);
 
@@ -318,7 +528,7 @@ contract YBoldMigrationForkTest is Test {
         manager.retrieveFunds(10);
         assertGt(DEPOSITOR_ADMIN.balance, depositorBeforeWithdrawal);
 
-        (,, uint256 deletedAmount,) = manager.deposits(10);
+        (, , uint256 deletedAmount, ) = manager.deposits(10);
         assertEq(deletedAmount, 0);
         assertEq(adapter.principalValue(), manager.principalValue() + secondTranche.amount);
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
@@ -326,19 +536,27 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function _deploy(address yieldManager) internal returns (YBoldYieldVault deployed) {
-        deployed = new YBoldYieldVault(
-            GOVERNANCE_ADMIN,
-            yieldManager,
-            WETH,
-            USDC,
-            BOLD,
-            SWAP_ROUTER,
-            BOLD_USDC_POOL,
-            YBOLD,
-            ST_YBOLD,
-            ETH_USD_FEED,
-            USDC_USD_FEED
+        YBoldYieldVault implementation = new YBoldYieldVault(address(new YBoldConfigValidator()));
+        IYBoldYieldVault.InitializationParams memory params = IYBoldYieldVault.InitializationParams({
+            admin: GOVERNANCE_ADMIN,
+            yieldManager: yieldManager,
+            upgradeAuthority: GOVERNANCE_ADMIN,
+            recoveryTreasury: GOVERNANCE_ADMIN,
+            weth: WETH,
+            usdc: USDC,
+            bold: BOLD,
+            router: SWAP_ROUTER,
+            boldUsdcPool: BOLD_USDC_POOL,
+            yearnBold: YBOLD,
+            stakedYearnBold: ST_YBOLD,
+            ethUsd: ETH_USD_FEED,
+            usdcUsd: USDC_USD_FEED
+        });
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(implementation),
+            abi.encodeCall(YBoldYieldVault.initialize, (params))
         );
+        deployed = YBoldYieldVault(payable(address(proxy)));
     }
 
     function _selectHistoricSuccessFork() internal {
@@ -346,15 +564,16 @@ contract YBoldMigrationForkTest is Test {
         manager = YieldManager(payable(YIELD_MANAGER));
     }
 
-    function _depositorAndDeposit(uint256 id)
-        internal
-        view
-        returns (address depositor, IYieldManager.Deposit memory depositData)
-    {
+    function _depositorAndDeposit(
+        uint256 id
+    ) internal view returns (address depositor, IYieldManager.Deposit memory depositData) {
         (address owner, IYieldVault vaultAtDeposit, uint256 amount, uint32 unlockTime) = manager.deposits(id);
         depositor = owner;
         depositData = IYieldManager.Deposit({
-            depositor: owner, vaultAtDeposit: vaultAtDeposit, amount: amount, unlockTime: unlockTime
+            depositor: owner,
+            vaultAtDeposit: vaultAtDeposit,
+            amount: amount,
+            unlockTime: unlockTime
         });
     }
 
@@ -368,7 +587,7 @@ contract YBoldMigrationForkTest is Test {
     }
 
     function _mockFreshChainlinkRound(address feed) internal {
-        (uint80 roundId, int256 answer,,,) = AggregatorV3Interface(feed).latestRoundData();
+        (uint80 roundId, int256 answer, , , ) = AggregatorV3Interface(feed).latestRoundData();
         vm.mockCall(
             feed,
             abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
@@ -380,7 +599,9 @@ contract YBoldMigrationForkTest is Test {
         IPythLike.Price memory price = IPythLike(PYTH).getPriceUnsafe(BOLD_USD_PRICE_ID);
         price.publishTime = block.timestamp;
         vm.mockCall(
-            PYTH, abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID), abi.encode(price)
+            PYTH,
+            abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID),
+            abi.encode(price)
         );
     }
 
@@ -388,6 +609,12 @@ contract YBoldMigrationForkTest is Test {
         vm.setEnv("YBOLD_VAULT", vm.toString(newVault));
         vm.setEnv("YBOLD_MIGRATION_ADMIN", vm.toString(GOVERNANCE_ADMIN));
         vm.setEnv("YBOLD_EXPECTED_OLD_ACTIVE", vm.toString(expectedOldActive));
+        if (newVault != address(0)) {
+            address implementation = address(uint160(uint256(vm.load(newVault, IMPLEMENTATION_SLOT))));
+            vm.setEnv("YBOLD_EXPECTED_IMPLEMENTATION", vm.toString(implementation));
+            vm.setEnv("YBOLD_UPGRADE_AUTHORITY", vm.toString(GOVERNANCE_ADMIN));
+            vm.setEnv("YBOLD_RECOVERY_TREASURY", vm.toString(GOVERNANCE_ADMIN));
+        }
         new YBoldMigrationPreflight().run();
     }
 }

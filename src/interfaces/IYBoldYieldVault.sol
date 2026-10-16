@@ -13,6 +13,48 @@ import { IYieldVault } from "src/interfaces/IYieldVault.sol";
  */
 interface IYBoldYieldVault is IYieldVault {
     /**
+     * @notice Lifecycle of a treasury-led recovery.
+     */
+    enum RecoveryState {
+        Normal,
+        SharesTransferred,
+        SettlementActive,
+        Settled
+    }
+
+    /**
+     * @notice One-time proxy initialization parameters.
+     */
+    struct InitializationParams {
+        address admin;
+        address yieldManager;
+        address upgradeAuthority;
+        address recoveryTreasury;
+        address weth;
+        address usdc;
+        address bold;
+        address router;
+        address boldUsdcPool;
+        address yearnBold;
+        address stakedYearnBold;
+        address ethUsd;
+        address usdcUsd;
+    }
+
+    /**
+     * @notice Auditable accounting for an active or completed treasury recovery.
+     */
+    struct RecoveryAccounting {
+        uint256 principalSnapshot;
+        uint256 sharesTransferred;
+        uint256 ethFunded;
+        uint256 settlementEth;
+        uint256 payoutRateWad;
+        uint256 principalSettled;
+        uint256 ethPaid;
+    }
+
+    /**
      * Zero address supplied for a required dependency or recipient.
      */
     error InvalidAddress();
@@ -96,6 +138,26 @@ interface IYBoldYieldVault is IYieldVault {
      * ETH may only be received from WETH during an unwrap.
      */
     error UnauthorizedEthSender(address sender);
+    /**
+     * A recovery state transition was attempted from the wrong state.
+     */
+    error InvalidRecoveryState(RecoveryState current);
+    /**
+     * Tracked shares no longer match the strategy's actual st-yBOLD balance.
+     */
+    error ShareAccountingMismatch(uint256 tracked, uint256 actual);
+    /**
+     * Only the configured treasury can fund a recovery settlement.
+     */
+    error UnauthorizedRecoveryFunder(address sender);
+    /**
+     * The treasury has not funded enough ETH for the proposed settlement.
+     */
+    error RecoveryUnderfunded(uint256 required, uint256 funded);
+    /**
+     * The proposed settlement would round every unit of principal to zero ETH.
+     */
+    error RecoveryRateTooLow();
 
     /**
      * Emitted after ETH is converted and st-yBOLD shares are received.
@@ -129,6 +191,30 @@ interface IYBoldYieldVault is IYieldVault {
      * Emitted when a non-core ERC-20 is rescued.
      */
     event TokenRescued(address indexed token, address indexed recipient, uint256 amount);
+    /**
+     * Emitted when all remaining st-yBOLD shares enter treasury recovery custody.
+     */
+    event RecoveryInitiated(address indexed treasury, uint256 principalValueSnapshot, uint256 sharesTransferred);
+    /**
+     * Emitted when the treasury funds recovery settlement liquidity.
+     */
+    event RecoveryFunded(address indexed treasury, uint256 amount, uint256 cumulativeAmount);
+    /**
+     * Emitted when the immutable pro-rata ETH settlement rate is activated.
+     */
+    event RecoverySettlementActivated(uint256 fundedEth, uint256 committedEth, uint256 payoutRateWad);
+    /**
+     * Emitted for each principal slice settled through the existing YieldManager.
+     */
+    event RecoveryPrincipalSettled(uint256 principalValue, uint256 ethOut);
+    /**
+     * Emitted after the final outstanding principal slice is settled.
+     */
+    event RecoveryCompleted(uint256 principalSettled, uint256 ethPaid);
+    /**
+     * Emitted when surplus recovery ETH is returned after every claim is settled.
+     */
+    event RecoveryExcessSwept(address indexed treasury, uint256 amount);
 
     /**
      * @return Access-control administrator role identifier.
@@ -138,6 +224,14 @@ interface IYBoldYieldVault is IYieldVault {
      * @return YieldManager caller role identifier.
      */
     function YIELDMANAGER_ROLE() external view returns (bytes32);
+    /**
+     * @return Proxy-upgrade authority role identifier.
+     */
+    function UPGRADER_ROLE() external view returns (bytes32);
+    /**
+     * @return Treasury-recovery authority role identifier.
+     */
+    function RECOVERY_ROLE() external view returns (bytes32);
     /**
      * @return WETH token address.
      */
@@ -207,6 +301,18 @@ interface IYBoldYieldVault is IYieldVault {
      */
     function emergencyMode() external view returns (bool);
     /**
+     * @return Treasury that receives recovered st-yBOLD and funds ETH settlement.
+     */
+    function recoveryTreasury() external view returns (address);
+    /**
+     * @return Current recovery lifecycle state.
+     */
+    function recoveryState() external view returns (RecoveryState);
+    /**
+     * @return Complete recovery accounting for independent reconciliation.
+     */
+    function recoveryAccounting() external view returns (RecoveryAccounting memory);
+    /**
      * @return Unlocked yBOLD assets currently attributable to yield.
      */
     function claimableYield() external view returns (uint256);
@@ -214,6 +320,11 @@ interface IYBoldYieldVault is IYieldVault {
      * @return Active Yearn redemption loss tolerance in basis points.
      */
     function currentYearnMaxLossBps() external view returns (uint16);
+
+    /**
+     * Initializes the proxy exactly once.
+     */
+    function initialize(InitializationParams calldata params) external;
 
     /**
      * Sets independent slippage limits for volatile and stable swaps.
@@ -243,4 +354,20 @@ interface IYBoldYieldVault is IYieldVault {
      * Rescues an ERC-20 that is not a core strategy asset.
      */
     function rescueToken(address token, address recipient, uint256 amount) external;
+    /**
+     * Freezes normal operations and transfers all exactly reconciled st-yBOLD shares to treasury custody.
+     */
+    function initiateRecovery() external;
+    /**
+     * Funds the proxy with ETH that will settle existing YieldManager claims.
+     */
+    function fundRecovery() external payable;
+    /**
+     * Activates a single pro-rata payout rate after sufficient ETH has been funded.
+     */
+    function activateRecoverySettlement(uint256 settlementEth) external;
+    /**
+     * Returns ETH left after every snapshotted claim is settled.
+     */
+    function sweepRecoveryExcess() external;
 }

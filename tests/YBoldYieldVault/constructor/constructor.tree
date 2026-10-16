@@ -1,7 +1,10 @@
-constructor
-├── zero admin or YieldManager → revert
-├── dependency is zero or has no bytecode → revert
+proxy initialization
+├── validator is zero or has no bytecode → implementation deployment reverts
+├── implementation initializer is locked
+├── proxy initializer cannot be replayed
+├── zero admin, YieldManager, upgrader, or treasury → revert
+├── authority or integration is zero or has no bytecode → revert
 ├── token or either oracle decimals invalid → revert
 ├── Curve coin order invalid → revert
 ├── yBOLD/st-yBOLD asset graph invalid → revert
-└── configuration valid → persist immutables, defaults, and roles
+└── configuration valid → persist proxy storage, defaults, and separated roles

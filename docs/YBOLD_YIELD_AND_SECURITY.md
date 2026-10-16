@@ -58,22 +58,33 @@ harvests can turn an otherwise attractive APY into poor net yield.
 4. The adapter checks Chainlink round validity/freshness and uses Chainlink-derived WETH/USDC minimums. BOLD/USDC uses a
    hard nominal floor discounted by the accepted Curve EMA peg band plus configured execution slippage; no same-pool
    spot quote sets its own minimum.
-5. ERC-20 approvals are exact and reset to zero. Constructor checks code, token decimals, Curve coin order, and the
-   BOLD→yBOLD→st-yBOLD asset graph.
+5. ERC-20 approvals are exact and reset to zero. The proxy initializes atomically; its implementation initializer is
+   locked. A stateless validator checks authority/integration code, token decimals, Curve coin order, and the
+   BOLD→yBOLD→st-yBOLD asset graph before roles or strategy state are committed.
 6. Normal Yearn exits accept zero loss. Emergency exits can accept at most 1% by default and never more than the 10%
    hard contract cap. Insufficient liquidity is all-or-revert and retried later.
-7. Pause and emergency mode block deposits and claims, not the principal retrieval entry point. Its Yearn, oracle,
-   Curve, Uniswap, and WETH dependencies remain required. Core assets cannot be rescued.
-8. The adapter is non-upgradeable. Governance can change bounded risk parameters and roles; the existing YieldManager
-   admin can retrieve/switch strategies, which remains the primary Seba governance trust assumption.
+7. Pause and emergency mode block deposits and claims, not normal principal retrieval. Normal retrieval still requires
+   Yearn, oracle, Curve, Uniswap, and WETH. If one remains unavailable, recovery snapshots all remaining principal,
+   requires the actual st-yBOLD balance to equal tracked shares exactly, freezes every normal path, and transfers those
+   exact shares to the configured treasury without a redemption or swap.
+8. Treasury settlement activates once, only after authenticated ETH funding covers the selected amount. Every later
+   manager claim uses the same floor-rounded ETH-per-principal rate, independent of claim order. User IDs are still
+   deleted by `YieldManager.retrieveFunds`, so treasury must never pay users directly while IDs remain claimable. The
+   original 30-day user lock is unchanged. Rounding dust and uncommitted excess can be swept only after all snapshotted
+   principal is settled.
+9. The adapter uses OpenZeppelin UUPS/ERC-1967. Routine admin, recovery custody, and the self-administered upgrade role
+   are distinct. Upgrade authority must be an approved governance/multisig contract, not an EOA. It can nevertheless
+   replace all logic and move all assets; the core-token rescue restriction is not a limit on proxy governance.
 
 ## CROPS and caller/incentive review
 
 - **Censorship:** adapter admins can pause new capital/yield claims but cannot pause principal exits. Yearn liquidity,
   strategy shutdowns, USDC controls, and external oracle availability can still delay or prevent exits.
-- **Rug/privilege:** adapter immutables and core-asset rescue prohibition limit adapter-admin theft. Existing
-  YieldManager admins retain broad strategy-switch authority; Yearn and external protocol governance retain their
-  documented powers.
+- **Rug/privilege:** routine core-asset rescue remains prohibited, but UUPS upgrade governance is fully trusted and can
+  replace the restriction. Recovery governance can transfer all exactly reconciled st-yBOLD to the fixed treasury and
+  choose the funded settlement amount. Separate contract authorities, simulations, role/upgrade/recovery events, and
+  public accounting make this power observable; they do not make it trustless. Existing YieldManager admins retain broad
+  strategy-switch authority, and Yearn/external protocol governance retain their documented powers.
 - **Oracle/manipulation:** Chainlink and a Curve EMA are independent from the executed Uniswap/Curve spot. Hard nominal
   BOLD parity intentionally fails closed during a material depeg rather than realizing it silently.
 - **Profit/incentives:** the automator controls harvest timing but receives no adapter payment. It can waste gas or
@@ -85,28 +96,33 @@ harvests can turn an otherwise attractive APY into poor net yield.
 ## Static-analysis triage
 
 An adapter-only Aderyn 0.6.8 pass completed with one high-severity pattern match and seven low-severity categories. The
-high match treats constructor validation calls and `deposit` integration calls as unguarded reentrancy: constructor
-creation is atomic and has no callable deployed runtime, while every state-changing integration entry point is protected
-by OpenZeppelin `nonReentrant` and role checks. The low categories are the documented governance trust, literal/style
-notices, mainnet-compatible PUSH0, ignored `_grantRole` boolean results, the Foundry-pinned `^0.8.28` pragma, and the
-`IYieldVault` import required by Solidity's `@inheritdoc` resolution.
+high match treats the atomic initializer's stateless validation/oracle calls and `deposit` integration calls as
+unguarded reentrancy. The implementation initializer is locked, proxy construction calls initialization atomically, the
+reviewed validator is immutable, and a failed/reentrant initialization rolls back before operational roles exist. Every
+later state-changing integration entry point is protected by OpenZeppelin `nonReentrant` and role checks. The low
+categories are the explicit governance centralization risk, literal/style notices, mainnet-compatible PUSH0, ignored
+OpenZeppelin `_grantRole` boolean results, the Foundry-pinned `^0.8.28` pragma, and an interface import used by
+`@inheritdoc` resolution.
 
 Slither 0.10.4 reported no untriaged result after reviewing its expected pattern matches. The complete first pass
 flagged:
 
 - zero-output equality guards, which are intentional fail-closed sentinels;
 - an unused Chainlink `startedAt` value, which is not part of the round-validity policy;
-- missing zero-address checks on token constructor arguments, despite `_requireContract` checking both zero and
-  bytecode;
+- broad compiler-range warnings in pinned OpenZeppelin sources, even though the build compiles every source with
+  Solidity 0.8.28;
 - state writes after integration calls in `deposit`, which are protected by OpenZeppelin `nonReentrant`, role-gated, and
   must use the actual shares returned by the two Yearn deposits; and
-- timestamp comparisons used only for oracle freshness and explicit accounting/availability bounds.
+- timestamp comparisons used only for oracle freshness and explicit accounting/availability bounds. The recovery ETH
+  send follows all accounting and completion-state writes; the dedicated Slither reentrancy pass reports only the known
+  `deposit` pattern.
 
-The final review adapter reports 15,525 bytes of deployed bytecode (9,051 bytes below the EIP-170 limit). Its focused
-Foundry coverage is 220/220 lines, 305/305 statements, 42/42 branches, and 31/31 functions. Slither 0.10.4 and Aderyn
-0.6.8 report the same reviewed pattern categories after the accounting fixes; both flag state writes after external
-calls, but the entry point is `nonReentrant`, role-gated, and must book Yearn's returned share amount. These automated
-checks are not a substitute for an independent audit.
+The upgradeable review build reports 23,373 bytes of deployed adapter bytecode (1,203 bytes below EIP-170) plus a
+2,156-byte stateless initialization validator. The focused Foundry run covers `YBoldYieldVault` at 276/276 lines,
+378/378 statements, 58/58 branches, and 37/37 functions, and `YBoldConfigValidator` at 36/36 lines, 42/42 statements,
+6/6 branches, and 4/4 functions. There are no exclusions in those production files; unrelated legacy contracts, scripts,
+helpers, and mocks shown in Foundry's aggregate row are outside this focused claim. Automated checks are not a
+substitute for an independent audit.
 
 ## Pashov findings and release decision
 
@@ -114,15 +130,17 @@ checks are not a substitute for an independent audit.
 2. Final-user capture of unharvested protocol yield: addressed by retaining the yield-bearing shares for a later
    harvest.
 3. Fresh deposits recapitalizing stale losses: blocked when the deficit exceeds 0.000001 yBOLD of share-rounding dust.
-4. Emergency exits depend on Yearn, Chainlink, Curve, Uniswap, and WETH: **not resolved** under the immutable deployed
-   manager's ETH-only `IYieldVault` interface. A pinned fork proves a stale oracle still reverts an emergency
-   withdrawal. In-kind exits would require a different manager/migration architecture or an explicitly accepted
-   availability risk.
+4. Emergency exits depend on Yearn, Chainlink, Curve, Uniswap, and WETH: normal ETH exits still fail closed, but the new
+   proxy now has an implemented treasury-recovery path that moves st-yBOLD without those dependencies and later pays
+   every existing manager claim in ETH at one funded rate. Fork tests distinguish real deposits from injected
+   Curve/router/Yearn/oracle faults and synthetic treasury ETH. This does not prove treasury liquidation at par, does
+   not remove the 30-day lock, and does not retrofit the deployed Beefy adapter.
 5. Contradictory BOLD peg and swap thresholds: addressed by applying the configured peg band plus execution slippage to
    the nominal floor. At defaults this permits up to 1.50% BOLD/USDC output deviation, not 0.50%; governance must review
    this combined risk allowance before deployment.
 
-Residual risks include Yearn/Liquity/Curve/Uniswap/Chainlink/CowSwap smart-contract risk, BOLD and USDC
-depeg/censorship, Yearn governance and strategy allocation, unavailable withdrawal liquidity, oracle outages, MEV around
-public migration, and the known old Beefy dust. The private-bundle/off-chain-freeze procedure addresses ordering and
-frontrunning but cannot make the multi-signer Option A migration fully atomic.
+Residual risks include total compromise/misuse of proxy upgrade or recovery governance, treasury custody/execution loss,
+Yearn/Liquity/Curve/Uniswap/Chainlink/CowSwap smart-contract risk, BOLD and USDC depeg/censorship, Yearn governance and
+strategy allocation, unavailable withdrawal liquidity, oracle outages, MEV around public migration, and the known old
+Beefy dust. Recovery protects only future yBOLD proxy positions. The current old ID-4 liquidity blocker remains, and the
+private-bundle/off-chain-freeze procedure cannot make the multi-signer Option A migration fully atomic.

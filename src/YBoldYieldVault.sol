@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
+import { IYBoldConfigValidator } from "src/interfaces/IYBoldConfigValidator.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IYieldVault } from "src/interfaces/IYieldVault.sol";
 import { AggregatorV3Interface } from "src/vendor/chainlink/AggregatorV3Interface.sol";
@@ -22,10 +24,18 @@ import { IYearnVault } from "src/vendor/yearn/IYearnVault.sol";
 /**
  * @title YBoldYieldVault
  * @notice Converts ETH into st-yBOLD, tracks principal in yBOLD assets, and pays unlocked yield back in ETH.
- * @dev This is a non-upgradeable adapter for Seba's existing {IYieldManager}. It deliberately keeps governance from
- *      rescuing any core asset, and leaves principal retrieval enabled while deposits and claims are paused.
+ * @dev The adapter is deployed behind an ERC-1967 proxy. Routine administration and UUPS upgrade authority are
+ *      distinct roles. Its explicit recovery path can transfer exactly reconciled st-yBOLD shares to a configured
+ *      treasury, then settle the existing YieldManager in ETH at one immutable pro-rata rate.
  */
-contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYieldVault {
+contract YBoldYieldVault is
+    Initializable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    IYBoldYieldVault
+{
     using Address for address payable;
     using SafeERC20 for IERC20;
 
@@ -37,6 +47,10 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     /// @inheritdoc IYBoldYieldVault
     bytes32 public constant YIELDMANAGER_ROLE = keccak256("YIELDMANAGER_ROLE");
+    /// @inheritdoc IYBoldYieldVault
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    /// @inheritdoc IYBoldYieldVault
+    bytes32 public constant RECOVERY_ROLE = keccak256("RECOVERY_ROLE");
 
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -59,46 +73,48 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     /// Maximum USDC/USD oracle age (23 hours).
     uint256 public constant USDC_USD_ORACLE_MAX_AGE = 23 hours;
 
+    IYBoldConfigValidator private immutable CONFIG_VALIDATOR;
+
     /*//////////////////////////////////////////////////////////////
-                       IMMUTABLE REFERENCES
+                       INTEGRATION REFERENCES
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYBoldYieldVault
-    address public immutable WETH;
+    address public WETH;
     /// @inheritdoc IYBoldYieldVault
-    address public immutable USDC;
+    address public USDC;
     /// @inheritdoc IYBoldYieldVault
-    address public immutable BOLD;
+    address public BOLD;
     /// @inheritdoc IYBoldYieldVault
-    ISwapRouter public immutable swapRouter;
+    ISwapRouter public swapRouter;
     /// @inheritdoc IYBoldYieldVault
-    ICurveStableSwapNG public immutable curvePool;
+    ICurveStableSwapNG public curvePool;
     /// @inheritdoc IYBoldYieldVault
-    IYearnVault public immutable yBold;
+    IYearnVault public yBold;
     /// @inheritdoc IYBoldYieldVault
-    IYearnVault public immutable stYBold;
+    IYearnVault public stYBold;
     /// @inheritdoc IYBoldYieldVault
-    AggregatorV3Interface public immutable ethUsdFeed;
+    AggregatorV3Interface public ethUsdFeed;
     /// @inheritdoc IYBoldYieldVault
-    AggregatorV3Interface public immutable usdcUsdFeed;
+    AggregatorV3Interface public usdcUsdFeed;
 
-    uint8 private immutable ethUsdFeedDecimals;
-    uint8 private immutable usdcUsdFeedDecimals;
+    uint8 private ethUsdFeedDecimals;
+    uint8 private usdcUsdFeedDecimals;
 
     /*//////////////////////////////////////////////////////////////
                              CONFIGURATION
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IYBoldYieldVault
-    uint16 public wethUsdcSlippageBps = 50;
+    uint16 public wethUsdcSlippageBps;
     /// @inheritdoc IYBoldYieldVault
-    uint16 public boldUsdcSlippageBps = 50;
+    uint16 public boldUsdcSlippageBps;
     /// @inheritdoc IYBoldYieldVault
-    uint16 public maxBoldPegDeviationBps = 100;
+    uint16 public maxBoldPegDeviationBps;
     /// @inheritdoc IYBoldYieldVault
     uint16 public normalYearnMaxLossBps;
     /// @inheritdoc IYBoldYieldVault
-    uint16 public emergencyYearnMaxLossBps = 100;
+    uint16 public emergencyYearnMaxLossBps;
     /// @inheritdoc IYBoldYieldVault
     bool public emergencyMode;
 
@@ -112,82 +128,70 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     uint256 public principalValue;
 
     /*//////////////////////////////////////////////////////////////
-                              CONSTRUCTOR
+                          TREASURY RECOVERY
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Initializes and validates the immutable production integration graph.
-     * @param admin Address granted the self-administered {ADMIN_ROLE}.
-     * @param yieldManager Existing Seba YieldManager granted {YIELDMANAGER_ROLE}.
-     * @param weth WETH token.
-     * @param usdc USDC token.
-     * @param bold BOLD token.
-     * @param router Uniswap V3 SwapRouter.
-     * @param boldUsdcPool Curve StableSwap-NG BOLD/USDC pool.
-     * @param yearnBold Yearn yBOLD vault whose asset must be BOLD.
-     * @param stakedYearnBold Yearn st-yBOLD strategy whose asset must be yBOLD.
-     * @param ethUsd Chainlink ETH/USD feed.
-     * @param usdcUsd Chainlink USDC/USD feed.
-     */
-    constructor(
-        address admin,
-        address yieldManager,
-        address weth,
-        address usdc,
-        address bold,
-        address router,
-        address boldUsdcPool,
-        address yearnBold,
-        address stakedYearnBold,
-        address ethUsd,
-        address usdcUsd
-    ) {
-        if (admin == address(0) || yieldManager == address(0)) revert InvalidAddress();
+    /// @inheritdoc IYBoldYieldVault
+    address public recoveryTreasury;
+    /// @inheritdoc IYBoldYieldVault
+    RecoveryState public recoveryState;
+    // Upgrade invariant: do not reorder or extend this struct in place; append future state after it.
+    RecoveryAccounting private recovery;
 
-        _requireContract(yieldManager);
-        _requireContract(weth);
-        _requireContract(usdc);
-        _requireContract(bold);
-        _requireContract(router);
-        _requireContract(boldUsdcPool);
-        _requireContract(yearnBold);
-        _requireContract(stakedYearnBold);
-        _requireContract(ethUsd);
-        _requireContract(usdcUsd);
+    /*//////////////////////////////////////////////////////////////
+                             INITIALIZATION
+    //////////////////////////////////////////////////////////////*/
 
-        _requireDecimals(weth, 18);
-        _requireDecimals(usdc, 6);
-        _requireDecimals(bold, 18);
-        _requireDecimals(yearnBold, 18);
-        _requireDecimals(stakedYearnBold, 18);
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address configValidator) {
+        if (configValidator == address(0)) revert InvalidAddress();
+        if (configValidator.code.length == 0) revert InvalidContract(configValidator);
+        CONFIG_VALIDATOR = IYBoldConfigValidator(configValidator);
+        _disableInitializers();
+    }
 
-        ICurveStableSwapNG pool = ICurveStableSwapNG(boldUsdcPool);
-        _requireAsset(boldUsdcPool, bold, pool.coins(0));
-        _requireAsset(boldUsdcPool, usdc, pool.coins(1));
-        _requireAsset(yearnBold, bold, IYearnVault(yearnBold).asset());
-        _requireAsset(stakedYearnBold, yearnBold, IYearnVault(stakedYearnBold).asset());
+    /// @inheritdoc IYBoldYieldVault
+    function initialize(InitializationParams calldata params) external initializer {
+        __AccessControl_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
 
-        uint8 ethDecimals = AggregatorV3Interface(ethUsd).decimals();
-        uint8 usdcDecimals = AggregatorV3Interface(usdcUsd).decimals();
-        if (ethDecimals > 18) revert InvalidDecimals(ethUsd, 18, ethDecimals);
-        if (usdcDecimals > 18) revert InvalidDecimals(usdcUsd, 18, usdcDecimals);
+        if (
+            params.admin == address(0) ||
+            params.yieldManager == address(0) ||
+            params.upgradeAuthority == address(0) ||
+            params.recoveryTreasury == address(0)
+        ) revert InvalidAddress();
 
-        _grantRole(ADMIN_ROLE, admin);
-        _grantRole(YIELDMANAGER_ROLE, yieldManager);
+        CONFIG_VALIDATOR.validate(params);
+
+        _grantRole(ADMIN_ROLE, params.admin);
+        _grantRole(YIELDMANAGER_ROLE, params.yieldManager);
+        _grantRole(UPGRADER_ROLE, params.upgradeAuthority);
+        _grantRole(RECOVERY_ROLE, params.recoveryTreasury);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(YIELDMANAGER_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(UPGRADER_ROLE, UPGRADER_ROLE);
+        _setRoleAdmin(RECOVERY_ROLE, UPGRADER_ROLE);
 
-        WETH = weth;
-        USDC = usdc;
-        BOLD = bold;
-        swapRouter = ISwapRouter(router);
-        curvePool = pool;
-        yBold = IYearnVault(yearnBold);
-        stYBold = IYearnVault(stakedYearnBold);
-        ethUsdFeed = AggregatorV3Interface(ethUsd);
-        usdcUsdFeed = AggregatorV3Interface(usdcUsd);
-        ethUsdFeedDecimals = ethDecimals;
-        usdcUsdFeedDecimals = usdcDecimals;
+        WETH = params.weth;
+        USDC = params.usdc;
+        BOLD = params.bold;
+        swapRouter = ISwapRouter(params.router);
+        curvePool = ICurveStableSwapNG(params.boldUsdcPool);
+        yBold = IYearnVault(params.yearnBold);
+        stYBold = IYearnVault(params.stakedYearnBold);
+        ethUsdFeed = AggregatorV3Interface(params.ethUsd);
+        usdcUsdFeed = AggregatorV3Interface(params.usdcUsd);
+        ethUsdFeedDecimals = AggregatorV3Interface(params.ethUsd).decimals();
+        usdcUsdFeedDecimals = AggregatorV3Interface(params.usdcUsd).decimals();
+        recoveryTreasury = params.recoveryTreasury;
+
+        wethUsdcSlippageBps = 50;
+        boldUsdcSlippageBps = 50;
+        maxBoldPegDeviationBps = 100;
+        emergencyYearnMaxLossBps = 100;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -279,6 +283,11 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
         return currentValue > principalValue ? currentValue - principalValue : 0;
     }
 
+    /// @inheritdoc IYBoldYieldVault
+    function recoveryAccounting() external view returns (RecoveryAccounting memory) {
+        return recovery;
+    }
+
     /*//////////////////////////////////////////////////////////////
                          PRINCIPAL RETRIEVAL
     //////////////////////////////////////////////////////////////*/
@@ -286,6 +295,11 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     /// @inheritdoc IYieldVault
     function retrievePrincipal(uint256 depositValue) external override nonReentrant onlyRole(YIELDMANAGER_ROLE) {
         if (depositValue == 0) revert CannotRetrieveZero();
+        if (recoveryState == RecoveryState.SettlementActive) {
+            _retrieveRecoveryPrincipal(depositValue);
+            return;
+        }
+        if (recoveryState != RecoveryState.Normal) revert InvalidRecoveryState(recoveryState);
         if (principalShares == 0 || principalValue == 0) revert NoPrincipal();
 
         uint256 valueToRemove;
@@ -312,6 +326,70 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
 
         payable(msg.sender).sendValue(ethOut);
         emit PrincipalRetrieved(valueToRemove, sharesToRedeem, ethOut);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          TREASURY RECOVERY
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IYBoldYieldVault
+    function initiateRecovery() external nonReentrant onlyRole(RECOVERY_ROLE) {
+        if (recoveryState != RecoveryState.Normal) revert InvalidRecoveryState(recoveryState);
+        if (principalShares == 0 || principalValue == 0) revert NoPrincipal();
+
+        uint256 actualShares = IERC20(address(stYBold)).balanceOf(address(this));
+        if (actualShares != principalShares) revert ShareAccountingMismatch(principalShares, actualShares);
+
+        if (!paused()) _pause();
+        emergencyMode = true;
+        emit EmergencyModeSet(true);
+
+        recoveryState = RecoveryState.SharesTransferred;
+        recovery.principalSnapshot = principalValue;
+        recovery.sharesTransferred = principalShares;
+        principalShares = 0;
+
+        IERC20(address(stYBold)).safeTransfer(recoveryTreasury, actualShares);
+        emit RecoveryInitiated(recoveryTreasury, recovery.principalSnapshot, actualShares);
+    }
+
+    /// @inheritdoc IYBoldYieldVault
+    function fundRecovery() external payable nonReentrant {
+        if (recoveryState != RecoveryState.SharesTransferred) revert InvalidRecoveryState(recoveryState);
+        if (msg.sender != recoveryTreasury) revert UnauthorizedRecoveryFunder(msg.sender);
+        if (msg.value == 0) revert ZeroOutput();
+
+        recovery.ethFunded += msg.value;
+        emit RecoveryFunded(msg.sender, msg.value, recovery.ethFunded);
+    }
+
+    /// @inheritdoc IYBoldYieldVault
+    function activateRecoverySettlement(uint256 settlementEth) external onlyRole(RECOVERY_ROLE) {
+        if (recoveryState != RecoveryState.SharesTransferred) revert InvalidRecoveryState(recoveryState);
+        if (settlementEth == 0) revert ZeroOutput();
+        if (settlementEth > recovery.ethFunded || settlementEth > address(this).balance) {
+            uint256 funded = Math.min(recovery.ethFunded, address(this).balance);
+            revert RecoveryUnderfunded(settlementEth, funded);
+        }
+
+        uint256 payoutRateWad = Math.mulDiv(settlementEth, 1e18, recovery.principalSnapshot);
+        if (payoutRateWad == 0) revert RecoveryRateTooLow();
+
+        recovery.payoutRateWad = payoutRateWad;
+        recovery.settlementEth = Math.mulDiv(recovery.principalSnapshot, payoutRateWad, 1e18);
+        recoveryState = RecoveryState.SettlementActive;
+
+        emit RecoverySettlementActivated(settlementEth, recovery.settlementEth, payoutRateWad);
+    }
+
+    /// @inheritdoc IYBoldYieldVault
+    function sweepRecoveryExcess() external nonReentrant onlyRole(RECOVERY_ROLE) {
+        if (recoveryState != RecoveryState.Settled) revert InvalidRecoveryState(recoveryState);
+        uint256 amount = address(this).balance;
+        if (amount == 0) revert ZeroOutput();
+
+        payable(recoveryTreasury).sendValue(amount);
+        emit RecoveryExcessSwept(recoveryTreasury, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -357,7 +435,7 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
 
     /// @inheritdoc IYBoldYieldVault
     function unpause() external onlyRole(ADMIN_ROLE) {
-        if (emergencyMode) revert StrategyNotOperational();
+        if (emergencyMode || recoveryState != RecoveryState.Normal) revert StrategyNotOperational();
         _unpause();
     }
 
@@ -379,6 +457,29 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     /*//////////////////////////////////////////////////////////////
                               INTERNALS
     //////////////////////////////////////////////////////////////*/
+
+    function _retrieveRecoveryPrincipal(uint256 depositValue) internal {
+        uint256 valueToRemove = Math.min(depositValue, principalValue);
+        uint256 ethOut = Math.mulDiv(valueToRemove, recovery.payoutRateWad, 1e18);
+        uint256 nextEthPaid = recovery.ethPaid + ethOut;
+        if (nextEthPaid > recovery.settlementEth || ethOut > address(this).balance) {
+            revert RecoveryUnderfunded(ethOut, address(this).balance);
+        }
+
+        principalValue -= valueToRemove;
+        recovery.principalSettled += valueToRemove;
+        recovery.ethPaid = nextEthPaid;
+        bool completed = principalValue == 0;
+        if (completed) recoveryState = RecoveryState.Settled;
+
+        payable(msg.sender).sendValue(ethOut);
+        emit RecoveryPrincipalSettled(valueToRemove, ethOut);
+        emit PrincipalRetrieved(valueToRemove, 0, ethOut);
+
+        if (completed) {
+            emit RecoveryCompleted(recovery.principalSettled, recovery.ethPaid);
+        }
+    }
 
     function _yBoldToEth(uint256 yBoldAmount) internal returns (uint256 ethOut) {
         uint256 boldOut = _redeemYearn(yBold, yBoldAmount);
@@ -483,7 +584,11 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     }
 
     function _requireOperational() internal view {
-        if (paused() || emergencyMode) revert StrategyNotOperational();
+        if (paused() || emergencyMode || recoveryState != RecoveryState.Normal) revert StrategyNotOperational();
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal view override onlyRole(UPGRADER_ROLE) {
+        _requireContract(newImplementation);
     }
 
     function _requireYearnDepositAvailable(IYearnVault yearnVault, uint256 requested) internal view {
@@ -510,15 +615,6 @@ contract YBoldYieldVault is AccessControl, Pausable, ReentrancyGuard, IYBoldYiel
     function _requireContract(address target) internal view {
         if (target == address(0)) revert InvalidAddress();
         if (target.code.length == 0) revert InvalidContract(target);
-    }
-
-    function _requireDecimals(address token, uint8 expected) internal view {
-        uint8 actual = IERC20Metadata(token).decimals();
-        if (actual != expected) revert InvalidDecimals(token, expected, actual);
-    }
-
-    function _requireAsset(address integration, address expected, address actual) internal pure {
-        if (actual != expected) revert InvalidAsset(integration, expected, actual);
     }
 
     /**

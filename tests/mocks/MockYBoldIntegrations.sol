@@ -8,6 +8,10 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapRouter } from "src/vendor/uniswap_v3/ISwapRouter.sol";
 
+contract MockAuthority {
+    receive() external payable {}
+}
+
 contract MockToken is ERC20 {
     uint8 private immutable tokenDecimals;
 
