@@ -1,0 +1,8 @@
+Upgrade
+├── rejects callers without UPGRADER_ROLE
+├── preserves all V1 storage across an authorized UUPS upgrade
+├── preserves in-progress recovery accounting, custody, and ETH funding
+├── initializes appended V2 storage once
+├── rejects replayed version initializers
+├── rejects zero-address implementations and implementations without bytecode
+└── rejects implementation-context upgrade calls

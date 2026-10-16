@@ -1,0 +1,3 @@
+receive
+├── sender is not WETH → revert
+└── sender is WETH during unwrap → accept ETH

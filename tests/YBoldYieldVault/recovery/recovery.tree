@@ -1,0 +1,13 @@
+Recovery
+├── requires RECOVERY_ROLE and an active reconciled position
+├── snapshots only outstanding liabilities after earlier normal withdrawals
+├── pauses normal deposits, claims, and redemptions
+├── transfers exactly the tracked st-yBOLD balance to recovery treasury
+├── accepts settlement ETH only from the configured treasury
+├── activates once with sufficient funding and a non-zero uniform rate
+├── reverts without accounting changes if committed ETH becomes unavailable
+├── settles full or partial-loss claims through the existing YieldManager
+├── keeps large and unequal claims pro-rata regardless of payout order
+├── caps an oversized final claim at remaining principal
+├── prevents repeated transitions and repeated settlement
+└── sweeps only surplus ETH after every principal claim is settled
