@@ -1,0 +1,20 @@
+Recovery
+├── requires RECOVERY_ROLE and a position with no missing accounted shares
+├── tolerates donated surplus without increasing liabilities or transferring more than tracked shares
+├── snapshots only outstanding liabilities after earlier normal withdrawals
+├── when only unclaimed yield shares remain and principal is zero
+│   ├── transfers the accounted shares without consulting Yearn redemption
+│   ├── immediately completes recovery without division, settlement funding, or claim creation
+│   └── rejects subsequent funding and settlement activation
+├── pauses normal deposits, claims, and redemptions
+├── transfers exactly the tracked st-yBOLD balance to recovery treasury
+├── accepts settlement ETH only from the configured treasury
+├── activates once with sufficient funding and a uniform rate
+├── explicitly permits a zero-ETH total-loss settlement while rejecting a nonzero amount rounded to zero rate
+├── returns zero claimable yield during recovery without calling the unavailable Yearn integration
+├── reverts without accounting changes if committed ETH becomes unavailable
+├── settles full or partial-loss claims through the existing YieldManager
+├── keeps large and unequal claims pro-rata regardless of payout order
+├── caps an oversized final claim at remaining principal
+├── prevents repeated transitions and repeated settlement
+└── sweeps surplus ETH and donated shares only after every principal claim is settled

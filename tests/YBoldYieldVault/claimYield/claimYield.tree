@@ -1,0 +1,9 @@
+claimYield
+├── caller lacks YIELDMANAGER_ROLE → revert
+├── paused or emergency mode → revert
+├── yield flow inactive → emit zero and retain shares
+├── no unlocked yield or sub-USDC dust → emit zero and retain shares
+├── unlocked yield rounds to zero shares → emit zero and retain shares
+├── Yearn redemption returns zero or only sub-USDC-precision BOLD → revert atomically
+├── Yearn liquidity, peg, oracle, or either swap check fails → revert atomically
+└── unlocked yield exists → redeem only yield shares, swap to ETH, preserve principalValue, pay manager

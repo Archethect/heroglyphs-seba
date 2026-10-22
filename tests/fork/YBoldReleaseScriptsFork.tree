@@ -1,0 +1,12 @@
+YBoldReleaseScriptsTest (serialized environment-owning fixture)
+├── deployment authority or chain has changed
+│   └── it should abort before creating contracts
+├── deployment proxy configuration differs from the reviewed release
+│   └── it should reject the mismatched code, role, implementation, or slippage
+├── treasury custody or manager snapshot has drifted
+│   └── it should reject stale expectations
+└── upgrade calldata is prepared
+    ├── current and next code and Safe authority match
+    │   └── it should return only unsigned calldata and leave implementation unchanged
+    └── a code hash or implementation expectation differs
+        └── it should abort

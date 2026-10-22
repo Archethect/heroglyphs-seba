@@ -1,0 +1,8 @@
+Stateful accounting search
+├── seed four independent principal claim buckets
+├── interleave deposits, normal withdrawals, harvests, synthetic profit and loss
+├── donate real unit-model vault shares before and after recovery
+├── reconcile every recorded claim and every share in adapter/treasury custody
+├── interleave authenticated funding, rate activation, claim order, and excess sweeping
+├── conserve funding as adapter ETH plus paid ETH plus swept ETH
+└── after every generated sequence, settle all remaining claims and reconcile exactly

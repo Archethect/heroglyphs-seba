@@ -1,0 +1,581 @@
+{
+  "files_summary": {
+    "total_source_units": 2,
+    "total_sloc": 496
+  },
+  "files_details": {
+    "files_details": [
+      {
+        "file_path": "src/YBoldConfigValidator.sol",
+        "n_sloc": 49
+      },
+      {
+        "file_path": "src/YBoldYieldVault.sol",
+        "n_sloc": 447
+      }
+    ]
+  },
+  "issue_count": {
+    "high": 1,
+    "low": 7
+  },
+  "high_issues": {
+    "issues": [
+      {
+        "title": "Reentrancy: State change after external call",
+        "description": "Changing state after an external call can lead to re-entrancy attacks.Use the checks-effects-interactions pattern to avoid this issue.",
+        "detector_name": "reentrancy-state-change",
+        "instances": [
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 168,
+            "src": "7568:33",
+            "src_char": "7568:33",
+            "hint": "State is changed at: `WETH = params.weth`, `USDC = params.usdc`, `BOLD = params.bold`, `swapRouter = ISwapRouter(params.router)`, `curvePool = ICurveStableSwapNG(params.boldUsdcPool)`, `yBold = IYearnVault(params.yearnBold)`, `stYBold = IYearnVault(params.stakedYearnBold)`, `ethUsdFeed = AggregatorV3Interface(params.ethUsd)`, `usdcUsdFeed = AggregatorV3Interface(params.usdcUsd)`, `ethUsdFeedDecimals = AggregatorV3Interface(params.ethUsd).decimals()`, `usdcUsdFeedDecimals = AggregatorV3Interface(params.usdcUsd).decimals()`, `recoveryTreasury = params.recoveryTreasury`, `wethUsdcSlippageBps = 50`, `boldUsdcSlippageBps = 50`, `maxBoldPegDeviationBps = 100`, `emergencyYearnMaxLossBps = 100`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 188,
+            "src": "8465:68",
+            "src_char": "8465:68",
+            "hint": "State is changed at: `usdcUsdFeedDecimals = AggregatorV3Interface(params.usdcUsd).decimals()`, `recoveryTreasury = params.recoveryTreasury`, `wethUsdcSlippageBps = 50`, `boldUsdcSlippageBps = 50`, `maxBoldPegDeviationBps = 100`, `emergencyYearnMaxLossBps = 100`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 189,
+            "src": "8543:70",
+            "src_char": "8543:70",
+            "hint": "State is changed at: `recoveryTreasury = params.recoveryTreasury`, `wethUsdcSlippageBps = 50`, `boldUsdcSlippageBps = 50`, `maxBoldPegDeviationBps = 100`, `emergencyYearnMaxLossBps = 100`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 214,
+            "src": "9336:64",
+            "src_char": "9336:64",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 222,
+            "src": "9686:41",
+            "src_char": "9686:41",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 230,
+            "src": "10043:55",
+            "src_char": "10043:55",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 231,
+            "src": "10112:45",
+            "src_char": "10112:45",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 236,
+            "src": "10339:59",
+            "src_char": "10339:59",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 237,
+            "src": "10412:53",
+            "src_char": "10412:53",
+            "hint": "State is changed at: `principalShares += stYBoldShares`, `principalValue += yBoldShares`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 256,
+            "src": "11213:44",
+            "src_char": "11213:44",
+            "hint": "State is changed at: `principalShares -= sharesToRedeem`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 267,
+            "src": "11491:60",
+            "src_char": "11491:60",
+            "hint": "State is changed at: `principalShares -= sharesToRedeem`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 309,
+            "src": "13192:64",
+            "src_char": "13192:64",
+            "hint": "State is changed at: `principalValue = 0`, `principalShares -= sharesToRedeem`, `principalValue -= depositValue`, `principalShares -= sharesToRedeem`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 312,
+            "src": "13360:107",
+            "src_char": "13360:107",
+            "hint": "State is changed at: `principalValue = 0`, `principalShares -= sharesToRedeem`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 318,
+            "src": "13714:200",
+            "src_char": "13714:200",
+            "hint": "State is changed at: `principalValue -= depositValue`, `principalShares -= sharesToRedeem`"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 342,
+            "src": "14814:72",
+            "src_char": "14814:72",
+            "hint": "State is changed at: `emergencyMode = true`, `recoveryState = RecoveryState.SharesTransferred`, `recovery.principalSnapshot = principalValue`, `recovery.sharesTransferred = principalShares`, `principalShares = 0`, `recoveryState = RecoveryState.Settled`"
+          }
+        ]
+      }
+    ]
+  },
+  "low_issues": {
+    "issues": [
+      {
+        "title": "Centralization Risk",
+        "description": "Contracts have owners with privileged rights to perform admin tasks and need to be trusted to not perform malicious updates or drain funds.",
+        "detector_name": "centralization-risk",
+        "instances": [
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 208,
+            "src": "9133:27",
+            "src_char": "9133:27"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 254,
+            "src": "11140:27",
+            "src_char": "11140:27"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 298,
+            "src": "12709:27",
+            "src_char": "12709:27"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 338,
+            "src": "14628:23",
+            "src_char": "14628:23"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 378,
+            "src": "16390:23",
+            "src_char": "16390:23"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 396,
+            "src": "17344:23",
+            "src_char": "17344:23"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 417,
+            "src": "18339:20",
+            "src_char": "18339:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 426,
+            "src": "18780:20",
+            "src_char": "18780:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 433,
+            "src": "19083:20",
+            "src_char": "19083:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 443,
+            "src": "19512:20",
+            "src_char": "19512:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 449,
+            "src": "19682:20",
+            "src_char": "19682:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 454,
+            "src": "19799:20",
+            "src_char": "19799:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 460,
+            "src": "20084:20",
+            "src_char": "20084:20"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 607,
+            "src": "26712:23",
+            "src_char": "26712:23"
+          }
+        ]
+      },
+      {
+        "title": "Large Numeric Literal",
+        "description": "Large literal values multiples of 10000 can be replaced with scientific notation.Use `e` notation, for example: `1e18`, instead of its full numeric value.",
+        "detector_name": "large-numeric-literal",
+        "instances": [
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 60,
+            "src": "3196:6",
+            "src_char": "3196:6"
+          }
+        ]
+      },
+      {
+        "title": "Literal Instead of Constant",
+        "description": "Define and use `constant` variables instead of using literals. If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.",
+        "detector_name": "literal-instead-of-constant",
+        "instances": [
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 32,
+            "src": "1497:2",
+            "src_char": "1497:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 34,
+            "src": "1582:2",
+            "src_char": "1582:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 35,
+            "src": "1630:2",
+            "src_char": "1630:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 36,
+            "src": "1684:2",
+            "src_char": "1684:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 46,
+            "src": "2295:2",
+            "src_char": "2295:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 46,
+            "src": "2354:2",
+            "src_char": "2354:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 47,
+            "src": "2399:2",
+            "src_char": "2399:2"
+          },
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 47,
+            "src": "2459:2",
+            "src_char": "2459:2"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 192,
+            "src": "8698:2",
+            "src_char": "8698:2"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 193,
+            "src": "8732:2",
+            "src_char": "8732:2"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 194,
+            "src": "8769:3",
+            "src_char": "8769:3"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 195,
+            "src": "8809:3",
+            "src_char": "8809:3"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 226,
+            "src": "9895:4",
+            "src_char": "9895:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 226,
+            "src": "9901:3",
+            "src_char": "9901:3"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 262,
+            "src": "11404:4",
+            "src_char": "11404:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 385,
+            "src": "16828:4",
+            "src_char": "16828:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 389,
+            "src": "17083:4",
+            "src_char": "17083:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 480,
+            "src": "21038:4",
+            "src_char": "21038:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 505,
+            "src": "22023:3",
+            "src_char": "22023:3"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 505,
+            "src": "22028:4",
+            "src_char": "22028:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 569,
+            "src": "24820:4",
+            "src_char": "24820:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 576,
+            "src": "25228:4",
+            "src_char": "25228:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 598,
+            "src": "26216:4",
+            "src_char": "26216:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 598,
+            "src": "26231:4",
+            "src_char": "26231:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 598,
+            "src": "26238:4",
+            "src_char": "26238:4"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 599,
+            "src": "26299:4",
+            "src_char": "26299:4"
+          }
+        ]
+      },
+      {
+        "title": "PUSH0 Opcode",
+        "description": "Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.",
+        "detector_name": "push-zero-opcode",
+        "instances": [
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 2,
+            "src": "32:24",
+            "src_char": "32:24"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 2,
+            "src": "32:24",
+            "src_char": "32:24"
+          }
+        ]
+      },
+      {
+        "title": "Unchecked Return",
+        "description": "Function returns a value but it is ignored. Consider checking the return value.",
+        "detector_name": "unchecked-return",
+        "instances": [
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 170,
+            "src": "7612:36",
+            "src_char": "7612:36"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 171,
+            "src": "7658:50",
+            "src_char": "7658:50"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 172,
+            "src": "7718:50",
+            "src_char": "7718:50"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 173,
+            "src": "7778:50",
+            "src_char": "7778:50"
+          }
+        ]
+      },
+      {
+        "title": "Unspecific Solidity Pragma",
+        "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+        "detector_name": "unspecific-solidity-pragma",
+        "instances": [
+          {
+            "contract_path": "src/YBoldConfigValidator.sol",
+            "line_no": 2,
+            "src": "32:24",
+            "src_char": "32:24"
+          },
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 2,
+            "src": "32:24",
+            "src_char": "32:24"
+          }
+        ]
+      },
+      {
+        "title": "Unused Import",
+        "description": "Redundant import statement. Consider removing it.",
+        "detector_name": "unused-import",
+        "instances": [
+          {
+            "contract_path": "src/YBoldYieldVault.sol",
+            "line_no": 17,
+            "src": "1191:61",
+            "src_char": "1191:61"
+          }
+        ]
+      }
+    ]
+  },
+  "detectors_used": [
+    "abi-encode-packed-hash-collision",
+    "arbitrary-transfer-from",
+    "assert-state-change",
+    "block-timestamp-deadline",
+    "boolean-equality",
+    "builtin-symbol-shadowing",
+    "centralization-risk",
+    "constant-function-changes-state",
+    "constant-function-contains-assembly",
+    "contract-locks-ether",
+    "costly-loop",
+    "dangerous-unary-operator",
+    "dead-code",
+    "delegate-call-unchecked-address",
+    "delegatecall-in-loop",
+    "delete-nested-mapping",
+    "deprecated-oz-function",
+    "division-before-multiplication",
+    "dynamic-array-length-assignment",
+    "ecrecover",
+    "empty-block",
+    "empty-require-revert",
+    "enumerable-loop-removal",
+    "eth-send-unchecked-address",
+    "experimental-encoder",
+    "function-initializing-state",
+    "function-pointer-in-constructor",
+    "function-selector-collision",
+    "inconsistent-type-names",
+    "incorrect-caret-operator",
+    "incorrect-erc20-interface",
+    "incorrect-erc721-interface",
+    "incorrect-shift-order",
+    "incorrect-use-of-modifier",
+    "internal-function-used-once",
+    "large-numeric-literal",
+    "literal-instead-of-constant",
+    "local-variable-shadowing",
+    "missing-inheritance",
+    "misused-boolean",
+    "modifier-used-only-once",
+    "msg-value-in-loop",
+    "multiple-constructors",
+    "multiple-placeholders",
+    "nested-struct-in-mapping",
+    "non-reentrant-not-first",
+    "out-of-order-retryable",
+    "pre-declared-local-variable-usage",
+    "push-zero-opcode",
+    "redundant-statement",
+    "reentrancy-state-change",
+    "require-revert-in-loop",
+    "return-bomb",
+    "reused-contract-name",
+    "rtlo",
+    "selfdestruct",
+    "signed-integer-storage-array",
+    "solmate-safe-transfer-lib",
+    "state-change-without-event",
+    "state-no-address-check",
+    "state-variable-could-be-constant",
+    "state-variable-could-be-immutable",
+    "state-variable-init-order",
+    "state-variable-read-external",
+    "state-variable-shadowing",
+    "storage-array-length-not-cached",
+    "storage-array-memory-edit",
+    "strict-equality-contract-balance",
+    "tautological-compare",
+    "tautology-or-contradiction",
+    "todo",
+    "tx-origin-used-for-auth",
+    "unchecked-low-level-call",
+    "unchecked-return",
+    "unchecked-send",
+    "uninitialized-local-variable",
+    "unprotected-initializer",
+    "unsafe-casting",
+    "unsafe-erc20-operation",
+    "unsafe-oz-erc721-mint",
+    "unspecific-solidity-pragma",
+    "unused-error",
+    "unused-import",
+    "unused-public-function",
+    "unused-state-variable",
+    "void-constructor",
+    "weak-randomness",
+    "yul-return"
+  ]
+}

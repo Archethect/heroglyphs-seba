@@ -1,0 +1,9 @@
+admin controls
+├── caller lacks ADMIN_ROLE → revert for every control
+├── swap, peg, or Yearn-loss value exceeds hard cap/order → revert
+├── valid configuration → persist and emit
+├── pause/emergency state → block deposits/claims but retain retrieval
+├── rescue core/zero/invalid asset → revert
+├── rescue non-core token → transfer exact amount
+├── routine admin attempts YieldManager role grant or revoke → revert without changing access
+└── upgrade authority rotates the role → new YieldManager gains and old YieldManager loses access

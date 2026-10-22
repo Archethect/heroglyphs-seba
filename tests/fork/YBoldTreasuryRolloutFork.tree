@@ -1,0 +1,24 @@
+Current treasury rollout at mainnet block 26248207
+├── treasury owns actual ysyBOLD and all old user IDs are deleted
+│   ├── redeem ysyBOLD → yBOLD → BOLD → USDC → WETH → ETH using real integrations
+│   ├── switch the real manager and redeem its real old protocol principal
+│   ├── redeposit protocol principal and two independent user positions
+│   └── preserve current manager liabilities, receipt custody, and existing user lock
+├── all exit dependencies remain available
+│   ├── withdraw protocol principal and unlocked users through the real manager
+│   └── recover naturally unlocked remaining yield shares even after principal reaches zero
+├── Yearn redemption, Curve exit, swap venue, or oracle fails
+│   ├── normal retrieval reverts atomically
+│   └── transfer exact accounted shares without redemption, swap, or oracle calls
+├── recovered shares can be liquidated
+│   ├── fund ETH settlement from actual proceeds without synthetic treasury capital
+│   ├── apply one final rate to full proceeds or a disclosed partial-loss allocation
+│   └── reconcile all principal, paid ETH, deleted IDs, and remaining dust
+├── treasury explicitly finalizes a total loss
+│   ├── clear real user IDs and protocol principal without synthetic ETH funding
+│   └── a contract rejecting even zero ETH keeps only its own ID claimable and delays final sweep
+├── live shares are donated after recovery
+│   └── do not alter the fixed snapshot
+└── implementation is upgraded
+    ├── routine admin is rejected
+    └── treasury Safe authority preserves the real position and adds V2 state
