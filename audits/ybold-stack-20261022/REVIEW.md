@@ -132,7 +132,7 @@ having reviewed a later source hash.
 | Donation blocks recovery (implementation review)   | Fixed: actual shares may exceed accounted shares; exact accounted custody transfer and surplus events/sweep tested. A real shortage still reverts.                                                                                                                                                                                                                                                       |
 | M-01: zero-liability residual yield cannot recover | Accounted-yield case fixed: transfer tracked shares, snapshot0, immediately Settled/Completed; unit and live-fork regression. **Pure unsolicited donations with zero tracked shares remain upgrade-only**, as do other accidental core tokens; no user liability is involved. Do not call the entire custody limitation eliminated.                                                                      |
 | M-02: preflight accepts incorrect configuration    | **Mitigated, Medium release-control gate remains.** Canonical governor/treasury, exact3/7 owners, empty modules/guard, proxy inventory/runtime, dependencies and defaults now have negative tests and actual CREATE2 dry-run. Operator-provided proxy/implementation/hash expectations are consistency checks, NOT independent authorization: Gate2 must independently approve exact artifacts/calldata. |
-| L-01: skipped distribution repeatedly harvests     | Fixed in backend PR9: independently persisted confirmed-harvest cadence, legacy fallback frozen before distribution, true failures retry, frozen state stops harvest, native1e12 yield floor. 125 tests and exact-head hosted CI green.                                                                                                                                                                  |
+| L-01: skipped distribution repeatedly harvests     | Fixed in backend PR9: independently persisted confirmed-harvest cadence, legacy fallback frozen before distribution, true failures retry, frozen state stops harvest, native1e12 yield floor. 125 local tests; implementation-head hosted CI passed.                                                                                                                                                     |
 | L-02: ETH-rejecting depositor prevents completion  | Confirmed **unchanged manager limitation**, not fixed by this release: its own ID remains claimable, final sweep waits; other users receive their rate. Regression and runbook disclosure. Manager recipient-credit redesign is out of scope and requires separate approval.                                                                                                                             |
 | Stale indexed availability after upgrade           | Fixed: retain last numeric observation but invalidate availability for changed vault/matching active pool, without external implementation calls. Matchstick regression and independent re-review.                                                                                                                                                                                                       |
 
@@ -183,7 +183,9 @@ the actual stateful search is Foundry, not a claim of using unavailable engines.
 - Subgraphs: [hero_boost_subgraphs#2](https://github.com/Archethect/hero_boost_subgraphs/pull/2), reviewed head
   `cba8105`.
 
-Backend:125 tests, build, changed-source lint and offline CDK synth passed on GitHub. Subgraph:18 Matchstick tests,
-portable guard tests, codegen/build/lint passed on GitHub. Neither proves AWS deployment-state equality or full
-original- start-block history. Final contracts hosted CI/fork-secret availability must be checked on the exact pushed
-head.
+Earlier implementation heads passed hosted offline CI: contracts `d68abe0`, backend `8310ac1` (125 tests, build,
+changed-source lint and offline CDK synth), subgraph `5bb15ed` (18 Matchstick tests, portable guards,
+codegen/build/lint). Final local verification and source-fingerprinted replay also passed. At publication, the final
+documentation/harness/evidence refresh runs are **queued waiting for GitHub runners, not passed**; check their
+exact-head conclusions before approving release. Neither earlier CI nor the short replay proves AWS deployment-state
+equality or full original-start-block history. Hosted fork CI remains not run without its approved RPC secret.
