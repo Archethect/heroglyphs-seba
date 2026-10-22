@@ -65,19 +65,32 @@ Two independent rehearsals:
 - Foundry treasury-start: real shares → **71.037406571234590178 ETH**, real residual protocol exit and new proxy
   deposits; healthy withdrawals, external failure rollback/recovery, upgrade preservation, full/partial/total-loss
   settlement.
-- Persistent Anvil + actual Safe `approveHash`/`execTransaction`, threshold **3/7 unchanged**: same initial real shares
-  → **71.037440306013527291 ETH**. Manager selected the local proxy at block 26,248,247; protocol deposit/healthy
-  withdrawal/ redeposit and new user IDs 10/11 succeeded. Small differences reflect locally mined transaction time/Yearn
-  accounting.
-- Persistent recovery: exact `158535073860022353594794` shares transferred to treasury and actually liquidated for
-  **72.183781942993241034 ETH**. The chosen **80%-of-proceeds** commitment is a deliberate policy-loss fixture, not an
-  observed 20% liquidation loss. Canonical rate `331149512040045`, committed ETH `57747025554394426249` wei; all
-  user/protocol claims paid `57747025554394426248` wei, leaving one wei of committed claim-rounding dust.
+- Final persistent Anvil + actual Safe `approveHash`/`execTransaction`, threshold **3/7 unchanged**: same initial real
+  shares → **71.037437896475484433 ETH**. Manager selected the local proxy at block 26,248,247; protocol deposit/healthy
+  withdrawal/redeposit and new user IDs 10/11 succeeded. Small differences from Foundry reflect locally mined
+  transaction time/Yearn accounting. Normal checkpoint: block 26,248,260, hash
+  `0x25f5674c98d9a5e160d84b759d22e62a5157bf1bfec4b20fa6b9d32c7ac974ef`.
+- Persistent recovery: exact `158534905743639338078808` shares transferred to treasury and actually liquidated for
+  **72.183803420736781897 ETH**. The chosen **80%-of-proceeds** commitment is a deliberate policy-loss fixture, not an
+  observed 20% liquidation loss. Requested ETH `57747042736589425517` wei; canonical rate `331149621627976`, committed
+  ETH `57747042736589424386` wei. All user/protocol claims paid `57747042736589424385` wei, leaving one wei of committed
+  claim-rounding dust.
 - Backend actual state reader followed normal → paused → recovery and correctly refused automated new yield operations
   while frozen. Independent CoW/graduation paths remain intact. Graph Node 0.45.0 replay matched both block hashes, 19
-  actual strategy events, native principal `174383544153950730337992`, user histories and deleted active IDs.
-- Final Anvil block 26,248,319: manager protocol/adapter principal and adapter ETH zero; all claimed IDs deleted;
-  excess/dust returned only after full settlement. No Graph indexing errors.
+  actual strategy events, native principal `174383538331395968952308`, user histories and deleted active IDs.
+- Final Anvil block 26,248,320, hash `0x72dca9e6af2b91c2b7d8448a7732900aaa9e3f5e30a828fd3d8d464912a5b560`: manager
+  protocol/adapter principal and adapter ETH zero; all claimed IDs deleted; excess/dust returned only after full
+  settlement. The manager retains its legitimate protocol ETH payout, not an unsettled liability. No Graph indexing
+  errors.
+
+This final replay replaced the initial replay after source freeze. Production commit
+`8b23ad82a63fe6951283c9eea655b7bff3307d8d`; adapter source blob `92a495ead77ecfb4fd1904be22cf7a8cf606861c`,
+implementation runtime hash `0xfb49d4a4073efcfd87835384591cf1cf0a57fc6c18c1780c2be16d4a6c71821a`. The subsequent
+`d68abe0` change fixes only shared test-import casing for Linux CI. Source/compiler/artifact/live-code fingerprints and
+the final manager-role administrator were checked before capital operations and again before recovery. A
+protocol-redeposit automatic gas estimate proved too low; the failed transaction and trace were preserved, rollback was
+reconciled, and a bounded 125%-of-estimate retry succeeded without a fork reset. This is an operational gas-margin
+lesson, not a hidden successful first attempt or a reason to loosen slippage.
 
 The persistent fixture used local impersonation and synthetic **gas/deployer** accounts only, not treasury investment
 top-ups, token minting, oracle/venue mocks or Safe threshold overrides. Existing user locks were honored by local time
@@ -166,9 +179,9 @@ the actual stateful search is Foundry, not a claim of using unavailable engines.
 ## Review pull requests
 
 - Contracts: [heroglyphs-seba#3](https://github.com/Archethect/heroglyphs-seba/pull/3).
-- Backend: [hero_boost_backend#9](https://github.com/Archethect/hero_boost_backend/pull/9), reviewed head `8310ac1`.
+- Backend: [hero_boost_backend#9](https://github.com/Archethect/hero_boost_backend/pull/9), reviewed head `cdacf42`.
 - Subgraphs: [hero_boost_subgraphs#2](https://github.com/Archethect/hero_boost_subgraphs/pull/2), reviewed head
-  `5bb15ed`.
+  `cba8105`.
 
 Backend:125 tests, build, changed-source lint and offline CDK synth passed on GitHub. Subgraph:18 Matchstick tests,
 portable guard tests, codegen/build/lint passed on GitHub. Neither proves AWS deployment-state equality or full

@@ -136,6 +136,12 @@ broadcasting, verifying/publishing a production deployment, CDK deployment or su
     harvesting/CoW completion, role changes, pauses, upgrades and custody. Do not advance last-executed timestamps for
     skipped/failed jobs. Check yield economics regularly; no quarterly-only safety review.
 
+Gas is also a signing-time check: the final local rehearsal exposed an automatic estimate shortfall during protocol
+redeposit. Its failed transaction reverted all swaps/Yearn deposits/accounting; a bounded 125%-of-estimate retry
+succeeded. Re-simulate each actual production batch and approve a conservative gas margin/fee cap. The harness's
+12-million-gas Safe envelope is a local test bound, **not** a production recommendation or fixed calldata parameter.
+Never retry an unexplained revert merely by raising gas or loosening slippage.
+
 ## Emergency procedure
 
 1. **Routine admin:** `pause()` and optionally `setEmergencyMode(true)` on the **proxy**, value 0. Deposits/yield claims
