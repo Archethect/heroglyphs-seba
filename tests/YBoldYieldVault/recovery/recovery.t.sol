@@ -7,6 +7,47 @@ import { IYBoldYieldVault } from "src/interfaces/IYBoldYieldVault.sol";
 import { YBoldYieldVaultTestBase } from "tests/YBoldYieldVault/Base.t.sol";
 
 contract YBoldRecoveryTest is YBoldYieldVaultTestBase {
+    event RecoverySharesReconciled(uint256 accountedShares, uint256 actualShares, uint256 surplusShares);
+    event RecoverySurplusSharesSwept(address indexed treasury, uint256 shares);
+
+    function test_RecoversRemainingYieldWithNoLiabilitiesWithoutSettlementOrRedemption() external {
+        uint256 value = _deposit(1 ether);
+        _donateStYBoldYield(100e18);
+        manager.retrieve(address(vault), value);
+        assertEq(vault.principalValue(), 0);
+        uint256 shares = vault.principalShares();
+        assertGt(shares, 0);
+        vm.mockCallRevert(address(stYBold), abi.encodeWithSignature("convertToAssets(uint256)"), bytes("YEARN_BROKEN"));
+        stYBold.setRedeemLimit(0);
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit IYBoldYieldVault.RecoveryCompleted(0, 0);
+        vm.prank(recoveryTreasury);
+        vault.initiateRecovery();
+        assertEq(stYBold.balanceOf(recoveryTreasury), shares);
+        assertEq(vault.principalShares(), 0);
+        assertEq(vault.recoveryAccounting().principalSnapshot, 0);
+        assertEq(vault.recoveryAccounting().sharesTransferred, shares);
+        assertEq(uint256(vault.recoveryState()), uint256(IYBoldYieldVault.RecoveryState.Settled));
+        assertEq(vault.claimableYield(), 0);
+        vm.prank(recoveryTreasury);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IYBoldYieldVault.InvalidRecoveryState.selector,
+                IYBoldYieldVault.RecoveryState.Settled
+            )
+        );
+        vault.activateRecoverySettlement(0);
+        vm.deal(recoveryTreasury, 1);
+        vm.prank(recoveryTreasury);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IYBoldYieldVault.InvalidRecoveryState.selector,
+                IYBoldYieldVault.RecoveryState.Settled
+            )
+        );
+        vault.fundRecovery{ value: 1 }();
+    }
+
     function test_RecoverySnapshotsOnlyOutstandingPrincipalAfterNormalWithdrawal() external {
         uint256 withdrawnValue = _deposit(1 ether);
         uint256 remainingValue = _deposit(2 ether);
@@ -87,9 +128,8 @@ contract YBoldRecoveryTest is YBoldYieldVaultTestBase {
         vault.fundRecovery{ value: 1 ether }();
     }
 
-    function test_RevertWhenShareAccountingDoesNotMatchCustody() external {
+    function test_DonatedSharesDoNotBlockRecoveryOrIncreaseLiabilities() external {
         _deposit(1 ether);
-        _donateStYBoldYield(1e18);
         bold.mint(address(this), 1e18);
         bold.approve(address(yBold), 1e18);
         uint256 yBoldShares = yBold.deposit(1e18, address(this));
@@ -98,9 +138,93 @@ contract YBoldRecoveryTest is YBoldYieldVaultTestBase {
 
         uint256 tracked = vault.principalShares();
         uint256 actual = stYBold.balanceOf(address(vault));
+        uint256 liability = vault.principalValue();
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit RecoverySharesReconciled(tracked, actual, actual - tracked);
         vm.prank(recoveryTreasury);
-        vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.ShareAccountingMismatch.selector, tracked, actual));
         vault.initiateRecovery();
+
+        assertEq(stYBold.balanceOf(recoveryTreasury), tracked);
+        assertEq(stYBold.balanceOf(address(vault)), actual - tracked);
+        assertEq(vault.recoveryAccounting().principalSnapshot, liability);
+        assertEq(vault.recoveryAccounting().sharesTransferred, tracked);
+    }
+
+    function test_RevertWhenAccountedSharesAreMissing() external {
+        _deposit(1 ether);
+        uint256 tracked = vault.principalShares();
+        deal(address(stYBold), address(vault), tracked - 1);
+
+        vm.prank(recoveryTreasury);
+        vm.expectRevert(
+            abi.encodeWithSelector(IYBoldYieldVault.ShareAccountingMismatch.selector, tracked, tracked - 1)
+        );
+        vault.initiateRecovery();
+        assertEq(vault.principalShares(), tracked);
+        assertFalse(vault.paused());
+    }
+
+    function test_ClaimableYieldIsZeroWithoutCallingYearnDuringRecovery() external {
+        uint256 value = _deposit(1 ether);
+        vm.prank(recoveryTreasury);
+        vault.initiateRecovery();
+        vm.mockCallRevert(
+            address(stYBold),
+            abi.encodeWithSignature("convertToAssets(uint256)", 0),
+            abi.encodeWithSignature("Error(string)", "YEARN_UNAVAILABLE")
+        );
+
+        assertEq(vault.claimableYield(), 0);
+        vm.prank(recoveryTreasury);
+        vault.activateRecoverySettlement(0);
+        assertEq(vault.claimableYield(), 0);
+        manager.retrieve(address(vault), value);
+        assertEq(vault.claimableYield(), 0);
+    }
+
+    function test_TotalLossSettlementClearsAllLiabilitiesWithoutFunding() external {
+        uint256 firstValue = _deposit(1 ether);
+        uint256 secondValue = _deposit(2 ether);
+        vm.prank(recoveryTreasury);
+        vault.initiateRecovery();
+        vm.prank(recoveryTreasury);
+        vault.activateRecoverySettlement(0);
+
+        manager.retrieve(address(vault), secondValue);
+        manager.retrieve(address(vault), firstValue);
+
+        assertEq(address(manager).balance, 0);
+        assertEq(vault.principalValue(), 0);
+        assertEq(vault.recoveryAccounting().principalSettled, firstValue + secondValue);
+        assertEq(vault.recoveryAccounting().ethPaid, 0);
+        assertEq(uint256(vault.recoveryState()), uint256(IYBoldYieldVault.RecoveryState.Settled));
+    }
+
+    function test_DonatedSharesCanBeSweptOnlyAfterAllClaimsAreSettled() external {
+        uint256 value = _deposit(1 ether);
+        uint256 shares = vault.principalShares();
+        deal(address(stYBold), address(vault), shares + 1);
+        vm.prank(recoveryTreasury);
+        vault.initiateRecovery();
+        vm.prank(recoveryTreasury);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IYBoldYieldVault.InvalidRecoveryState.selector,
+                IYBoldYieldVault.RecoveryState.SharesTransferred
+            )
+        );
+        vault.sweepRecoveryExcess();
+
+        vm.prank(recoveryTreasury);
+        vault.activateRecoverySettlement(0);
+        manager.retrieve(address(vault), value);
+        vm.expectEmit(true, false, false, true, address(vault));
+        emit RecoverySurplusSharesSwept(recoveryTreasury, 1);
+        vm.prank(recoveryTreasury);
+        vault.sweepRecoveryExcess();
+
+        assertEq(stYBold.balanceOf(address(vault)), 0);
+        assertEq(stYBold.balanceOf(recoveryTreasury), shares + 1);
     }
 
     function test_FundingAndActivationRequireTreasuryAuthorityAndSufficientEth() external {
@@ -121,10 +245,6 @@ contract YBoldRecoveryTest is YBoldYieldVaultTestBase {
         vm.prank(recoveryTreasury);
         vault.fundRecovery{ value: 1 ether }();
         assertEq(vault.recoveryAccounting().ethFunded, 1 ether);
-
-        vm.prank(recoveryTreasury);
-        vm.expectRevert(IYBoldYieldVault.ZeroOutput.selector);
-        vault.activateRecoverySettlement(0);
 
         vm.prank(recoveryTreasury);
         vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.RecoveryUnderfunded.selector, 1 ether + 1, 1 ether));

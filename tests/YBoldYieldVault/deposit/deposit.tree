@@ -9,4 +9,5 @@ deposit
     ├── Curve EMA peg or either independent minimum-output check fails → revert atomically
     ├── BOLD peg deviation within the accepted band → use the peg-plus-execution bound consistently
     ├── either Yearn deposit mints zero shares → revert atomically
+    ├── external Yearn supply returns to zero before a donation → reject a zero-share mint without consuming ETH
     └── conversions succeed → book actual st-yBOLD shares and yBOLD principal value

@@ -1,0 +1,341 @@
+{
+  "referenceCommit": "6010890862f15b98a12535e716258fb1263c02b9",
+  "compiler": "0.8.28",
+  "layout": {
+    "solcVersion": "0.8.28",
+    "storage": [
+      {
+        "label": "WETH",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:83"
+      },
+      {
+        "label": "USDC",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:85"
+      },
+      {
+        "label": "BOLD",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:87"
+      },
+      {
+        "label": "swapRouter",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_contract(ISwapRouter)67562",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:89"
+      },
+      {
+        "label": "curvePool",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_contract(ICurveStableSwapNG)67490",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:91"
+      },
+      {
+        "label": "yBold",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_contract(IYearnVault)67614",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:93"
+      },
+      {
+        "label": "stYBold",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_contract(IYearnVault)67614",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:95"
+      },
+      {
+        "label": "ethUsdFeed",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_contract(AggregatorV3Interface)67347",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:97"
+      },
+      {
+        "label": "usdcUsdFeed",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_contract(AggregatorV3Interface)67347",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:99"
+      },
+      {
+        "label": "ethUsdFeedDecimals",
+        "offset": 20,
+        "slot": "8",
+        "type": "t_uint8",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:101"
+      },
+      {
+        "label": "usdcUsdFeedDecimals",
+        "offset": 21,
+        "slot": "8",
+        "type": "t_uint8",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:102"
+      },
+      {
+        "label": "wethUsdcSlippageBps",
+        "offset": 22,
+        "slot": "8",
+        "type": "t_uint16",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:109"
+      },
+      {
+        "label": "boldUsdcSlippageBps",
+        "offset": 24,
+        "slot": "8",
+        "type": "t_uint16",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:111"
+      },
+      {
+        "label": "maxBoldPegDeviationBps",
+        "offset": 26,
+        "slot": "8",
+        "type": "t_uint16",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:113"
+      },
+      {
+        "label": "normalYearnMaxLossBps",
+        "offset": 28,
+        "slot": "8",
+        "type": "t_uint16",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:115"
+      },
+      {
+        "label": "emergencyYearnMaxLossBps",
+        "offset": 30,
+        "slot": "8",
+        "type": "t_uint16",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:117"
+      },
+      {
+        "label": "emergencyMode",
+        "offset": 0,
+        "slot": "9",
+        "type": "t_bool",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:119"
+      },
+      {
+        "label": "principalShares",
+        "offset": 0,
+        "slot": "10",
+        "type": "t_uint256",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:126"
+      },
+      {
+        "label": "principalValue",
+        "offset": 0,
+        "slot": "11",
+        "type": "t_uint256",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:128"
+      },
+      {
+        "label": "recoveryTreasury",
+        "offset": 0,
+        "slot": "12",
+        "type": "t_address",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:135"
+      },
+      {
+        "label": "recoveryState",
+        "offset": 20,
+        "slot": "12",
+        "type": "t_enum(RecoveryState)65788",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:137"
+      },
+      {
+        "label": "recovery",
+        "offset": 0,
+        "slot": "13",
+        "type": "t_struct(RecoveryAccounting)65832_storage",
+        "contract": "YBoldYieldVault",
+        "src": "src/YBoldYieldVault.sol:139"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(AggregatorV3Interface)67347": {
+        "label": "contract AggregatorV3Interface",
+        "numberOfBytes": "20"
+      },
+      "t_contract(ICurveStableSwapNG)67490": {
+        "label": "contract ICurveStableSwapNG",
+        "numberOfBytes": "20"
+      },
+      "t_contract(ISwapRouter)67562": {
+        "label": "contract ISwapRouter",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IYearnVault)67614": {
+        "label": "contract IYearnVault",
+        "numberOfBytes": "20"
+      },
+      "t_enum(RecoveryState)65788": {
+        "label": "enum IYBoldYieldVault.RecoveryState",
+        "members": ["Normal", "SharesTransferred", "SettlementActive", "Settled"],
+        "numberOfBytes": "1"
+      },
+      "t_struct(RecoveryAccounting)65832_storage": {
+        "label": "struct IYBoldYieldVault.RecoveryAccounting",
+        "members": [
+          {
+            "label": "principalSnapshot",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "0"
+          },
+          {
+            "label": "sharesTransferred",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "1"
+          },
+          {
+            "label": "ethFunded",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "2"
+          },
+          {
+            "label": "settlementEth",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "3"
+          },
+          {
+            "label": "payoutRateWad",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "4"
+          },
+          {
+            "label": "principalSettled",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "5"
+          },
+          {
+            "label": "ethPaid",
+            "type": "t_uint256",
+            "offset": 0,
+            "slot": "6"
+          }
+        ],
+        "numberOfBytes": "224"
+      },
+      "t_uint16": {
+        "label": "uint16",
+        "numberOfBytes": "2"
+      },
+      "t_uint256": {
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint8": {
+        "label": "uint8",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_bytes32,t_struct(RoleData)25_storage)": {
+        "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+      },
+      "t_bytes32": {
+        "label": "bytes32"
+      },
+      "t_struct(RoleData)25_storage": {
+        "label": "struct AccessControlUpgradeable.RoleData",
+        "members": [
+          {
+            "label": "hasRole",
+            "type": "t_mapping(t_address,t_bool)"
+          },
+          {
+            "label": "adminRole",
+            "type": "t_bytes32"
+          }
+        ]
+      },
+      "t_mapping(t_address,t_bool)": {
+        "label": "mapping(address => bool)"
+      },
+      "t_uint64": {
+        "label": "uint64"
+      }
+    },
+    "namespaces": {
+      "erc7201:openzeppelin.storage.ReentrancyGuard": [
+        {
+          "contract": "ReentrancyGuardUpgradeable",
+          "label": "_status",
+          "type": "t_uint256",
+          "src": "node_modules/@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43"
+        }
+      ],
+      "erc7201:openzeppelin.storage.Pausable": [
+        {
+          "contract": "PausableUpgradeable",
+          "label": "_paused",
+          "type": "t_bool",
+          "src": "node_modules/@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21"
+        }
+      ],
+      "erc7201:openzeppelin.storage.AccessControl": [
+        {
+          "contract": "AccessControlUpgradeable",
+          "label": "_roles",
+          "type": "t_mapping(t_bytes32,t_struct(RoleData)25_storage)",
+          "src": "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61"
+        }
+      ],
+      "erc7201:openzeppelin.storage.Initializable": [
+        {
+          "contract": "Initializable",
+          "label": "_initialized",
+          "type": "t_uint64",
+          "src": "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69"
+        },
+        {
+          "contract": "Initializable",
+          "label": "_initializing",
+          "type": "t_bool",
+          "src": "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73"
+        }
+      ]
+    }
+  }
+}

@@ -16,6 +16,7 @@
     "solmate": "^6.8.0"
   },
   "devDependencies": {
+    "@openzeppelin/upgrades-core": "1.46.0",
     "forge-std": "github:foundry-rs/forge-std#v1.8.1",
     "prettier": "^3.0.0",
     "solhint": "^3.6.2"
@@ -44,6 +45,8 @@
     "deploy:mainnet_test": "bash -c 'source .env && forge script DeployEthereumTest --rpc-url $MAINNET_RPC --account $HOODI_DEPLOYER_NAME --sender $HOODI_SENDER --verify --chain mainnet -vvvvv --broadcast --resume'",
     "test": "forge test",
     "test:coverage": "forge coverage",
+    "test:ybold:storage": "node tools/ybold/check-storage-layout.cjs",
+    "lint:ybold": "prettier --check 'src/YBold*.sol' 'src/interfaces/IYBold*.sol' 'script/*YBold*.sol' 'tests/YBoldYieldVault/**/*.sol' 'tests/fork/YBold*.sol' 'tools/ybold/*.{mjs,cjs,json}' 'docs/YBOLD_*.md' '.github/workflows/ybold-review.yml' --plugin=prettier-plugin-solidity && solhint src/YBoldYieldVault.sol src/YBoldConfigValidator.sol src/interfaces/IYBoldYieldVault.sol src/interfaces/IYBoldConfigValidator.sol",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
   }
 }

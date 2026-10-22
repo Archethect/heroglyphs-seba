@@ -196,6 +196,10 @@ interface IYBoldYieldVault is IYieldVault {
      */
     event RecoveryInitiated(address indexed treasury, uint256 principalValueSnapshot, uint256 sharesTransferred);
     /**
+     * Emitted when recovery reconciles tracked shares with actual custody, including unaccounted donations.
+     */
+    event RecoverySharesReconciled(uint256 accountedShares, uint256 actualShares, uint256 surplusShares);
+    /**
      * Emitted when the treasury funds recovery settlement liquidity.
      */
     event RecoveryFunded(address indexed treasury, uint256 amount, uint256 cumulativeAmount);
@@ -215,13 +219,17 @@ interface IYBoldYieldVault is IYieldVault {
      * Emitted when surplus recovery ETH is returned after every claim is settled.
      */
     event RecoveryExcessSwept(address indexed treasury, uint256 amount);
+    /**
+     * Emitted when donated st-yBOLD shares are returned after every principal claim is settled.
+     */
+    event RecoverySurplusSharesSwept(address indexed treasury, uint256 shares);
 
     /**
      * @return Access-control administrator role identifier.
      */
     function ADMIN_ROLE() external view returns (bytes32);
     /**
-     * @return YieldManager caller role identifier.
+     * @return YieldManager caller role identifier, administered only by the upgrade authority.
      */
     function YIELDMANAGER_ROLE() external view returns (bytes32);
     /**
@@ -355,7 +363,9 @@ interface IYBoldYieldVault is IYieldVault {
      */
     function rescueToken(address token, address recipient, uint256 amount) external;
     /**
-     * Freezes normal operations and transfers all exactly reconciled st-yBOLD shares to treasury custody.
+     * Freezes normal operations and transfers exactly the tracked st-yBOLD shares to treasury custody.
+     * Unsolicited surplus shares do not increase principal and remain sweepable after all claims are settled.
+     * If only unclaimed yield remains and principal is zero, recovery completes immediately without funding.
      */
     function initiateRecovery() external;
     /**
@@ -364,10 +374,11 @@ interface IYBoldYieldVault is IYieldVault {
     function fundRecovery() external payable;
     /**
      * Activates a single pro-rata payout rate after sufficient ETH has been funded.
+     * A zero settlement explicitly realizes a total loss and clears existing manager claims at a zero rate.
      */
     function activateRecoverySettlement(uint256 settlementEth) external;
     /**
-     * Returns ETH left after every snapshotted claim is settled.
+     * Returns excess ETH and any donated st-yBOLD shares after every snapshotted claim is settled.
      */
     function sweepRecoveryExcess() external;
 }

@@ -10,6 +10,22 @@ import { YBoldYieldVaultTestBase } from "tests/YBoldYieldVault/Base.t.sol";
 import { MockAggregator } from "tests/mocks/MockYBoldIntegrations.sol";
 
 contract YBoldDepositTest is YBoldYieldVaultTestBase {
+    function test_ReturnToZeroExternalVaultDonationCannotConsumeNewDeposit() external {
+        uint256 principal = _deposit(1 ether);
+        manager.retrieve(address(vault), principal);
+        assertEq(stYBold.totalSupply(), 0);
+        _donateStYBoldYield(1_000e18);
+        vm.deal(address(this), 0.01 ether);
+        vm.expectRevert(abi.encodeWithSelector(IYBoldYieldVault.NoSharesMinted.selector, address(stYBold)));
+        manager.deposit{ value: 0.01 ether }(address(vault));
+        assertEq(address(this).balance, 0.01 ether);
+        assertEq(vault.principalValue(), 0);
+        assertEq(vault.principalShares(), 0);
+        assertEq(stYBold.balanceOf(address(vault)), 0);
+        assertEq(bold.balanceOf(address(vault)), 0);
+        assertEq(usdc.balanceOf(address(vault)), 0);
+    }
+
     function test_RevertWhenExistingPrincipalIsUnderwater() external {
         _deposit(1 ether);
         stYBold.simulateLoss(stYBold.totalAssets() / 2);

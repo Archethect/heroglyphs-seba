@@ -114,13 +114,30 @@ contract YBoldAdminTest is YBoldYieldVaultTestBase {
         vm.stopPrank();
     }
 
-    function test_AdminCanRotateYieldManagerRole() external {
+    function test_UpgradeAuthorityCanRotateYieldManagerRole() external {
         address replacement = makeAddr("replacement");
-        vm.startPrank(admin);
+        vm.startPrank(upgrader);
         vault.grantRole(vault.YIELDMANAGER_ROLE(), replacement);
         vault.revokeRole(vault.YIELDMANAGER_ROLE(), address(manager));
         vm.stopPrank();
         assertTrue(vault.hasRole(vault.YIELDMANAGER_ROLE(), replacement));
         assertFalse(vault.hasRole(vault.YIELDMANAGER_ROLE(), address(manager)));
+    }
+
+    function test_RoutineAdminCannotGrantOrRevokeYieldManagerRole() external {
+        bytes32 role = vault.YIELDMANAGER_ROLE();
+        bytes memory unauthorized = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector,
+            admin,
+            vault.UPGRADER_ROLE()
+        );
+        vm.startPrank(admin);
+        vm.expectRevert(unauthorized);
+        vault.grantRole(role, admin);
+        vm.expectRevert(unauthorized);
+        vault.revokeRole(role, address(manager));
+        vm.stopPrank();
+        assertFalse(vault.hasRole(role, admin));
+        assertTrue(vault.hasRole(role, address(manager)));
     }
 }

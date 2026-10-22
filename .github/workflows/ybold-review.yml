@@ -1,0 +1,54 @@
+name: yBOLD review
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main, codex/ybold-migration-recovery]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+      - run: corepack enable && corepack prepare yarn@1.22.22 --activate
+      - run: yarn install --frozen-lockfile --ignore-scripts
+      - run: yarn lint:ybold
+      - run: forge build --sizes
+      - run: forge test --match-path 'tests/YBoldYieldVault/**/*.t.sol'
+      - run: yarn test:ybold:storage
+      - name: Adapter and validator line/branch coverage
+        run:
+          forge coverage --match-path 'tests/YBoldYieldVault/**/*.t.sol' --no-match-path
+          'tests/YBoldYieldVault/invariant/**' --report summary --report lcov
+      - run: node tools/ybold/check-coverage.cjs lcov.info
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ybold-coverage
+          path: lcov.info
+  mainnet-fork:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      MAINNET_RPC: ${{ secrets.MAINNET_RPC }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require fork RPC for release evidence
+        run:
+          test -n "$MAINNET_RPC" || { echo 'MAINNET_RPC secret is required; fork release gate is NOT satisfied.'; exit
+          1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+      - run: corepack enable && corepack prepare yarn@1.22.22 --activate
+      - run: yarn install --frozen-lockfile --ignore-scripts
+      - run: forge test -vv

@@ -73,6 +73,7 @@ contract YBoldYieldVault is
     /// Maximum USDC/USD oracle age (23 hours).
     uint256 public constant USDC_USD_ORACLE_MAX_AGE = 23 hours;
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IYBoldConfigValidator private immutable CONFIG_VALIDATOR;
 
     /*//////////////////////////////////////////////////////////////
@@ -171,7 +172,7 @@ contract YBoldYieldVault is
         _grantRole(UPGRADER_ROLE, params.upgradeAuthority);
         _grantRole(RECOVERY_ROLE, params.recoveryTreasury);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-        _setRoleAdmin(YIELDMANAGER_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(YIELDMANAGER_ROLE, UPGRADER_ROLE);
         _setRoleAdmin(UPGRADER_ROLE, UPGRADER_ROLE);
         _setRoleAdmin(RECOVERY_ROLE, UPGRADER_ROLE);
 
@@ -279,6 +280,7 @@ contract YBoldYieldVault is
 
     /// @inheritdoc IYBoldYieldVault
     function claimableYield() public view returns (uint256) {
+        if (recoveryState != RecoveryState.Normal) return 0;
         uint256 currentValue = stYBold.convertToAssets(principalShares);
         return currentValue > principalValue ? currentValue - principalValue : 0;
     }
@@ -335,10 +337,10 @@ contract YBoldYieldVault is
     /// @inheritdoc IYBoldYieldVault
     function initiateRecovery() external nonReentrant onlyRole(RECOVERY_ROLE) {
         if (recoveryState != RecoveryState.Normal) revert InvalidRecoveryState(recoveryState);
-        if (principalShares == 0 || principalValue == 0) revert NoPrincipal();
+        if (principalShares == 0) revert NoPrincipal();
 
         uint256 actualShares = IERC20(address(stYBold)).balanceOf(address(this));
-        if (actualShares != principalShares) revert ShareAccountingMismatch(principalShares, actualShares);
+        if (actualShares < principalShares) revert ShareAccountingMismatch(principalShares, actualShares);
 
         if (!paused()) _pause();
         emergencyMode = true;
@@ -349,8 +351,17 @@ contract YBoldYieldVault is
         recovery.sharesTransferred = principalShares;
         principalShares = 0;
 
-        IERC20(address(stYBold)).safeTransfer(recoveryTreasury, actualShares);
-        emit RecoveryInitiated(recoveryTreasury, recovery.principalSnapshot, actualShares);
+        emit RecoverySharesReconciled(
+            recovery.sharesTransferred,
+            actualShares,
+            actualShares - recovery.sharesTransferred
+        );
+        IERC20(address(stYBold)).safeTransfer(recoveryTreasury, recovery.sharesTransferred);
+        emit RecoveryInitiated(recoveryTreasury, recovery.principalSnapshot, recovery.sharesTransferred);
+        if (recovery.principalSnapshot == 0) {
+            recoveryState = RecoveryState.Settled;
+            emit RecoveryCompleted(0, 0);
+        }
     }
 
     /// @inheritdoc IYBoldYieldVault
@@ -366,14 +377,13 @@ contract YBoldYieldVault is
     /// @inheritdoc IYBoldYieldVault
     function activateRecoverySettlement(uint256 settlementEth) external onlyRole(RECOVERY_ROLE) {
         if (recoveryState != RecoveryState.SharesTransferred) revert InvalidRecoveryState(recoveryState);
-        if (settlementEth == 0) revert ZeroOutput();
         if (settlementEth > recovery.ethFunded || settlementEth > address(this).balance) {
             uint256 funded = Math.min(recovery.ethFunded, address(this).balance);
             revert RecoveryUnderfunded(settlementEth, funded);
         }
 
         uint256 payoutRateWad = Math.mulDiv(settlementEth, 1e18, recovery.principalSnapshot);
-        if (payoutRateWad == 0) revert RecoveryRateTooLow();
+        if (settlementEth != 0 && payoutRateWad == 0) revert RecoveryRateTooLow();
 
         recovery.payoutRateWad = payoutRateWad;
         recovery.settlementEth = Math.mulDiv(recovery.principalSnapshot, payoutRateWad, 1e18);
@@ -386,10 +396,17 @@ contract YBoldYieldVault is
     function sweepRecoveryExcess() external nonReentrant onlyRole(RECOVERY_ROLE) {
         if (recoveryState != RecoveryState.Settled) revert InvalidRecoveryState(recoveryState);
         uint256 amount = address(this).balance;
-        if (amount == 0) revert ZeroOutput();
+        uint256 surplusShares = IERC20(address(stYBold)).balanceOf(address(this));
+        if (amount == 0 && surplusShares == 0) revert ZeroOutput();
 
-        payable(recoveryTreasury).sendValue(amount);
-        emit RecoveryExcessSwept(recoveryTreasury, amount);
+        if (surplusShares != 0) {
+            IERC20(address(stYBold)).safeTransfer(recoveryTreasury, surplusShares);
+            emit RecoverySurplusSharesSwept(recoveryTreasury, surplusShares);
+        }
+        if (amount != 0) {
+            payable(recoveryTreasury).sendValue(amount);
+            emit RecoveryExcessSwept(recoveryTreasury, amount);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

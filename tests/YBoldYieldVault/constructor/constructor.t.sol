@@ -29,7 +29,7 @@ contract YBoldConstructorTest is YBoldYieldVaultTestBase {
         assertTrue(vault.hasRole(vault.RECOVERY_ROLE(), recoveryTreasury));
         assertFalse(vault.hasRole(vault.UPGRADER_ROLE(), admin));
         assertEq(vault.getRoleAdmin(vault.ADMIN_ROLE()), vault.ADMIN_ROLE());
-        assertEq(vault.getRoleAdmin(vault.YIELDMANAGER_ROLE()), vault.ADMIN_ROLE());
+        assertEq(vault.getRoleAdmin(vault.YIELDMANAGER_ROLE()), vault.UPGRADER_ROLE());
         assertEq(vault.getRoleAdmin(vault.UPGRADER_ROLE()), vault.UPGRADER_ROLE());
         assertEq(vault.getRoleAdmin(vault.RECOVERY_ROLE()), vault.UPGRADER_ROLE());
         assertEq(vault.WETH(), address(weth));

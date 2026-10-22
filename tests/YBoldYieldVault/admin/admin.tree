@@ -5,4 +5,5 @@ admin controls
 ├── pause/emergency state → block deposits/claims but retain retrieval
 ├── rescue core/zero/invalid asset → revert
 ├── rescue non-core token → transfer exact amount
-└── role rotation → new YieldManager gains and old YieldManager loses access
+├── routine admin attempts YieldManager role grant or revoke → revert without changing access
+└── upgrade authority rotates the role → new YieldManager gains and old YieldManager loses access

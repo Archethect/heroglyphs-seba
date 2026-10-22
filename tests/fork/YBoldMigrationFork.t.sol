@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import { Test } from "forge-std/src/Test.sol";
 import { console2 } from "forge-std/src/console2.sol";
-import { YBoldMigrationPreflight } from "script/YBoldMigrationPreflight.s.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IEUSDUSDCBeefyYieldVault } from "src/interfaces/IEUSDUSDCBeefyYieldVault.sol";
@@ -38,6 +37,7 @@ interface IPythLike {
     function getPriceUnsafe(bytes32 priceId) external view returns (Price memory price);
 }
 
+/** @notice Archival pre-unwind scenarios. Current treasury-start evidence is in YBoldTreasuryRolloutForkTest. */
 contract YBoldMigrationForkTest is Test {
     bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     struct RecoveryTestState {
@@ -55,7 +55,7 @@ contract YBoldMigrationForkTest is Test {
         uint32 secondUnlockTime;
     }
 
-    uint256 internal constant FRESH_BLOCK = 26_196_493;
+    uint256 internal constant ARCHIVED_PRE_UNWIND_BLOCK = 26_196_493;
     uint256 internal constant HISTORIC_SUCCESS_BLOCK = 25_831_161;
 
     address internal constant SEBA_POOL = 0xe3B17b4533b339d3CBC26F57199d3fb937129894;
@@ -85,7 +85,7 @@ contract YBoldMigrationForkTest is Test {
     YBoldYieldVault internal adapter;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("MAINNET_RPC"), FRESH_BLOCK);
+        vm.createSelectFork(vm.envString("MAINNET_RPC"), ARCHIVED_PRE_UNWIND_BLOCK);
         manager = YieldManager(payable(YIELD_MANAGER));
     }
 
@@ -402,7 +402,7 @@ contract YBoldMigrationForkTest is Test {
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
     }
 
-    function test_FreshForkBeefyExitAbortsWithoutChangingFailedDepositOrShares() external {
+    function test_ArchivedPreUnwindForkBeefyExitAbortsWithoutChangingFailedDepositOrShares() external {
         for (uint256 id = 1; id <= 9; ++id) {
             (address depositor, IYieldManager.Deposit memory beforeDeposit) = _depositorAndDeposit(id);
             uint256 beforeShares = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT).principalShares();
@@ -421,7 +421,7 @@ contract YBoldMigrationForkTest is Test {
                 assertEq(IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT).principalShares(), beforeShares);
                 assertEq(manager.principalValue(), beforePrincipal);
                 assertEq(DEPOSITOR_ADMIN.balance, beforeEth);
-                console2.log("fresh Beefy exit failed at ID", id);
+                console2.log("archived pre-unwind Beefy exit failed at ID", id);
                 return;
             }
         }
@@ -435,7 +435,6 @@ contract YBoldMigrationForkTest is Test {
         assertEq(manager.pendingBoldConversion(), 0);
         assertEq(manager.activeRouterUid(), bytes32(0));
         assertTrue(manager.yieldFlowActive());
-        _runPreflight(address(0), 9);
 
         uint256 depositorBalanceBefore = DEPOSITOR_ADMIN.balance;
         vm.startPrank(DEPOSITOR_ADMIN);
@@ -444,12 +443,10 @@ contract YBoldMigrationForkTest is Test {
             ignored;
             assertEq(depositor, DEPOSITOR_ADMIN);
             manager.retrieveFunds(id);
-            if (id == 4) _runPreflight(address(0), 5);
         }
         vm.stopPrank();
         uint256 userEthReturned = DEPOSITOR_ADMIN.balance - depositorBalanceBefore;
         assertGt(userEthReturned, 100 ether);
-        _runPreflight(address(0), 0);
 
         // The production route has a distinct ETH custody period before the new adapter is deployed.
         vm.prank(DEPOSITOR_ADMIN);
@@ -460,14 +457,12 @@ contract YBoldMigrationForkTest is Test {
         assertEq(manager.depositId(), 9);
 
         adapter = _deploy(YIELD_MANAGER);
-        _runPreflight(address(adapter), 0);
 
         vm.prank(GOVERNANCE_ADMIN);
         manager.setYieldVault(address(adapter));
         assertEq(address(manager.yieldVault()), address(adapter));
         assertEq(manager.principalValue(), 0);
         assertGt(YIELD_MANAGER.balance, 0);
-        _runPreflight(address(adapter), 0);
 
         IEUSDUSDCBeefyYieldVault oldVault = IEUSDUSDCBeefyYieldVault(OLD_BEEFY_VAULT);
         assertLe(oldVault.principalShares(), 120);
@@ -477,7 +472,6 @@ contract YBoldMigrationForkTest is Test {
         manager.depositPrincipalIntoYieldVault();
         uint256 protocolPrincipal = manager.principalValue();
         assertGt(protocolPrincipal, 0);
-        _runPreflight(address(adapter), 0);
 
         // Return only the ETH actually recovered from Beefy; no synthetic user capital is minted.
         vm.prank(TREASURY_STAND_IN);
@@ -532,7 +526,6 @@ contract YBoldMigrationForkTest is Test {
         assertEq(deletedAmount, 0);
         assertEq(adapter.principalValue(), manager.principalValue() + secondTranche.amount);
         assertEq(adapter.principalShares(), IERC20(ST_YBOLD).balanceOf(address(adapter)));
-        _runPreflight(address(adapter), 0);
     }
 
     function _deploy(address yieldManager) internal returns (YBoldYieldVault deployed) {
@@ -603,18 +596,5 @@ contract YBoldMigrationForkTest is Test {
             abi.encodeWithSelector(IPythLike.getPriceUnsafe.selector, BOLD_USD_PRICE_ID),
             abi.encode(price)
         );
-    }
-
-    function _runPreflight(address newVault, uint256 expectedOldActive) internal {
-        vm.setEnv("YBOLD_VAULT", vm.toString(newVault));
-        vm.setEnv("YBOLD_MIGRATION_ADMIN", vm.toString(GOVERNANCE_ADMIN));
-        vm.setEnv("YBOLD_EXPECTED_OLD_ACTIVE", vm.toString(expectedOldActive));
-        if (newVault != address(0)) {
-            address implementation = address(uint160(uint256(vm.load(newVault, IMPLEMENTATION_SLOT))));
-            vm.setEnv("YBOLD_EXPECTED_IMPLEMENTATION", vm.toString(implementation));
-            vm.setEnv("YBOLD_UPGRADE_AUTHORITY", vm.toString(GOVERNANCE_ADMIN));
-            vm.setEnv("YBOLD_RECOVERY_TREASURY", vm.toString(GOVERNANCE_ADMIN));
-        }
-        new YBoldMigrationPreflight().run();
     }
 }

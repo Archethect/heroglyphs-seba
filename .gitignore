@@ -13,7 +13,10 @@ out
 lcov.info
 package-lock.json
 pnpm-lock.yaml
-yarn.lock
+# Commit the release dependency lock (including the storage validator).
+!yarn.lock
+.env.*
+!.env.example
 
 # broadcasts
 !broadcast
