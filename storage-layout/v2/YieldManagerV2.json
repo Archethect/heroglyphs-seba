@@ -1,0 +1,375 @@
+{
+  "contract": "YieldManagerV2",
+  "storage": [
+    {
+      "label": "treasury",
+      "slot": "0",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "sebaPool",
+      "slot": "1",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "bold",
+      "slot": "2",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "sBold",
+      "slot": "3",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "pybSeba",
+      "slot": "4",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "reth",
+      "slot": "5",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "ysyBold",
+      "slot": "6",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "yBold",
+      "slot": "7",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "weth",
+      "slot": "8",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "usdc",
+      "slot": "9",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "vaults",
+      "slot": "10",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address[2]",
+        "numberOfBytes": "64",
+        "base": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        }
+      }
+    },
+    {
+      "label": "pendingEth",
+      "slot": "12",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256[3]",
+        "numberOfBytes": "96",
+        "base": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "harvestInventory",
+      "slot": "15",
+      "offset": 0,
+      "type": {
+        "encoding": "mapping",
+        "label": "mapping(uint8 => mapping(uint8 => uint256))",
+        "numberOfBytes": "32",
+        "key": {
+          "encoding": "inplace",
+          "label": "uint8",
+          "numberOfBytes": "1"
+        },
+        "value": {
+          "encoding": "mapping",
+          "label": "mapping(uint8 => uint256)",
+          "numberOfBytes": "32",
+          "key": {
+            "encoding": "inplace",
+            "label": "uint8",
+            "numberOfBytes": "1"
+          },
+          "value": {
+            "encoding": "inplace",
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        }
+      }
+    },
+    {
+      "label": "pendingBold",
+      "slot": "16",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "pendingSBold",
+      "slot": "17",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "rethBps",
+      "slot": "18",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      }
+    },
+    {
+      "label": "ysyBoldBps",
+      "slot": "18",
+      "offset": 2,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      }
+    },
+    {
+      "label": "weightVersion",
+      "slot": "18",
+      "offset": 4,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    },
+    {
+      "label": "intakeEnabled",
+      "slot": "18",
+      "offset": 12,
+      "type": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "executionEnabled",
+      "slot": "18",
+      "offset": 13,
+      "type": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "buffersRecovered",
+      "slot": "18",
+      "offset": 14,
+      "type": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "operators",
+      "slot": "19",
+      "offset": 0,
+      "type": {
+        "encoding": "mapping",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "key": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "encoding": "inplace",
+          "label": "bool",
+          "numberOfBytes": "1"
+        }
+      }
+    },
+    {
+      "label": "executor",
+      "slot": "20",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "contract IV2Executor",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "maximumEth",
+      "slot": "21",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "maximumYieldTokens",
+      "slot": "22",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256[2]",
+        "numberOfBytes": "64",
+        "base": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "legacyHandoff",
+      "slot": "24",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "legacyExpectedEth",
+      "slot": "25",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "legacyExpiry",
+      "slot": "26",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "legacyWeightVersion",
+      "slot": "27",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    },
+    {
+      "label": "legacyImported",
+      "slot": "27",
+      "offset": 8,
+      "type": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "legacyManifest",
+      "slot": "28",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "29",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256[40]",
+        "numberOfBytes": "1280",
+        "base": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    }
+  ]
+}
