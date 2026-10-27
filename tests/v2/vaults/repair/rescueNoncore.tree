@@ -1,0 +1,5 @@
+NativeSupporterVault::rescueNoncore
+├── Given unauthorized caller, fixed native asset, zero token or zero amount
+│   └── It cannot sweep protected custody
+└── Given accidental noncore ERC20
+    └── Safe may transfer it only to the fixed treasury, with an event

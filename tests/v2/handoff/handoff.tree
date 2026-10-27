@@ -1,0 +1,15 @@
+LegacyProtocolPrincipalHandoff
+├── Stage A is already complete: real legacy exit, zero protocol PV, canonical stopper, exact ETH in old manager
+│   ├── approval gap preserves old manager ETH and blocks ordinary user/pool/admin strategy deposits
+│   └── later Stage B failure never rolls back the prior exit
+├── constructor: reject missing identities, wrong stopper runtime, nonzero old principal, nonexact cash, manifest/policy/weights/expiry
+├── assertPreMigration
+│   ├── reject wrong authority/chain/expiry/code/pointers/Safe policy/order/cash/snapshot/live legacy claims
+│   └── fixed approved empty destination: arm SAME-TRANSACTION transient preflight
+├── deposit
+│   ├── reject wrong caller/value/chain/expiry/repeat/missing atomic preflight/intermediate state
+│   └── forward exact approved ETH once; clear preflight; return zero; normal old user deposit rolls everything back
+├── assertPostMigration
+│   ├── reject absent same-transaction import, wrong final pointers or reconciliation
+│   └── fixed protocol assignment and zero old principal; emit unswept old-adapter residue
+└── unsupported yield/redemption/sweep: revert; no arbitrary target or recipient

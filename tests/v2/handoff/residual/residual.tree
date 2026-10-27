@@ -1,0 +1,11 @@
+Residual surplus approval (all four categories: router ETH, old-manager BOLD/sBOLD, router BOLD)
+├── default zero cap + one atom: precheck aborts (PreMigration.t.sol)
+├── actual balance equals immutable approved cap: precheck, import and postcheck pass
+│   └── postcheck emits exact unmigrated balances; protocol ETH import remains exact
+├── actual balance exceeds cap by one atom: precheck aborts
+├── extra donation after precheck: import aborts
+├── extra donation after import: postcheck aborts, reverting the atomic Safe batch
+└── each cap changes CONFIGURATION_HASH; no setter can widen approval in place
+
+Mainnet-fork fault injection additionally checks real Safe Stage B with router ETH at and above cap.
+Above-cap and old-manager exact-ETH donation can still force Safe reapproval by design; these tests do not claim DoS immunity.

@@ -1,0 +1,10 @@
+run(approvedSafeOwnersHash) on a disposable real mainnet fork
+├── Given non-mainnet chain, unapproved owners, wrong threshold/count, module or guard
+│   └── It reverts before contract creation
+├── Given changed deployed pool/legacy identities
+│   └── It reverts before contract creation
+└── Given the reviewed real mainnet identity graph on a disposable fork
+    ├── It deploys three initialized standard UUPS proxies and a disabled fixed-route executor
+    ├── It locks each implementation and grants only the fixed Safe authority
+    ├── It leaves risk settings, entries, intake, execution and vault binding unset
+    └── It returns the exact separate Safe-only binding target and calldata

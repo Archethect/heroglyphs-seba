@@ -1,0 +1,7 @@
+NativeSupporterVault::finalizeRecovery
+├── Given unauthorized caller, wrong state, outstanding basis or custody shortage
+│   └── It cannot sweep any live claim reserve
+└── Given all liabilities closed
+    ├── It never rewards the last claimant with rounding dust
+    ├── It separates authenticated repair-overfunding refund from donated original carry/surplus
+    └── It finalizes once and atomically credits the fixed manager's remaining yield inventory

@@ -1,0 +1,7 @@
+NativeSupporterVault::activateExceptionalSettlement
+├── Given canonical valuation is available (including successful zero value)
+│   └── It cannot select a hidden manual fallback
+├── Given unauthorized caller, wrong state, unsupported budget or underfunding
+│   └── It rejects even when valuation fails
+└── Given explicit Safe exception and published independent classification
+    └── It uses fixed tagged token budgets, emits exceptional mode and never nets buckets

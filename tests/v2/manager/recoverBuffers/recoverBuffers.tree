@@ -1,0 +1,10 @@
+recoverBuffers
+├── When unauthorized, manifest missing or classified custody is deficient
+│   └── It reverts
+├── When a treasury transfer fails
+│   └── It atomically restores every buffer and retirement flag
+└── When Safe recovers
+    ├── Given classified inventory exists
+    │   └── It exports exact classified assets, excludes unassigned cash and never touches leaves
+    └── Given an empty or already retired manager
+        └── It remains terminal and exports only newly received carry once

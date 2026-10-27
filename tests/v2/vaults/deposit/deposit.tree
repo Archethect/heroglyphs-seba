@@ -1,0 +1,17 @@
+NativeSupporterVault::deposit (shared by RethSupporterVault and YsyBoldSupporterVault)
+├── Given recovery has begun
+│   └── It reverts without accepting custody or reopening the terminal vault
+├── Given deadline expired, entries disabled, or report invalid/stale
+│   └── It reverts before recording a position
+├── Given either bucket has an economic deficit or physical custody is short
+│   └── It blocks the whole affected leg but not the sibling token vault
+├── Given transfer has a fee, fails, or reenters
+│   └── It rolls back balances, IDs and basis
+├── Given zero quantity/value, insufficient minimum, or zero immediate inverse payout
+│   └── It rejects the dust trap without consuming funds
+└── Given exact native tokens and valid accounting
+    ├── When canonical supply is zero
+    │   └── It follows the external protocol's one-to-one convention
+    ├── When there is existing carry or unsolicited surplus
+    │   └── It credits only this entry's floor-rounded recognized basis
+    └── It creates a new caller-owned, nontransferable ID with a 30-day lock

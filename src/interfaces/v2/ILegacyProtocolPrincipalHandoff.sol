@@ -8,6 +8,8 @@ interface ILegacyProtocolPrincipalHandoff {
     /// @notice Exact Safe-reviewed migration snapshot; all amounts retain their named native units.
     /// @dev Stage A must already have exited: oldPrincipal is zero and oldIdleEth equals positive expectedEth.
     /// oldVault identifies the original Beefy adapter's unswept residue; stagingVault is the canonical intake stopper.
+    /// The four residual caps are Safe-approved maximum unmigrated surplus, defaulting to zero. They do not
+    /// authorize withdrawal of these balances; any observation above a cap requires a new reviewed handoff.
     struct Configuration {
         address oldManager;
         address destination;
@@ -28,6 +30,10 @@ interface ILegacyProtocolPrincipalHandoff {
         uint256 safeThreshold;
         uint16 rethBps;
         bytes32 manifest;
+        uint256 maximumRouterEth;
+        uint256 maximumOldBold;
+        uint256 maximumOldSBold;
+        uint256 maximumRouterBold;
     }
 
     error Unauthorized();
@@ -65,6 +71,19 @@ interface ILegacyProtocolPrincipalHandoff {
         uint256 residualAdapterPrincipal,
         uint256 residualAdapterShares,
         uint256 residualBeefyShares
+    );
+    /// @notice Exact unmigrated balances observed after a successful atomic cutover.
+    /// @param manifest Commitment to the reviewed offchain release and reconciliation manifest.
+    /// @param routerEth ETH wei left at the inactive old router.
+    /// @param oldBold BOLD atoms left at the old manager.
+    /// @param oldSBold sBOLD atoms left at the old manager.
+    /// @param routerBold BOLD atoms left at the inactive old router.
+    event ResidualSurplusObserved(
+        bytes32 indexed manifest,
+        uint256 routerEth,
+        uint256 oldBold,
+        uint256 oldSBold,
+        uint256 routerBold
     );
 
     /// @notice Fixed new manager proxy authorized to receive exactly expectedEth.

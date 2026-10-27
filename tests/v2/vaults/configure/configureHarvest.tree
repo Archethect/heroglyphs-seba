@@ -1,0 +1,5 @@
+NativeSupporterVault::configureHarvest
+├── Given caller is not Safe, recovery is terminal, or enabled cap is zero
+│   └── It rejects
+└── Given Safe sets a cap/pause
+    └── It bounds routine harvest and leaves native principal exits independent

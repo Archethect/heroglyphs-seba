@@ -1,0 +1,6 @@
+NativeSupporterVault::withdrawProtocol
+├── Given caller is not Safe, basis is zero/excessive, or deadline expired
+│   └── It rejects without touching supporter positions
+└── Given Safe closes part or all protocol basis
+    ├── It uses the same healthy/impaired/fixed-settlement formulas without a supporter lock
+    └── It pays only the fixed treasury and never another bucket's escrow

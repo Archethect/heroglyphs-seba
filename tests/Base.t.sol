@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { Modifiers } from "tests/utils/modifiers.sol";
+import { Modifiers } from "tests/utils/Modifiers.sol";
 import { PYBSeba } from "src/PYBSeba.sol";
 import { SebaPool } from "src/SebaPool.sol";
 import { YieldManager } from "src/YieldManager.sol";

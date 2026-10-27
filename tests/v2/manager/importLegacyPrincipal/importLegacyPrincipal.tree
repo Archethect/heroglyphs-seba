@@ -1,0 +1,7 @@
+importLegacyPrincipal
+├── When caller, exact value, expiry or terminal manager state is invalid
+│   └── It reverts
+├── When import already consumed
+│   └── It reverts without duplicating capital
+└── When registered exact import succeeds
+    └── It assigns all ETH to protocol legs without a reward haircut

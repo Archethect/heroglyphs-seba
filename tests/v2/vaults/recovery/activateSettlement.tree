@@ -1,0 +1,11 @@
+NativeSupporterVault::activateSettlement / recoveryCaps
+├── Given unauthorized/repeated/premature call, reused/empty manifest, no-basis budget or excess budget
+│   └── It rejects without changing rates
+├── Given healthy available canonical valuation
+│   └── Principal cap is min(exportedQ+repairQ,floorInverse(B0)), never returnedQ counted twice
+├── Given impaired/zero available valuation
+│   └── Principal cap is all attributed backing, without an invalid inverse
+├── Given any bucket not fully authenticated/funded
+│   └── It cannot open first-come settlement
+└── Given fixed fully funded separate budgets, including zeros
+    └── It activates once with immutable denominators and separate initial/final commitments

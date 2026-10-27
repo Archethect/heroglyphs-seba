@@ -1,0 +1,7 @@
+RethSupporterVault::configureReportBounds / freshness
+├── Given unauthorized caller, terminal recovery, or zero bounds
+│   └── It rejects
+├── Given unset, missing, future or over-age/over-lag report
+│   └── It blocks entry and harvest
+└── Given report exactly at positive approved bounds
+    └── It accepts new entry; old reports still do not gate in-kind withdrawal

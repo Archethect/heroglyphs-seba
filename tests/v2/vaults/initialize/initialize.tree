@@ -1,0 +1,11 @@
+NativeSupporterVault + RethSupporterVault + YsyBoldSupporterVault::initialize
+├── Given implementation or already initialized proxy
+│   └── It rejects initialization/reinitialization
+├── Given zero/EOA/self/overlapping custody identity or wrong decimals
+│   └── Atomic proxy construction reverts
+├── Given rETH registry mismatches token or balances target has no code
+│   └── It fails closed rather than reading another token's accounting
+├── Given ysyBOLD underlying or API version differs from reviewed 3.0.4
+│   └── It rejects the semantic mismatch at initialization and runtime
+└── Given verified identities
+    └── It starts with entry/harvest disabled and numeric production limits unset

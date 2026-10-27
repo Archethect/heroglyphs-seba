@@ -1,0 +1,6 @@
+setEnabled
+├── unauthorized: revert (configureLimits access cases)
+├── enabled before configuration: revert (configureLimits activation cases)
+└── configured Safe
+    ├── disable: no funds move, execution rejects
+    └── re-enable: same fixed route works

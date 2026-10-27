@@ -1,0 +1,7 @@
+NativeSupporterVault::fundRefundableRecovery
+├── Given caller is not Safe, bucket/state invalid, or quantity zero
+│   └── It rejects
+├── Given any original exported backing has not been returned
+│   └── It cannot mislabel that original principal/carry as refundable new backing
+└── Given separately authenticated Safe contribution after full original return
+    └── It increments repair backing and its refundable subset exactly once, emitting a distinct funding event

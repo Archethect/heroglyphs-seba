@@ -1,0 +1,5 @@
+NativeSupporterVault::repair
+├── Given wrong bucket, zero quantity, custody shortage, terminal state or bad transfer
+│   └── It reverts without changing liabilities
+└── Given explicit donor transfer
+    └── It adds tokens/repair counters only to that bucket, without basis or IDs

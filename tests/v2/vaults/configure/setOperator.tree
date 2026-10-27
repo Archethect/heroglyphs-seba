@@ -1,0 +1,7 @@
+NativeSupporterVault::setOperator
+├── Given caller is not Safe, including an existing operator
+│   └── It cannot grant, revoke or escalate privileges
+├── Given zero or Safe operator address
+│   └── It rejects ambiguous authority configuration
+└── Given valid Safe grant/revoke
+    └── It changes only bounded harvest authority, never upgrade/recovery/principal authority

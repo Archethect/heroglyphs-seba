@@ -1,0 +1,7 @@
+NativeSupporterVault::recognizeSurplus
+├── Given unauthorized caller, invalid bucket/quantity, terminal state or nonexistent surplus
+│   └── It cannot classify assets
+├── Given impaired bucket and yield-not-repair classification
+│   └── It rejects hidden loss repair
+└── Given Safe explicitly classifies existing surplus as repair or healthy donated carry
+    └── It adds no principal and affects no other bucket

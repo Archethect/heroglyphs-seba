@@ -1,0 +1,141 @@
+{
+  "observedAt": "2026-10-23T09:48:06.635Z",
+  "block": 26254527,
+  "hash": "0xf9842dc4a3e72a98e5ed601053f38e64e053205e67c00c0d9c2cb7216fa37054",
+  "timestamp": 1792748879,
+  "chainId": "0x1",
+  "addresses": {
+    "manager": "0xCAd999958e9619C3E5Bed96B8725Bb0b0fa45269",
+    "pool": "0xe3B17b4533b339d3CBC26F57199d3fb937129894",
+    "beefy": "0x87Be53F4E45f3EAFa4b8f2dD8B852115Bb1f16Ba",
+    "treasury": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+    "governance": "0xf83b11b09EEc073ACE4481b2F4c8357e156714b3",
+    "governanceAdminPlugin": "0xef639bdd87805e811b3c5d3e308d3300561cb4d6",
+    "governanceMultisigPlugin": "0x5373e070a37a51a400c98df4087753ecdd98f57d",
+    "governanceAdminMember": "0x5ebaaa3e84f9595fbf787a71c3caad97d370bc28",
+    "bold": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+    "yBold": "0x9F4330700a36B29952869fac9b33f45EEdd8A3d8",
+    "stYBold": "0x23346B04a7f55b8760E5860AA5A77383D63491cD",
+    "curve": "0xEFc6516323FbD28e80B85A497B65A86243a54B3E",
+    "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "ethFeed": "0xc0053f3FBcCD593758258334Dfce24C2A9A673aD",
+    "usdcFeed": "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6"
+  },
+  "reads": {
+    "governance.adminPluginExecutes": "true",
+    "governance.multisigExecutes": "true",
+    "governance.treasuryDirectExecutes": "false",
+    "governance.adminMember": "true",
+    "governance.treasuryAdminMember": "false",
+    "governance.multisigSettings": "true\n2",
+    "governance.adminTarget": "(0xf83b11b09EEc073ACE4481b2F4c8357e156714b3, 0)",
+    "governance.multisigTarget": "(0xf83b11b09EEc073ACE4481b2F4c8357e156714b3, 0)",
+    "manager.yieldVault": "0x87Be53F4E45f3EAFa4b8f2dD8B852115Bb1f16Ba",
+    "manager.principalValue": "3033332133271012792310 [3.033e21]",
+    "manager.depositId": "9",
+    "manager.pendingBoldConversion": "0",
+    "manager.activeRouterUid": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "manager.yieldFlowActive": "true",
+    "beefy.principalValue": "3033332133271012792459 [3.033e21]",
+    "beefy.principalShares": "2461485476753155859456 [2.461e21]",
+    "yBold.asset": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+    "yBold.symbol": "\"yBOLD\"",
+    "yBold.shutdown": "false",
+    "yBold.totalAssets": "7728155552861343747418881 [7.728e24]",
+    "yBold.maxDeposit": "115792089237316195423570985008687907853269984665640564039457584007913129639935 [1.157e77]",
+    "stYBold.asset": "0x9F4330700a36B29952869fac9b33f45EEdd8A3d8",
+    "stYBold.symbol": "\"ysyBOLD\"",
+    "stYBold.shutdown": "false",
+    "stYBold.totalAssets": "7650768048637666743589532 [7.65e24]",
+    "stYBold.maxDeposit": "115792089237316195423570985008687907853269984665640564039457584007913129639935 [1.157e77]",
+    "curve.coins0": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+    "curve.coins1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "curve.balance0": "6309357195133777042540037 [6.309e24]",
+    "curve.balance1": "2620855005620 [2.62e12]",
+    "curve.ema": "1003987409685881360 [1.003e18]",
+    "ethFeed.round": "36893488147419121940 [3.689e19]\n239366200000 [2.393e11]\n1792747567 [1.792e9]\n1792747595 [1.792e9]\n36893488147419121940 [3.689e19]",
+    "ethFeed.description": "\"ETH / USD\"",
+    "usdcFeed.description": "\"USDC / USD\"",
+    "usdcFeed.round": "73786976294838206505 [7.378e19]\n99985668 [9.998e7]\n1792716279 [1.792e9]\n1792716299 [1.792e9]\n73786976294838206505 [7.378e19]",
+    "treasury.threshold": "3",
+    "treasury.owners": "[0xC87dF2dA974a718Dd6ca95f7e92E643437d69Fea, 0xf67a4a4CCcfcB1496d6d699Eee33a4b072833d9d, 0x33278e8e62540BA7bCc2Ec46Ab94931B8Fb7A92B, 0xd380B2032cD45286D922dD9b33D081B7D82D54A6, 0xFe7E12FB4f5BE7a49B2D7a8FE676CFc38FaF7e81, 0x6271235f2A5357c38E5742ada38895347401Ef49, 0x2BE293361aEA6136a42036Ef68FF248fC379b4f8]",
+    "treasury.modules": "[]\n0x0000000000000000000000000000000000000001",
+    "treasury.guard": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "governance.threshold": {
+      "error": "RPC 3: execution reverted"
+    },
+    "governance.owners": {
+      "error": "RPC 3: execution reverted"
+    }
+  },
+  "deposits": [
+    {
+      "id": 1,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 2,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 3,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 4,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 5,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 6,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 7,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 8,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    },
+    {
+      "id": 9,
+      "record": "0x0000000000000000000000000000000000000000\n0x0000000000000000000000000000000000000000\n0\n0"
+    }
+  ],
+  "balances": {
+    "treasury.ETH": "0",
+    "treasury.usdc": "0",
+    "treasury.weth": "0",
+    "treasury.bold": "0",
+    "treasury.yBold": "0",
+    "treasury.stYBold": "156014003721394916792917 [1.56e23]",
+    "manager.ETH": "0",
+    "manager.usdc": "0",
+    "manager.weth": "0",
+    "manager.bold": "0",
+    "manager.yBold": "0",
+    "manager.stYBold": "0",
+    "governance.ETH": "0",
+    "governance.usdc": "0",
+    "governance.weth": "0",
+    "governance.bold": "0",
+    "governance.yBold": "0",
+    "governance.stYBold": "0"
+  },
+  "roles": {
+    "governanceAdminMember.codeBytes": 0,
+    "treasury.managerAdmin": "true",
+    "treasury.codeBytes": 171,
+    "governance.managerAdmin": "true",
+    "governance.codeBytes": 833
+  },
+  "implementations": {
+    "governance": "0x00000000000000000000000058c1f7bc62bb63fb137bc8f6d8ea6321a0501d29",
+    "governanceMultisigPlugin": "0x000000000000000000000000517bd0e1fbe9ddf828fd139b19cf9f434da94371"
+  }
+}

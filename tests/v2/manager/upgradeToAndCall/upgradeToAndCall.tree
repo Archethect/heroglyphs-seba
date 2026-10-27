@@ -1,0 +1,5 @@
+upgradeToAndCall
+├── When caller is not Safe or implementation is incompatible
+│   └── It reverts
+└── When Safe authorizes a compatible implementation
+    └── It preserves existing identities, inventories, balances and configuration

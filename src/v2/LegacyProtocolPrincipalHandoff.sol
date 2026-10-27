@@ -278,6 +278,13 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
         _conversionsClear();
         _destinationIdentities();
         _imported = false;
+        emit ResidualSurplusObserved(
+            _configuration.manifest,
+            _configuration.oldRouter.balance,
+            IERC20(BOLD).balanceOf(oldManager),
+            IERC20(SBOLD).balanceOf(oldManager),
+            IERC20(BOLD).balanceOf(_configuration.oldRouter)
+        );
         emit PostMigrationChecked(
             _configuration.manifest,
             IHandoffAdapter(_configuration.oldVault).principalValue(),
@@ -319,6 +326,7 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
     }
 
     /// @dev A zero manager UID alone does not prove actual router/order/token custody is reconciled.
+    /// Only the four explicitly approved, disclosed residual balances may remain unmigrated.
     function _conversionsClear() private view {
         IYieldManager old = IYieldManager(oldManager);
         (, , , bool active, ) = IEthToBoldRouter(_configuration.oldRouter).order();
@@ -326,10 +334,10 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
             old.pendingBoldConversion() != 0 ||
             old.activeRouterUid() != bytes32(0) ||
             active ||
-            _configuration.oldRouter.balance != 0 ||
-            IERC20(BOLD).balanceOf(oldManager) != 0 ||
-            IERC20(SBOLD).balanceOf(oldManager) != 0 ||
-            IERC20(BOLD).balanceOf(_configuration.oldRouter) != 0
+            _configuration.oldRouter.balance > _configuration.maximumRouterEth ||
+            IERC20(BOLD).balanceOf(oldManager) > _configuration.maximumOldBold ||
+            IERC20(SBOLD).balanceOf(oldManager) > _configuration.maximumOldSBold ||
+            IERC20(BOLD).balanceOf(_configuration.oldRouter) > _configuration.maximumRouterBold
         ) revert InvalidState();
     }
 
