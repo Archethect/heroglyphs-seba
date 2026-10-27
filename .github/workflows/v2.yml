@@ -29,6 +29,8 @@ jobs:
         run:
           npx solhint --config .solhint-v2.json --max-warnings 0 'src/v2/*.sol' 'src/interfaces/v2/*.sol'
           'src/vendor/v2/*.sol' 'script/v2/*.sol'
+      - name: Compile artifacts used by read-only preflight tests
+        run: node tools/v2/run-foundry.mjs build
       - name: Read-only preflight and coverage-gate tests
         run: node --test tools/v2/*.test.cjs
       - name: V2 formatting
