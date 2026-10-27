@@ -1,0 +1,10 @@
+depositFunds
+├── caller is not the fixed pool
+│   └── it must reject without accepting public ETH positions
+├── intake is disabled or receipt is zero
+│   └── it must reject atomically
+└── intake is enabled
+    ├── it must conserve gross ETH across the three assigned buckets
+    ├── odd wei and zero/full investment weights must be deterministic
+    ├── changing future weights must not reassign old pending cash
+    └── forced ETH must remain unassigned without explicit Safe classification

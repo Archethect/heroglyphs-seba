@@ -1,0 +1,6 @@
+LegacyIntakeStopper
+├── deposit
+│   ├── zero or nonzero ETH: revert IntakeStopped without retaining ETH
+│   └── no receive, fallback or arbitrary execution selector
+├── claimYield: always revert IntakeStopped
+└── retrievePrincipal: every amount reverts IntakeStopped

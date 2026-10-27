@@ -1,0 +1,9 @@
+convertHarvest
+├── When unauthorized, paused, expired or invalid leg/bucket/amount/cap
+│   └── It reverts
+├── When custody is deficient or venue consumes/reports an unexpected delta
+│   └── It atomically restores classified carry
+├── When output misses minimum
+│   └── It atomically reverts
+└── When either leg and either bucket succeeds, including unrelated token outage
+    └── It converts carry only and clears approval without a second reward split

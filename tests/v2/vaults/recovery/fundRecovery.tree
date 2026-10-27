@@ -1,0 +1,5 @@
+NativeSupporterVault::fundRecovery
+├── Given wrong bucket/state, zero quantity, bad transfer or return exceeding exported backing
+│   └── It rejects
+└── Given explicitly tagged exact native-token funding
+    └── It records returned backing once; unsolicited token balance cannot authenticate funding

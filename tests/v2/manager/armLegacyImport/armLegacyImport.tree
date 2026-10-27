@@ -1,0 +1,7 @@
+armLegacyImport
+├── When caller is not Safe, already armed, expired, zero or missing manifest
+│   └── It reverts without recording an import
+├── When intake/execution is enabled or handoff identities disagree
+│   └── It reverts
+└── When every identity and disabled bootstrap gate matches
+    └── It records the exact one-shot source, amount, expiry and manifest

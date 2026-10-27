@@ -1,0 +1,5 @@
+setFutureInvestmentWeights
+├── When unauthorized or weights do not total 10000
+│   └── It reverts
+└── When Safe supplies valid weights, including zero/full boundaries
+    └── It changes future receipts only, not existing assignments

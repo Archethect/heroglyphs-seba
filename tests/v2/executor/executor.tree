@@ -1,0 +1,12 @@
+SebaV2Executor
+├── constructor
+│   ├── when identities or asset graph are invalid: revert
+│   └── when valid: routes start disabled and fixed recipients cannot change
+├── configuration
+│   ├── when unauthorized, enabled, or limits invalid: revert
+│   └── when reviewed: require separate explicit activation
+└── execution
+    ├── when unauthorized, disabled, expired, over cap, or zero minimum: revert
+    ├── when stale/incomplete oracle, peg, report, registry, mint fee or output violates bounds: revert
+    ├── when token deltas, partial input or venue returns disagree: atomically revert
+    └── when valid: real fixed route, exact spend, output only to manager, approvals zero, dust unchanged

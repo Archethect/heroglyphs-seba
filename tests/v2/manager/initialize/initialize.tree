@@ -1,0 +1,9 @@
+initialize
+├── implementation is locked
+│   └── it must reject initialization
+├── treasury is not a contract
+│   └── it must reject governance configuration
+└── proxy is initialized atomically with valid identities
+    ├── all entry and execution paths start disabled
+    ├── it must reject a second initialization
+    └── only the fixed Safe may configure bounded operations

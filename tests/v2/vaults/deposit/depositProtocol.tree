@@ -1,0 +1,7 @@
+NativeSupporterVault::depositProtocol
+├── Given caller is not the fixed manager
+│   └── It reverts even if the caller is an operator or treasury supporter
+├── Given common entry validation fails
+│   └── It enforces the same pause, deficit, custody, exact-delta, dust and minimum rules
+└── Given manager transfers exact backing
+    └── It credits PROTOCOL only and creates no supporter ID or lock

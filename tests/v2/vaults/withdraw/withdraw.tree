@@ -1,0 +1,23 @@
+NativeSupporterVault::withdraw
+├── Given unknown/closed ID, wrong owner, early unlock or expired deadline
+│   └── It leaves the original claim intact
+├── Given ordinary state
+│   ├── When canonical valuation is unavailable or custody is short
+│   │   └── It requires recovery and cannot consume another bucket
+│   ├── When entry/harvest is paused, report is old, or manager/redemption/USD oracle fails
+│   │   └── It still permits usable native-token principal exits
+│   ├── When healthy
+│   │   └── It pays floor inverse, including the last claim, retaining carry and ceiling-reserve dust
+│   ├── When impaired, including successful zero canonical value
+│   │   ├── When not final
+│   │   │   └── It pays floor(Q*b/B), keeping nominal remaining basis without a second loss write-down
+│   │   └── When final
+│   │       └── It pays all remaining accounted tokens
+│   └── When ordinary payout is zero
+│       └── It preserves the position for explicit recovery instead of closing it
+├── Given recovery custody has been exported but no settlement is active
+│   └── It cannot redeem principal
+└── Given fixed funded settlement
+    ├── It retains owner and original lock checks
+    ├── It pays floor(N*b/B0) independently of rate or claim order, allowing explicit zero budgets
+    └── It closes once; min-out, transfer failure and reentrancy revert the entire mutation

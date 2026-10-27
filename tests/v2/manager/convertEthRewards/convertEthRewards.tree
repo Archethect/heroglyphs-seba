@@ -1,0 +1,7 @@
+convertEthRewards
+├── When unauthorized, paused, expired, zero, excessive or underbacked
+│   └── It reverts before spending assigned ETH
+├── When venue fails, refunds input, misreports output or misses minimum
+│   └── It atomically restores reward cash
+└── When valid, including a failed unrelated leg token
+    └── It spends only reward cash and credits exact BOLD output

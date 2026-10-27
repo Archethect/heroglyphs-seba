@@ -1,0 +1,10 @@
+ExecutorRoutesFork
+├── real Rocket Pool mint and same-block forwarding
+├── real ETH-to-BOLD at 1 ETH and 100 ETH
+├── real ETH-to-ysyBOLD at 1 ETH and 70 ETH
+├── real treasury-sized rETH-to-BOLD
+├── real treasury-sized ysyBOLD redemption with zero accepted loss
+├── unapproved pilot limits: all five real routes at capped 1 ETH, 1 rETH or 1000 ysyBOLD
+├── fault-injected stale USD feed: direct ysyBOLD still works, ETH route rejects
+├── fault-injected unavailable Curve: direct ysyBOLD still works, ETH route rejects
+└── fault-injected unavailable Yearn: minting rETH still works, ysyBOLD route rejects

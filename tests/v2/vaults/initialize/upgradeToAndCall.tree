@@ -1,0 +1,5 @@
+NativeSupporterVault::upgradeToAndCall (OpenZeppelin UUPS)
+├── Given implementation context, unauthorized caller/operator, proxy UUID call or non-UUPS target
+│   └── It rejects the unsafe upgrade path
+└── Given fixed Safe and compatible UUPS implementation
+    └── It preserves open/closed IDs, owner locks, both B/Q ledgers, roles, identities, counters and active recovery budgets

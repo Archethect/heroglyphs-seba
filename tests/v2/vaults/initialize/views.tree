@@ -1,0 +1,9 @@
+NativeSupporterVault / concrete vault accounting views
+├── Given invalid bucket or unknown/closed position
+│   └── It rejects aliasing rather than returning another claim
+├── Given malformed abstract-adapter zero denominator
+│   └── Defensive base invariant rejects invalid math (test-only negative-control adapter)
+├── Given canonical successful zero numerator versus reverted getter
+│   └── It distinguishes economic impairment from unavailable valuation
+└── Given usable canonical totals
+    └── It exposes raw native-unit B/Q, deficit, ceil reserve, carry and normal/fixed payout previews

@@ -1,0 +1,5 @@
+bindVaults
+├── When unauthorized, repeated or any reciprocal identity differs
+│   └── It reverts
+└── When both vaults match manager, treasury, asset and principal basis
+    └── It binds the immutable pair once without opening intake

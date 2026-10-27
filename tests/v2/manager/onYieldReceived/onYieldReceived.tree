@@ -1,0 +1,5 @@
+onYieldReceived
+├── When caller is not either bound leaf, bucket invalid, amount zero or unbacked
+│   └── It reverts
+└── When either authenticated leg/bucket delivers actual tokens
+    └── It credits carry even while paused or after retirement, independent of sibling failure

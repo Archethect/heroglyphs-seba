@@ -3,15 +3,19 @@ cache
 coverage
 node_modules
 out
+.audit-*/
+.solidity-auditor/
 .idea
 
 # files
 *.env
+.env.*
+!.env.example
 *.log
 .DS_Store
 .pnp.*
 lcov.info
-package-lock.json
+v2-*.lcov
 pnpm-lock.yaml
 yarn.lock
 

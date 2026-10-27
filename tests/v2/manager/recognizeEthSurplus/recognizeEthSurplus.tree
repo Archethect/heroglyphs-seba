@@ -1,0 +1,5 @@
+recognizeEthSurplus
+├── When caller, purpose, amount or available surplus is invalid
+│   └── It reverts
+└── When Safe explicitly classifies forced/unassigned ETH
+    └── It credits only the selected purpose, without touching existing assignments

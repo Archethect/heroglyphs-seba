@@ -1,0 +1,4 @@
+convertRethToBold
+├── when report/registry invalid or input outside limits: revert (shared execution and investReth cases)
+├── when partial fill or output below independent floor: revert (shared execution/swap cases)
+└── when valid: exact rETH consumed, BOLD delivered, no native burn or ETH redemption

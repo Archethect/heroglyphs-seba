@@ -1,0 +1,7 @@
+donateSBold
+├── When unauthorized, zero, excessive, underbacked or sink unavailable
+│   └── It reverts
+├── When recipient delta differs
+│   └── It restores classified sBOLD
+└── When bounded operator or Safe succeeds
+    └── It tops up fixed pybSeba once, emits completion and clears approval

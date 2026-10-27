@@ -1,0 +1,7 @@
+setExecutionEnabled
+├── When unauthorized or manager retired
+│   └── It reverts
+├── When enabling before vault/executor/cap configuration
+│   └── It reverts
+└── When Safe enables or pauses a configured manager
+    └── It changes only the manager gate; executor remains independently gated

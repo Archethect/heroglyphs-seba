@@ -1,0 +1,11 @@
+NativeSupporterVault::beginRecovery
+├── Given unauthorized/repeated call or empty evidence commitment
+│   └── It rejects
+├── Given available custody
+│   └── It snapshots B/Q/counters/ID boundary, quarantines surplus and exports exact Q to Safe
+├── Given physical shortage
+│   └── It attributes actual exported tokens proportionally, with deterministic atom remainder, never protocol priority
+├── Given unavailable canonical valuation
+│   └── It still exports native tokens without redemption, swaps or price dependencies
+└── Given transfer failure
+    └── It rolls back export, snapshot and freeze together; positions never become falsely paid

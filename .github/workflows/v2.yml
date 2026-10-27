@@ -1,0 +1,74 @@
+name: Seba V2 verification
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MAINNET_RPC: ${{ secrets.MAINNET_RPC }}
+      ETHERSCAN_API_KEY: ""
+      RUST_LOG: error
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+      - run: npm ci --ignore-scripts
+      - name: Require archive RPC configuration
+        run: test -n "$MAINNET_RPC"
+      - name: V2 production-source lint
+        run:
+          npx solhint --config .solhint-v2.json --max-warnings 0 'src/v2/*.sol' 'src/interfaces/v2/*.sol'
+          'src/vendor/v2/*.sol' 'script/v2/*.sol'
+      - name: Compile artifacts used by read-only preflight tests
+        run: node tools/v2/run-foundry.mjs build
+      - name: Read-only preflight and coverage-gate tests
+        run: node --test tools/v2/*.test.cjs
+      - name: V2 formatting
+        run: >-
+          npx prettier --check 'src/v2/*.sol' 'src/interfaces/v2/*.sol' 'src/vendor/v2/*.sol' 'script/v2/*.sol'
+          'tests/v2/**/*.sol' 'tools/v2/*.{cjs,mjs}' 'docs/*.{md,json}' .github/workflows/v2.yml
+      - name: Complete legacy and V2 test suite
+        run: node tools/v2/run-foundry.mjs test
+      - name: V2 unit coverage (fork evidence is separate)
+        run:
+          node tools/v2/run-foundry.mjs coverage --offline --no-match-path '**/fork/**' --report lcov --report-file
+          v2-unit.lcov
+        env:
+          FOUNDRY_TEST: tests/v2
+      - run: node tools/v2/check-coverage.cjs v2-unit.lcov
+      - name: Deployment-script fork coverage
+        run: |
+          node tools/v2/run-foundry.mjs coverage --offline --match-contract DeploySebaV2ForkTest --report lcov --report-file v2-deployment.lcov
+          node tools/v2/check-coverage.cjs v2-deployment.lcov --deployment
+      - name: Complete optimized build for layouts and size limits
+        run: node tools/v2/run-foundry.mjs build --force --build-info --build-info-path out/v2-complete-build-info
+      - run: node tools/v2/check-artifacts.cjs
+      - name: OpenZeppelin standalone upgrade safety
+        run: |
+          npx @openzeppelin/upgrades-core validate out/v2-complete-build-info --contract src/v2/YieldManagerV2.sol:YieldManagerV2
+          npx @openzeppelin/upgrades-core validate out/v2-complete-build-info --contract src/v2/RethSupporterVault.sol:RethSupporterVault
+          npx @openzeppelin/upgrades-core validate out/v2-complete-build-info --contract src/v2/YsyBoldSupporterVault.sol:YsyBoldSupporterVault
+          npx @openzeppelin/upgrades-core validate out/v2-complete-build-info --contract tests/v2/manager/upgradeToAndCall/UpgradeToAndCall.t.sol:ManagerCompatibleUpgrade
+      - name: Fresh mainnet migration rehearsal
+        run: |
+          node tools/v2/run-foundry.mjs test --match-path 'tests/v2/fork/FullMigrationFork.t.sol' -vv
+        env:
+          SEBA_V2_FRESH_FORK: "true"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-coverage-and-layouts
+          path: |
+            v2-unit.lcov
+            v2-deployment.lcov
+            storage-layout/v2

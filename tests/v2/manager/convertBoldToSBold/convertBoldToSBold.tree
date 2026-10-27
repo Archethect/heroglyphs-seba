@@ -1,0 +1,9 @@
+convertBoldToSBold
+├── When caller, deadline, execution, amount or custody is invalid
+│   └── It reverts
+├── When caller minimum is zero or mint misses caller/canonical preview minimum
+│   └── It atomically restores pending BOLD
+├── When mint reports false deltas or no shares
+│   └── It atomically reverts
+└── When valid
+    └── It converts classified BOLD only, credits actual sBOLD and clears approval

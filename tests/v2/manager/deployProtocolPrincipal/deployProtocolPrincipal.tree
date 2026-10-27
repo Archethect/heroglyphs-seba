@@ -1,0 +1,11 @@
+deployProtocolPrincipal
+├── caller lacks bounded operator authority or execution is disabled
+│   └── it must reject
+├── leg, amount, minimum or deadline is invalid
+│   └── it must reject without reassigning capital
+├── executor or vault misreports token or ETH movement
+│   └── it must revert the entire atomic route
+└── exact route succeeds
+    ├── only assigned ETH for that leg is consumed
+    ├── actual native backing is credited only to its protocol bucket
+    └── approvals are cleared and supporter positions are untouched

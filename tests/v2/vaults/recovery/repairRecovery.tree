@@ -1,0 +1,5 @@
+NativeSupporterVault::repairRecovery
+├── Given invalid bucket/state, zero quantity or nonexact transfer
+│   └── It rejects without increasing backing or funding
+└── Given public irrevocable donation
+    └── It credits only that bucket's repair backing; unused tokens are donated yield, never treasury overfunding refund

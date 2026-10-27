@@ -1,0 +1,7 @@
+rescueToken
+├── When unauthorized or any core token is selected
+│   └── It reverts
+├── When actual treasury delta differs
+│   └── It atomically reverts
+└── When accidental noncore tokens exist
+    └── It sends only the approved amount to the fixed Safe

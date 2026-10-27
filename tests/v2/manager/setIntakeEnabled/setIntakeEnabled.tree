@@ -1,0 +1,7 @@
+setIntakeEnabled
+├── When unauthorized or manager retired
+│   └── It reverts
+├── When enabling before vault binding
+│   └── It reverts
+└── When Safe toggles intake
+    └── It permits pausing without touching external venues

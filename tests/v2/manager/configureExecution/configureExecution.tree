@@ -1,0 +1,7 @@
+configureExecution
+├── When unauthorized, execution enabled, zero caps or missing code
+│   └── It reverts
+├── When any fixed executor integration differs or old allowance remains
+│   └── It reverts without replacing the executor
+└── When disabled and coherent
+    └── It records bounded caps and executor without enabling execution

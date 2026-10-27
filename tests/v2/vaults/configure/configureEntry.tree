@@ -1,0 +1,7 @@
+NativeSupporterVault::configureEntry
+├── Given caller is not Safe or recovery is terminal
+│   └── It cannot change configuration
+├── Given zero minimum with entry enabled
+│   └── It rejects unsafe configuration
+└── Given explicit Safe-approved minimum and enabled flag
+    └── It changes entry only, never principal withdrawal rights

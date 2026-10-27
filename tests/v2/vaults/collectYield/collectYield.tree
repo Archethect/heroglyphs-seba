@@ -1,0 +1,10 @@
+NativeSupporterVault::collectYield
+├── Given invalid bucket, unauthorized caller, disabled harvest, invalid cap, stale report or custody shortage
+│   └── It cannot remove tokens
+├── Given no carry, successful zero value, or an impaired bucket
+│   └── It returns zero without a token transfer or manager callback
+└── Given bounded recognized carry
+    ├── It preserves ceil-reserved principal, basis and every lock
+    ├── It does not net against the other bucket or sibling token
+    ├── It transfers exactly to the fixed manager and authenticates inventory atomically
+    └── When callback fails or reenters, it rolls back custody and harvested counters

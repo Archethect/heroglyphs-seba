@@ -1,0 +1,8 @@
+setOperator
+├── When caller is not Safe
+│   └── It reverts
+└── When Safe grants or revokes an operator
+    ├── Given maintenance entry is called by that operator or Safe
+    │   └── It applies the same amount, deadline and custody bounds
+    └── Given entry is called by an unrelated or revoked caller
+        └── It reverts for every maintenance entry point
