@@ -230,9 +230,21 @@ conceal a loss or duplicate a live claim during manual remediation.
 
 ## Security evidence boundaries
 
-Independent peer review identified a real legacy-indexer handoff getter failure, a cached-hash coherence gap, and a
-backend invocation-budget issue. Fixes and regressions are required in linked stack PRs. Slither and Aderyn ran locally;
-their raw alerts are not automatically confirmed exploits. Slither's fixed-manager `transferFrom` and post-call
-accounting alerts require checking immutable caller/recipient restrictions and reentrancy guards; protective exact-delta
-checks are intentional. Dependency advisories and complete deep-audit findings must be reviewed before release. Do not
-represent static-tool completion, 100% coverage or this internal review as a guarantee against exploits.
+The [three-pass Pashov report](../audits/v2-pashov-20261023.md) covers frozen on-chain revision `f8a6022`: 36 specialist
+reviews, one confirmed migration-availability finding, and one historical-ID gas lead. The approved bounded-surplus
+implementation and eight focused regressions are in review commit `3589e0e`. Independent Daybreak Blue review of that
+exact post-fix commit found no new confirmed safety, custody or accounting exploit; it independently passed 208 non-fork
+tests and 36 handoff tests. Daybreak did **not** run the mainnet-fork tests itself; the fork results above are our
+separate evidence. The repeatable above-cap/old-manager-ETH donation veto remains an explicit accepted availability
+risk, not a resolved security property. The linear historical scan is practical at the nine-ID current snapshot but must
+be remeasured before Stage A.
+
+Independent stack review also found a legacy-indexer handoff getter failure, a cached-hash coherence gap, an unbounded
+backend receipt wait, and a missing-V2-config legacy-maintenance era gap; linked PRs include focused regressions.
+Slither and Aderyn ran locally; their raw alerts are not automatically confirmed exploits. Aderyn flags strict
+ETH-balance equality, which is the disclosed exact-amount availability policy, and a payable/no-withdraw signal for
+unsolicited ETH; neither is proof of theft. Slither's unused-return signals are intentionally ignored tuple fields in
+the old deposit/order views, while its reentrancy-event/timestamp signals are controlled by the one-shot Safe-only
+atomic import, pinned expiry and postchecks. Static tooling does not certify safety. Backend dependency advisories and
+full historical graph catch-up remain release-review items. Neither this review nor 100% source coverage guarantees the
+absence of vulnerabilities.
