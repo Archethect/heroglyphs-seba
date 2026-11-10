@@ -29,3 +29,7 @@ test('CoW mock operations refuse public RPC and malformed actions', () => {
   rejected(cowScript, ['open', 'fake.json'], 'https://rpc.hoodi.example', /loopback Anvil RPC/);
   rejected(cowScript, ['settle', 'fake.json'], 'http://127.0.0.1:8547', /open\|inspect\|fill\|finalize/);
 });
+
+test('rETH leg investment requires completed ysy order evidence', () => {
+  rejected(cowScript, ['invest-reth', 'fake.json'], 'http://127.0.0.1:8549', /settled order evidence path required/);
+});

@@ -35,7 +35,7 @@ import { LegacyProtocolPrincipalHandoff } from "src/v2/LegacyProtocolPrincipalHa
 import { ILegacyProtocolPrincipalHandoff } from "src/interfaces/v2/ILegacyProtocolPrincipalHandoff.sol";
 import { IYieldManagerV2 } from "src/interfaces/v2/IYieldManagerV2.sol";
 import { IV2Executor } from "src/interfaces/v2/IV2Executor.sol";
-import { IExecutorRocketStorage } from "src/vendor/v2/IExecutorProtocols.sol";
+import { IExecutorRocketStorage, IExecutorRocketSettings, IExecutorReth } from "src/vendor/v2/IExecutorProtocols.sol";
 import { ISebaCowIntentModule } from "src/interfaces/v2/ISebaCowIntentModule.sol";
 
 /// @notice Local fork rehearsal only: fresh Seba contracts, synthetic external venues, no public state changes.
@@ -393,6 +393,58 @@ contract HoodiFullRehearsalForkTest is Test {
         assertEq(ysyVault.bucket(1).tokens, 1000 ether);
         assertEq(ysyVault.bucket(1).basis, 1000 ether);
         assertEq(IERC20(address(ysyBold)).balanceOf(address(ysyVault)), 1000 ether);
+    }
+
+    function test_AfterYsySettlementRealRocketMintInvestsRethProtocolLegAndReconcilesCustody() public {
+        _seedV1ProtocolRewards();
+        _stageA();
+        _prepareHandoff();
+        _stageB(true);
+        _enableTestOnlyExecution();
+
+        uint256 ysyEth = next.pendingEth(2);
+        vm.prank(OWNER);
+        next.openCowOrder(1, ysyEth, 900 ether, uint32(block.timestamp + 60), 1, bytes32(uint256(1)));
+        ISebaCowIntentModule.Order memory order = cow.order(1);
+        vm.prank(OWNER);
+        cowSettlement.settleMockOrder(order.escrow, 1000 ether);
+        vm.prank(OWNER);
+        next.finalizeCowOrder(1);
+        vm.prank(OWNER);
+        next.deployYsyProtocolPrincipal(1000 ether, 1, 1, block.timestamp + 60);
+
+        uint256 rethEth = next.pendingEth(1);
+        uint256 fee = IExecutorRocketSettings(_registry("rocketDAOProtocolSettingsDeposit")).getDepositFee();
+        uint256 netEth = rethEth - (rethEth * fee) / 1e18;
+        uint256 previewTokens = IExecutorReth(RETH).getRethValue(netEth);
+        uint256 previewBasis = rethVault.canonicalValue(previewTokens);
+        assertGt(previewTokens, 1);
+        assertGt(previewBasis, 2);
+        _safeCall(address(rethVault), abi.encodeCall(RethSupporterVault.configureReportBounds, (2 days, 20_000)));
+        _safeCall(address(rethVault), abi.encodeWithSignature("configureEntry(uint256,bool)", 0.01 ether, true));
+        uint256 beforeEth = address(next).balance;
+        vm.prank(OWNER);
+        next.deployProtocolPrincipal(0, rethEth, previewTokens - 1, previewBasis - 2, block.timestamp + 60);
+
+        uint256 tokens = rethVault.bucket(1).tokens;
+        uint256 basis = rethVault.bucket(1).basis;
+        assertEq(next.pendingEth(0), 0);
+        assertEq(next.pendingEth(1), 0);
+        assertEq(next.pendingEth(2), 0);
+        assertEq(address(next).balance, beforeEth - rethEth);
+        assertEq(address(next).balance, 0);
+        assertGt(tokens, 0);
+        assertGt(basis, 0);
+        assertGe(tokens, previewTokens - 1);
+        assertGe(basis, previewBasis - 2);
+        assertEq(IERC20(RETH).balanceOf(address(rethVault)), tokens);
+        assertEq(IERC20(RETH).balanceOf(address(next)), 0);
+        assertEq(IERC20(RETH).balanceOf(address(executor)), 0);
+        assertEq(rethVault.canonicalValue(tokens), basis);
+        assertEq(ysyVault.bucket(1).tokens, 1000 ether);
+        assertEq(ysyVault.bucket(1).basis, 1000 ether);
+        assertEq(next.pendingProtocolBold(), 0);
+        assertEq(next.pendingBold(), 0);
     }
 
     function test_SyntheticCowNoFillExpiryRefundAndRejectedSolverOrBadOutput() public {
