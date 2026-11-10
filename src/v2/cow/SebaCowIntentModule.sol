@@ -44,10 +44,10 @@ contract SebaCowIntentModule is ISebaCowIntentModule, ReentrancyGuard {
     /// @inheritdoc ISebaCowIntentModule
     uint256 public nextOrderId = 1;
     /// @inheritdoc ISebaCowIntentModule
-    mapping(uint8 => uint256) public activeOrder;
+    mapping(uint8 source => uint256 orderId) public activeOrder;
     /// @inheritdoc ISebaCowIntentModule
     uint256 public activeCount;
-    mapping(uint256 => Order) private _orders;
+    mapping(uint256 id => Order order) private _orders;
 
     /// @notice Pin reviewed integrations; address verification against the production chain remains a release gate.
     /// @param coordinator Fixed manager and sole accounting recipient.

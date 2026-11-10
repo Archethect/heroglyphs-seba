@@ -123,15 +123,26 @@ module or count such donations as assigned capital or recoverable manager invent
 
 ## Verification and abort gates
 
-Local post-audit evidence (2026-11-10): `node tools/v2/check-coverage.cjs /private/tmp/seba-cow-postaudit-unit.lcov`
-reported **100% lines, branches and functions for all ten measured V2 onchain targets**, with no changed production
-source excluded. The coverage run had 256 V2 unit tests. The full Foundry run first had 447 passing tests and one
+Local post-audit evidence (2026-11-10): the exact CI coverage invocation is:
+
+```sh
+FOUNDRY_TEST=tests/v2 FOUNDRY_COMPILATION_RESTRICTIONS='[]' FOUNDRY_ADDITIONAL_COMPILER_PROFILES='[]' \
+  node tools/v2/run-foundry.mjs coverage --offline --no-match-path '**/fork/**' --report lcov --report-file /private/tmp/seba-cow-final-ci-unit.lcov
+node tools/v2/check-coverage.cjs /private/tmp/seba-cow-final-ci-unit.lcov
+```
+
+It reported **100% lines, branches and functions for all ten measured V2 onchain targets**, with no changed production
+source excluded. The coverage run had 256 V2 unit tests. Omitting the two compiler-profile flags generates
+incomplete source maps and is **not** a valid coverage measurement. The full Foundry run first had 447 passing tests and one
 legacy fork `setUp()` failure from transient Alchemy DNS; the rerun exited successfully. Targeted pinned fork
 migration passed 5/5 and imported 1.4893780996765226 ETH of actual old protocol capital, not synthetic funding.
 `node tools/v2/check-artifacts.cjs` passed EIP-170/initcode and the pre-CoW layout commitment; the manager runtime is
 22,662/24,576 bytes. OpenZeppelin standalone upgrade validation passed for manager, both vaults and a compatible
 manager upgrade fixture. The three repository tests, local Graph reorg and independent post-audit diff review are
 additional evidence, not substitutes for live order acceptance or release approval.
+The CI Solhint gate uses zero warnings. Its V2 configuration allows an 11-branch migration preflight and 60-line
+integration functions, and exempts immutable names required by public ABI getters and CoW's mandatory long EIP-712
+string. These are style-policy exceptions, not exclusions from compilation, coverage, or security review.
 
 - Unit, branching-tree, value-math fuzz and stateful conservation invariants for every changed onchain path; honest 100%
   line/every-branch results and no excluded changed production code disguised as full coverage.

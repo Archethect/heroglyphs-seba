@@ -83,28 +83,28 @@ contract SebaV2DirectExecutor is IV2DirectExecutor, ReentrancyGuard {
         return _limits;
     }
     /// @inheritdoc IV2Executor
-    function configureLimits(Limits calldata l) external {
+    function configureLimits(Limits calldata next) external {
         if (msg.sender != treasury) revert Unauthorized();
         if (
             enabled ||
-            l.maxEth == 0 ||
-            l.maxYsy == 0 ||
-            l.maxMintFeeWad >= 1e18 ||
-            l.reportMaxAge == 0 ||
-            l.reportMaxBlockLag == 0 ||
-            l.maxDeadline == 0 ||
-            l.ethMaxAge != 0 ||
-            l.usdcMaxAge != 0 ||
-            l.slippageBps != 0 ||
-            l.pegBps != 0 ||
-            l.wethUsdcFee != 0 ||
-            l.rethWethFee != 0 ||
-            l.depositPool.code.length == 0 ||
-            l.networkBalances.code.length == 0 ||
-            l.depositSettings.code.length == 0
+            next.maxEth == 0 ||
+            next.maxYsy == 0 ||
+            next.maxMintFeeWad >= 1e18 ||
+            next.reportMaxAge == 0 ||
+            next.reportMaxBlockLag == 0 ||
+            next.maxDeadline == 0 ||
+            next.ethMaxAge != 0 ||
+            next.usdcMaxAge != 0 ||
+            next.slippageBps != 0 ||
+            next.pegBps != 0 ||
+            next.wethUsdcFee != 0 ||
+            next.rethWethFee != 0 ||
+            next.depositPool.code.length == 0 ||
+            next.networkBalances.code.length == 0 ||
+            next.depositSettings.code.length == 0
         ) revert InvalidConfiguration();
-        _limits = l;
-        emit LimitsConfigured(keccak256(abi.encode(l)));
+        _limits = next;
+        emit LimitsConfigured(keccak256(abi.encode(next)));
     }
     /// @inheritdoc IV2DirectExecutor
     function configureBoldLimit(uint256 amount) external {

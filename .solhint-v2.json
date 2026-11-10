@@ -1,11 +1,14 @@
 {
   "extends": "solhint:recommended",
   "rules": {
-    "code-complexity": ["error", 8],
+    "code-complexity": ["error", 11],
     "compiler-version": ["error", ">=0.8.28"],
     "func-name-mixedcase": "off",
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "max-line-length": ["error", 120],
+    "immutable-vars-naming": "off",
+    "function-max-lines": ["warn", 60],
+    "gas-small-strings": "off",
     "named-parameters-mapping": "warn",
     "no-console": "off",
     "not-rely-on-time": "off",
