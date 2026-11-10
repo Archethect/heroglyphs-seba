@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 45
     env:
       MAINNET_RPC: ${{ secrets.MAINNET_RPC }}
+      HOODI_RPC: ${{ secrets.HOODI_RPC }}
       ETHERSCAN_API_KEY: ""
       RUST_LOG: error
     steps:
@@ -24,7 +25,9 @@ jobs:
           version: v1.5.1
       - run: npm ci --ignore-scripts
       - name: Require archive RPC configuration
-        run: test -n "$MAINNET_RPC"
+        run: |
+          test -n "$MAINNET_RPC"
+          test -n "$HOODI_RPC"
       - name: V2 production-source lint
         run:
           npx solhint --config .solhint-v2.json --max-warnings 0 'src/v2/**/*.sol' 'src/interfaces/v2/*.sol'
@@ -32,13 +35,22 @@ jobs:
       - name: Compile artifacts used by read-only preflight tests
         run: node tools/v2/run-foundry.mjs build
       - name: Read-only preflight and coverage-gate tests
-        run: node --test tools/v2/*.test.cjs tools/cow/*.test.cjs
+        run: node --test tools/v2/*.test.cjs tools/cow/*.test.cjs tools/hoodi-local-rehearsal.test.mjs
       - name: V2 formatting
         run: >-
           npx prettier --check 'src/v2/**/*.sol' 'src/interfaces/v2/*.sol' 'src/vendor/v2/*.sol' 'script/v2/*.sol'
           'tests/v2/**/*.sol' 'tools/v2/*.{cjs,mjs}' 'tools/cow/*.cjs' 'docs/*.{md,json}' .github/workflows/v2.yml
       - name: Complete legacy and V2 test suite
-        run: node tools/v2/run-foundry.mjs test
+        run: node tools/v2/run-foundry.mjs test --no-match-path 'tests/hoodi/**'
+      - name: Isolated Hoodi fork migration and mock tests
+        run: node tools/v2/run-foundry.mjs test --match-path 'tests/hoodi/**'
+      - name: Hoodi mock-source coverage (single-profile source maps)
+        run: |
+          node tools/v2/run-foundry.mjs coverage --offline --match-path 'tests/hoodi/**' --report lcov --report-file hoodi-mocks.lcov
+          node tools/v2/check-coverage.cjs hoodi-mocks.lcov --hoodi
+        env:
+          FOUNDRY_COMPILATION_RESTRICTIONS: "[]"
+          FOUNDRY_ADDITIONAL_COMPILER_PROFILES: "[]"
       - name: V2 unit coverage (fork evidence is separate)
         run:
           node tools/v2/run-foundry.mjs coverage --offline --no-match-path '**/fork/**' --report lcov --report-file
@@ -77,4 +89,5 @@ jobs:
           path: |
             v2-unit.lcov
             v2-deployment.lcov
+            hoodi-mocks.lcov
             storage-layout/v2

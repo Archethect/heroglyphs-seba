@@ -4,24 +4,28 @@ const fs = require("node:fs");
 const file = process.argv[2];
 if (!file) throw new Error("Provide V2 unit LCOV file");
 const deployment = process.argv.includes("--deployment");
-const targets = deployment
-  ? ["DeploySebaV2"]
-  : [
-      "NativeSupporterVault",
-      "RethSupporterVault",
-      "YsyBoldSupporterVault",
-      "YieldManagerV2",
-      "SebaV2Executor",
-      "SebaV2DirectExecutor",
-      "cow/SebaCowIntentModule",
-      "cow/SebaCowOrderEscrow",
-      "LegacyProtocolPrincipalHandoff",
-      "LegacyIntakeStopper",
-    ];
+const hoodi = process.argv.includes("--hoodi");
+if (deployment && hoodi) throw new Error("Choose one coverage mode");
+const targets = hoodi
+  ? ["HoodiExternalMocks"]
+  : deployment
+    ? ["DeploySebaV2"]
+    : [
+        "NativeSupporterVault",
+        "RethSupporterVault",
+        "YsyBoldSupporterVault",
+        "YieldManagerV2",
+        "SebaV2Executor",
+        "SebaV2DirectExecutor",
+        "cow/SebaCowIntentModule",
+        "cow/SebaCowOrderEscrow",
+        "LegacyProtocolPrincipalHandoff",
+        "LegacyIntakeStopper",
+      ];
 const records = fs.readFileSync(file, "utf8").split("end_of_record");
 let failed = false;
 for (const name of targets) {
-  const source = deployment ? `script/v2/${name}.s.sol` : `src/v2/${name}.sol`;
+  const source = hoodi ? `src/mocks/hoodi/${name}.sol` : deployment ? `script/v2/${name}.s.sol` : `src/v2/${name}.sol`;
   const record = records.find((x) => x.includes(`SF:${source}\n`));
   if (!record) throw new Error(`Missing ${name} coverage`);
   const get = (k) => Number(record.match(new RegExp(`^${k}:(\\d+)$`, "m"))?.[1] ?? 0);

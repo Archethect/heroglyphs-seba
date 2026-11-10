@@ -1,8 +1,8 @@
 // Local receipt producer only. Never run against a public RPC endpoint.
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { ethers } from 'ethers';
+import { assertSourceLineage, currentSource } from './hoodi-source-gate.mjs';
 
 const RPC = process.env.HOODI_LOCAL_RPC ?? 'http://127.0.0.1:8547';
 const PHASE = process.argv[2];
@@ -55,15 +55,14 @@ const previousText = INPUT ? fs.readFileSync(INPUT, 'utf8') : undefined;
 if (previous && (previous.chainId !== 560048 || previous.network !== 'hoodi' || previous.testOnly !== true)) {
   throw new Error('previous manifest is not the Hoodi test-only schema');
 }
-const gitCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim().length > 0;
+const source = currentSource();
 const m = previous ?? {
   schemaVersion: 'seba-hoodi-rehearsal-v1',
   network: 'hoodi',
   chainId: 560048,
   testOnly: true,
   mode: 'isolated-mock-backed',
-  source: { contractsCommit: gitCommit, worktreeDirty: dirty },
+  source,
   anchor: { blockNumber: ANCHOR, blockHash: anchorBlock.hash },
   safe: {}, dependencies: {}, v1: {}, v2: {}, cutover: {}, reconciliation: {}, transactions: [],
 };
@@ -73,7 +72,7 @@ if (m.schemaVersion !== 'seba-hoodi-rehearsal-v1' || m.mode !== 'isolated-mock-b
 if (previous) m.previousManifestHash = ethers.keccak256(ethers.toUtf8Bytes(previousText));
 
 if (previous) {
-  if (previous.source.contractsCommit !== gitCommit) throw new Error('source commit changed between phases');
+  assertSourceLineage(previous.source, source);
   const current = await provider.getBlock('latest');
   if (current.number !== previous.checkpoint.blockNumber || current.hash !== previous.checkpoint.blockHash) {
     throw new Error('Anvil state advanced or reset since previous manifest');

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ethers } from 'ethers';
+import { assertSourceLineage, currentSource } from './hoodi-source-gate.mjs';
 
 const RPC = process.env.HOODI_LOCAL_RPC ?? 'http://127.0.0.1:8547';
 const ACTION = process.argv[2];
@@ -23,6 +24,7 @@ const manifest = JSON.parse(manifestBytes);
 if (manifest.phase !== 'cutover' || manifest.mode !== 'isolated-mock-backed' || manifest.testOnly !== true) {
   throw new Error('cutover manifest required');
 }
+assertSourceLineage(manifest.source, currentSource());
 const manifestHash = ethers.keccak256(ethers.toUtf8Bytes(manifestBytes));
 const pool = new ethers.Contract(manifest.v1.pool.address, ['function yieldManager() view returns (address)'], provider);
 if ((await pool.yieldManager()) !== manifest.v2.manager.address) throw new Error('pool pointer drift');

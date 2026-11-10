@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { assertSourceLineage } from './hoodi-source-gate.mjs';
 
 const script = new URL('./hoodi-local-rehearsal.mjs', import.meta.url).pathname;
 const cowScript = new URL('./hoodi-local-cow.mjs', import.meta.url).pathname;
@@ -32,4 +33,12 @@ test('CoW mock operations refuse public RPC and malformed actions', () => {
 
 test('rETH leg investment requires completed ysy order evidence', () => {
   rejected(cowScript, ['invest-reth', 'fake.json'], 'http://127.0.0.1:8549', /settled order evidence path required/);
+});
+
+test('a clean phase cannot be followed by a dirty or different source', () => {
+  const source = { contractsCommit: 'a'.repeat(40), worktreeDirty: false };
+  assert.throws(() => assertSourceLineage(source, { ...source, worktreeDirty: true }), /source.*changed/);
+  assert.throws(() => assertSourceLineage(source, { ...source, contractsCommit: 'b'.repeat(40) }), /source.*changed/);
+  assert.doesNotThrow(() => assertSourceLineage(source, source));
+  assert.doesNotThrow(() => assertSourceLineage({ ...source, worktreeDirty: true }, { ...source, worktreeDirty: true }));
 });
