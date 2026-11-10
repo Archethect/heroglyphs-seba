@@ -4,6 +4,7 @@ import { HandoffUnitBase } from "../HandoffUnitBase.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { ILegacyProtocolPrincipalHandoff } from "src/interfaces/v2/ILegacyProtocolPrincipalHandoff.sol";
 import { LegacyProtocolPrincipalHandoff } from "src/v2/LegacyProtocolPrincipalHandoff.sol";
+import { IV2SupporterVault } from "src/interfaces/v2/IV2SupporterVault.sol";
 
 contract HandoffDepositTest is HandoffUnitBase {
     function testFuzz_approvedWeightsAndOddWeiConserveOneHundredPercentProtocolCapital(
@@ -50,6 +51,20 @@ contract HandoffDepositTest is HandoffUnitBase {
         assertEq(address(handoff).balance, 456);
         assertEq(adapter.principalValue(), 150);
         assertEq(adapter.principalShares(), 121);
+    }
+    function test_recoveryBetweenPreflightAndImportRevertsAtomically() public {
+        _pre();
+        _switch();
+        rethVault.setRecoveryState(IV2SupporterVault.RecoveryState.Custody);
+        vm.expectRevert(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        _import();
+        assertFalse(handoff.used());
+        assertFalse(destination.legacyImported());
+        assertEq(address(old).balance, ETH_BUDGET);
+        rethVault.setRecoveryState(IV2SupporterVault.RecoveryState.Normal);
+        _import();
+        _finalPointers();
+        _post();
     }
     function test_actualLegacyUserDepositZeroReturnRollsBackEveryImportEffect() public {
         _pre();

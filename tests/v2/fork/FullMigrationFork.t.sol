@@ -224,6 +224,26 @@ contract FullMigrationForkTest is StackForkBase {
         assertFalse(handoff.used());
         assertFalse(manager.legacyImported());
     }
+    function test_RealSafeStageBRejectsVaultRecoveryStartedAfterStageA() public {
+        _prepareHandoff();
+        uint256 parkedEth = address(old).balance;
+        assertTrue(
+            _safeTransaction(
+                abi.encodeWithSignature(
+                    "multiSend(bytes)",
+                    _call(address(rVault), abi.encodeCall(rVault.beginRecovery, (keccak256("fork-only recovery test"))))
+                )
+            )
+        );
+        assertEq(uint256(rVault.recoveryState()), 1);
+        vm.expectRevert(bytes("GS013"));
+        this.executeCorrectForTest();
+        assertEq(address(old.yieldVault()), address(stopper));
+        assertEq(address(old).balance, parkedEth);
+        assertEq(manager.legacyHandoff(), address(0));
+        assertFalse(handoff.used());
+        assertFalse(manager.legacyImported());
+    }
     function test_StageABlocksNewLegacyDepositsAndPermissionlessSweepsUntilStageB() public {
         _prepareHandoff();
         uint256 parkedEth = address(old).balance;

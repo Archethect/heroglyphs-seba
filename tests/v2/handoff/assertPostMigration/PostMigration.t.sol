@@ -2,6 +2,8 @@
 pragma solidity 0.8.28;
 import { HandoffUnitBase } from "../HandoffUnitBase.sol";
 import { ILegacyProtocolPrincipalHandoff } from "src/interfaces/v2/ILegacyProtocolPrincipalHandoff.sol";
+import { IV2SupporterVault } from "src/interfaces/v2/IV2SupporterVault.sol";
+import { HandoffVaultMock } from "../HandoffMocks.sol";
 
 contract HandoffPostMigrationTest is HandoffUnitBase {
     function test_postassertNeedsAuthorityAndSameTransactionImport() public {
@@ -59,6 +61,22 @@ contract HandoffPostMigrationTest is HandoffUnitBase {
         vm.expectRevert(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
         _post();
         vm.deal(address(destination), ETH_BUDGET);
+        _post();
+    }
+    function test_postassertRejectsRecoveryStartedAfterImport() public {
+        _pre();
+        _switch();
+        _import();
+        _finalPointers();
+        for (uint8 leg; leg < 2; ++leg) {
+            HandoffVaultMock vault = leg == 0 ? rethVault : ysyVault;
+            for (uint8 state = 1; state < 4; ++state) {
+                vault.setRecoveryState(IV2SupporterVault.RecoveryState(state));
+                vm.expectRevert(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+                _post();
+            }
+            vault.setRecoveryState(IV2SupporterVault.RecoveryState.Normal);
+        }
         _post();
     }
 }
