@@ -8,6 +8,8 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { YieldManagerV2 } from "src/v2/YieldManagerV2.sol";
 import { IYieldManagerV2 } from "src/interfaces/v2/IYieldManagerV2.sol";
 import { IV2Executor } from "src/interfaces/v2/IV2Executor.sol";
+import { SebaCowIntentModule } from "src/v2/cow/SebaCowIntentModule.sol";
+import { CowSettlementMock } from "../cow/CowMocks.sol";
 
 contract ManagerSafeMock {
     bool public rejectEth;
@@ -31,6 +33,14 @@ contract ManagerTokenMock is ERC20 {
     }
     function burn(address from, uint256 amount) external {
         _burn(from, amount);
+    }
+    function deposit() external payable {
+        _mint(msg.sender, msg.value);
+    }
+    function withdraw(uint256 amount) external {
+        _burn(msg.sender, amount);
+        (bool ok, ) = msg.sender.call{ value: amount }("");
+        require(ok);
     }
     function setBrokenBalance(bool value) external {
         brokenBalance = value;
@@ -137,6 +147,12 @@ contract ManagerExecutorMock is IV2Executor {
     function investYsyBold(uint256, uint256) external payable returns (uint256) {
         return _eth(_config.ysyBold);
     }
+    function investBold(uint256 amount, uint256, uint256) external returns (uint256) {
+        IERC20(_config.bold).transferFrom(msg.sender, address(this), mode == 4 ? amount - 1 : amount);
+        if (mode == 2) return 0;
+        ManagerTokenMock(_config.ysyBold).mint(msg.sender, amount);
+        return mode == 1 ? amount + 1 : amount;
+    }
     function convertEthToBold(uint256, uint256) external payable returns (uint256) {
         return _eth(_config.bold);
     }
@@ -178,6 +194,8 @@ abstract contract ManagerTestBase is Test {
     ManagerVaultMock internal rVault;
     ManagerVaultMock internal yVault;
     ManagerExecutorMock internal execution;
+    SebaCowIntentModule internal cow;
+    CowSettlementMock internal cowSettlement;
     address internal operator;
 
     function setUp() public virtual {
@@ -238,6 +256,20 @@ abstract contract ManagerTestBase is Test {
         _bind();
         vm.startPrank(address(safe));
         manager.configureExecution(address(execution), 100_000 ether, 100_000 ether, 100_000 ether);
+        vm.stopPrank();
+        cowSettlement = new CowSettlementMock();
+        cow = new SebaCowIntentModule(
+            address(manager),
+            address(safe),
+            address(wethToken),
+            address(rethToken),
+            address(boldToken),
+            address(cowSettlement)
+        );
+        vm.startPrank(address(safe));
+        manager.configureCowModule(address(cow));
+        cow.configureLimits(100_000 ether, 100_000 ether, 900);
+        cow.setEnabled(true);
         manager.setExecutionEnabled(true);
         manager.setIntakeEnabled(true);
         vm.stopPrank();
@@ -245,11 +277,20 @@ abstract contract ManagerTestBase is Test {
     function _fund(uint256 amount) internal {
         pool.submit{ value: amount }(manager);
     }
+    function _settleReward(uint256 amount) internal {
+        uint256 id = cow.nextOrderId();
+        address escrow = cow.predictEscrow(id);
+        vm.prank(operator);
+        manager.openCowOrder(0, amount, 1, uint32(block.timestamp + 60), id, bytes32(id));
+        cowSettlement.fill(escrow, address(wethToken), address(boldToken), amount, amount);
+        vm.prank(operator);
+        manager.finalizeCowOrder(id);
+    }
     function _callAsOperator(bytes memory data) internal {
         vm.prank(operator);
         (bool ok, bytes memory reason) = address(manager).call(data);
         if (!ok)
-            assembly {
+            assembly ("memory-safe") {
                 revert(add(reason, 32), mload(reason))
             }
     }

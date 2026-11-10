@@ -10,6 +10,9 @@ const names = [
   "YsyBoldSupporterVault",
   "YieldManagerV2",
   "SebaV2Executor",
+  "SebaV2DirectExecutor",
+  "cow/SebaCowIntentModule",
+  "cow/SebaCowOrderEscrow",
   "LegacyProtocolPrincipalHandoff",
   "LegacyIntakeStopper",
 ];
@@ -27,7 +30,7 @@ function run(t, content, deployment = false) {
     { encoding: "utf8" },
   );
 }
-test("accepts complete seven-source coverage including branchless stopper", (t) => {
+test("accepts complete ten-source coverage including nested CoW sources and branchless stopper", (t) => {
   assert.equal(run(t, complete()).status, 0);
 });
 test("rejects an uncovered line, branch or function", (t) => {

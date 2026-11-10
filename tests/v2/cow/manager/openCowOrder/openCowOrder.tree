@@ -1,0 +1,11 @@
+openCowOrder
+├── Given unauthorized, paused, expired or unbound module
+│   └── It reverts without state advance
+├── Given reward ETH or ysy principal ETH
+│   ├── It debits only pendingEth[0] or pendingEth[2]
+│   └── Cap, custody deficit or unexpected ETH return reverts atomically
+├── Given supporter or protocol rETH harvested carry
+│   ├── It debits only matching harvestInventory bucket
+│   └── Missing inventory, cap or wrong actual spend reverts atomically
+└── Given deprecated synchronous DEX routes
+    └── They require asynchronous intents instead

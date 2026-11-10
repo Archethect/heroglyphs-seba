@@ -23,7 +23,7 @@ contract HandoffConstructorTest is HandoffUnitBase {
         for (uint256 i; i < 16; ++i) {
             ILegacyProtocolPrincipalHandoff.Configuration memory c = _configuration();
             if (i < 7)
-                assembly {
+                assembly ("memory-safe") {
                     mstore(add(c, mul(i, 32)), 0)
                 }
             else if (i == 7) c.destination = c.oldManager;

@@ -1,0 +1,11 @@
+deployYsyProtocolPrincipal
+├── Given unauthorized, paused, expired or insufficient settled principal BOLD
+│   └── It reverts and never spends reward BOLD
+├── Given executor zero output, lie, underspend or unmet minimum
+│   └── It rolls back source debit and approvals
+├── Given vault zero basis or partial share receipt
+│   └── It rolls back nested deposits and accounting
+└── Given valid nested Yearn route
+    ├── It credits actual ysyBOLD shares and yBOLD basis only
+    ├── It clears approvals and never debits ETH twice
+    └── Uninvested principal BOLD recovers separately to Safe

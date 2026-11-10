@@ -1,0 +1,39 @@
+CoW intents
+├── SebaCowIntentModule constructor/configureLimits/setEnabled
+│   ├── Invalid authority/code/decimals/token graph/domain/relayer → revert
+│   ├── Disabled defaults, finite nonzero caps, TTL and Safe-only configuration
+│   └── Pausing prevents opens but does not revoke authorized outstanding orders
+├── predictEscrow/order/orderUid/orderData
+│   ├── Prediction independent of quote limit/quantity, nonce guards stale quote owner
+│   └── Immutable canonical SELL/FOK/zero-fee/ERC20 order and exact domain UID
+├── openOrder
+│   ├── Only manager; one active per each of four immutable sources
+│   ├── Zero/oversize/minimum/expiry/TTL/value/nonce mismatches → atomic revert
+│   ├── WETH wrapping or harvested-rETH pull with exact measured deltas
+│   └── Clone initialized once, finite approval, presign only for stored order
+├── closeOrder / escrow.close
+│   ├── Full finite allowance spent + enough BOLD → exactly-once same-purpose gross BOLD
+│   ├── No input spent + operator before expiry → pending
+│   ├── No input spent + Safe cancel or past expiry → exact original input refund
+│   ├── Partial spend/short output/token delta fault → fail closed and no state advance
+│   ├── filledAmount cleanup does not erase finite-spend proof
+│   └── Revoked presign/zero allowance/closed flag prevent replay and double credit
+├── sweepOrderSurplus / escrow.sweep
+│   ├── Unauthorized or still open → revert
+│   ├── Unfilled donated BOLD cannot fake fill; terminal surplus only to fixed Safe
+│   └── Forced ETH, ERC20 surplus, transfer failures and initializer lock
+├── YieldManagerV2 openCowOrder/finalizeCowOrder/deployYsyProtocolPrincipal
+│   ├── Sources: reward ETH / ysy principal ETH / supporter rETH carry / protocol rETH carry
+│   ├── Debit source on open, restore original source only on refund
+│   ├── Principal BOLD distinct from donated reward BOLD; no second ETH debit
+│   ├── Direct Yearn measured shares and yBOLD basis; no arbitrary target/calldata
+│   ├── Pending orders must finish/cancel before module replacement or buffer recovery
+│   └── All four concurrent orders close independently/out of order, including paused
+├── SebaV2DirectExecutor
+│   ├── Every authority/identity/limit/paused/deadline and disabled DEX route
+│   ├── Rocket registry/report/fee/capacity/canonical floor and exact output
+│   └── Nested Yearn deposits/redemptions, zero-loss policy, exact inputs/outputs/approval cleanup
+└── Fuzz/invariants/fork
+    ├── Per-source conservation, source attribution, custody, no double credit, no replay
+    ├── Handler positive reachability and injected custody-leak negative control
+    └── Real deployed CoW/relayer/WETH/rETH semantics with impersonated solver/synthetic BOLD

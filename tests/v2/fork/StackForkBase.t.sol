@@ -6,7 +6,9 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { YieldManagerV2 } from "src/v2/YieldManagerV2.sol";
 import { RethSupporterVault } from "src/v2/RethSupporterVault.sol";
 import { YsyBoldSupporterVault } from "src/v2/YsyBoldSupporterVault.sol";
-import { SebaV2Executor } from "src/v2/SebaV2Executor.sol";
+import { SebaV2DirectExecutor } from "src/v2/SebaV2DirectExecutor.sol";
+import { SebaCowIntentModule } from "src/v2/cow/SebaCowIntentModule.sol";
+import { ISebaCowIntentModule } from "src/interfaces/v2/ISebaCowIntentModule.sol";
 import { YieldManager } from "src/YieldManager.sol";
 import { SebaPool } from "src/SebaPool.sol";
 import { IYieldManagerV2 } from "src/interfaces/v2/IYieldManagerV2.sol";
@@ -29,11 +31,14 @@ abstract contract StackForkBase is Test {
     YieldManagerV2 internal manager;
     RethSupporterVault internal rVault;
     YsyBoldSupporterVault internal yVault;
-    SebaV2Executor internal execution;
+    SebaV2DirectExecutor internal execution;
+    SebaCowIntentModule internal cow;
+    address internal constant COW = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    address internal constant SOLVER = 0x5ed864e8f37DCB4f79c5172A815D1B3a9147eaaB;
     address internal operator;
     function setUp() public virtual {
         if (vm.envOr("SEBA_V2_FRESH_FORK", false)) vm.createSelectFork(vm.envString("MAINNET_RPC"));
-        else vm.createSelectFork(vm.envString("MAINNET_RPC"), vm.envOr("SEBA_V2_FORK_BLOCK", uint256(26_255_470)));
+        else vm.createSelectFork(vm.envString("MAINNET_RPC"), vm.envOr("SEBA_V2_FORK_BLOCK", uint256(26_384_004)));
         emit log_named_uint("Fork snapshot block", block.number);
         emit log_named_bytes32("Fork parent hash", blockhash(block.number - 1));
         operator = makeAddr("local bounded V2 operator");
@@ -71,23 +76,24 @@ abstract contract StackForkBase is Test {
                 )
             )
         );
-        execution = new SebaV2Executor(
+        execution = new SebaV2DirectExecutor(
             IV2Executor.Config(
                 address(manager),
                 SAFE,
                 RETH,
                 WETH,
-                USDC,
+                address(0),
                 BOLD,
                 YBOLD,
                 YSY,
-                0xE592427A0AEce92De3Edee1F18E0157C05861564,
-                0xEFc6516323FbD28e80B85A497B65A86243a54B3E,
-                0xc0053f3FBcCD593758258334Dfce24C2A9A673aD,
-                0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6,
+                address(0),
+                address(0),
+                address(0),
+                address(0),
                 REGISTRY
             )
         );
+        cow = new SebaCowIntentModule(address(manager), SAFE, WETH, RETH, BOLD, COW);
         vm.prank(SAFE);
         manager.bindVaults(address(rVault), address(yVault));
     }
@@ -101,21 +107,22 @@ abstract contract StackForkBase is Test {
             100 ether,
             300_000 ether,
             1e15,
-            3600,
-            82800,
+            0,
+            0,
             2 days,
             20_000,
             15 minutes,
-            50,
-            100,
-            500,
-            100,
+            0,
+            0,
+            0,
+            0,
             _registry("rocketDepositPool"),
             _registry("rocketNetworkBalances"),
             _registry("rocketDAOProtocolSettingsDeposit")
         );
         vm.startPrank(SAFE);
         execution.configureLimits(l);
+        execution.configureBoldLimit(1_000_000 ether);
         execution.setEnabled(true);
         rVault.configureReportBounds(2 days, 20_000);
         rVault.configureEntry(1, true);
@@ -125,6 +132,9 @@ abstract contract StackForkBase is Test {
         yVault.configureHarvest(300_000 ether, true);
         yVault.setOperator(operator, true);
         manager.configureExecution(address(execution), 200 ether, 100 ether, 300_000 ether);
+        manager.configureCowModule(address(cow));
+        cow.configureLimits(200 ether, 100 ether, 900);
+        cow.setEnabled(true);
         manager.setExecutionEnabled(true);
         vm.stopPrank();
     }
@@ -151,7 +161,76 @@ abstract contract StackForkBase is Test {
             IERC20(YSY).balanceOf(address(manager)),
             manager.harvestInventory(1, 0) + manager.harvestInventory(1, 1)
         );
-        assertGe(IERC20(BOLD).balanceOf(address(manager)), manager.pendingBold());
+        assertGe(IERC20(BOLD).balanceOf(address(manager)), manager.pendingBold() + manager.pendingProtocolBold());
         assertGe(IERC20(address(old.sBOLD())).balanceOf(address(manager)), manager.pendingSBold());
     }
+    /// @dev REAL GPv2 settlement/allowlisted solver impersonation, SYNTHETIC BOLD liquidity; not a live market fill.
+    function _cowSwap(uint8 source, uint256 amount) internal returns (uint256 output) {
+        uint256 id = cow.nextOrderId();
+        vm.prank(operator);
+        manager.openCowOrder(source, amount, 1, uint32(block.timestamp + 60), id, bytes32(id));
+        output = amount * 2000;
+        _settleCow(id, output, 96, amount);
+        vm.prank(operator);
+        manager.finalizeCowOrder(id);
+    }
+    function _settleCow(uint256 id, uint256 output, uint256 flags, uint256 executed) internal {
+        ISebaCowIntentModule.Data memory o = cow.orderData(id);
+        address auth = ICowForkSettlement(COW).authenticator();
+        assertTrue(ICowForkAuthentication(auth).isSolver(SOLVER));
+        // Explicit synthetic settlement inventory, NOT proof of real quote/fill viability.
+        deal(BOLD, COW, IERC20(BOLD).balanceOf(COW) + output);
+        address[] memory tokens = new address[](2);
+        tokens[0] = o.sellToken;
+        tokens[1] = BOLD;
+        uint256[] memory prices = new uint256[](2);
+        prices[0] = output;
+        prices[1] = o.sellAmount;
+        ICowForkSettlement.Trade[] memory trades = new ICowForkSettlement.Trade[](1);
+        trades[0] = ICowForkSettlement.Trade(
+            0,
+            1,
+            o.receiver,
+            o.sellAmount,
+            o.buyAmount,
+            o.validTo,
+            o.appData,
+            0,
+            flags,
+            executed,
+            abi.encodePacked(o.receiver)
+        );
+        ICowForkSettlement.Interaction[][3] memory interactions;
+        for (uint256 i; i < 3; ++i) interactions[i] = new ICowForkSettlement.Interaction[](0);
+        vm.prank(SOLVER);
+        ICowForkSettlement(COW).settle(tokens, prices, trades, interactions);
+    }
+}
+
+interface ICowForkAuthentication {
+    function isSolver(address) external view returns (bool);
+}
+interface ICowForkSettlement {
+    struct Trade {
+        uint256 sellTokenIndex;
+        uint256 buyTokenIndex;
+        address receiver;
+        uint256 sellAmount;
+        uint256 buyAmount;
+        uint32 validTo;
+        bytes32 appData;
+        uint256 feeAmount;
+        uint256 flags;
+        uint256 executedAmount;
+        bytes signature;
+    }
+    struct Interaction {
+        address target;
+        uint256 value;
+        bytes callData;
+    }
+    function authenticator() external view returns (address);
+    function filledAmount(bytes calldata) external view returns (uint256);
+    function freeFilledAmountStorage(bytes[] calldata) external;
+    function settle(address[] calldata, uint256[] calldata, Trade[] calldata, Interaction[][3] calldata) external;
 }

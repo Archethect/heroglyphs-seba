@@ -165,7 +165,7 @@ contract ExecutorRouter {
         if (callback != address(0)) {
             (bool ok, bytes memory reason) = callback.call(callbackData);
             if (!ok)
-                assembly {
+                assembly ("memory-safe") {
                     revert(add(reason, 32), mload(reason))
                 }
         }

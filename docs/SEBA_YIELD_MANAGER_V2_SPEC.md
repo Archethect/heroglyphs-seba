@@ -7,6 +7,10 @@ This is the approved design record. The branch now contains its implementation; 
 remaining gates are in [the implementation/release review](V2_IMPLEMENTATION_AND_RELEASE.md). Implementation-plan
 statements below describe the specification stage, not the current branch's completion status.
 
+10 November CoW revision: swap-only execution now uses the approved **V1 quote/fixed-minimum approach, without Pyth**.
+The lifecycle, source IDs, trust boundary and emergency procedures in [the CoW runbook](COW_INTENTS_RELEASE.md) are
+normative for this revision. Original fixed-route test/audit evidence does not certify the CoW changes.
+
 ## 1. Decision and scope
 
 Replace the deployed manager for **future SebaPool rewards** with a new manager coordinating two native-token vaults.
@@ -330,19 +334,20 @@ Forced/unclassified ETH is not automatically pool income or user principal. Trac
 Safe classification. Maintain `actual ETH >= all pending assigned ETH + any classified ETH yield inventory`; conversion
 spend decrements exactly one authorized source bucket.
 
-### 5.2 Initial typed routes
+### 5.2 Typed direct operations and asynchronous swaps
 
-Prefer synchronous fixed-route execution for V2 to avoid inheriting the legacy router's global CoW-order state. Validate
-this choice at intended size and costs on a fresh fork; poor execution is a release blocker, not permission to install
-arbitrary aggregator calldata.
+Use an isolated CoW PreSign escrow for each order, with one active order per source and at most four active orders. Do
+not reuse the legacy router's single global UID. Orders are exact-budget SELL, fill-or-kill, fixed BOLD receiver, finite
+allowance, zero signed fee and fixed expiry. Current quote fees are reflected in the gross-budget/net-minimum
+calculation. The quote is not a settlement guarantee. No arbitrary aggregator calldata or fallback venue is authorized.
 
-| Purpose                     | Route and accounting                                                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Protocol rETH investment    | Assigned ETH → current registry Rocket Pool deposit pool → actual rETH → protocol bucket. Credit actual rETH's canonical ETH basis, not gross ETH before mint fee. |
-| Protocol ysyBOLD investment | Assigned ETH → WETH → USDC → BOLD → yBOLD → ysyBOLD → protocol bucket. Credit actual final shares' yBOLD basis.                                                    |
-| Immediate pool rewards      | Assigned direct-reward ETH → WETH → USDC → BOLD → sBOLD → existing pybSeba.                                                                                        |
-| rETH carry                  | Harvested rETH → WETH on a verified fixed venue → USDC → BOLD → sBOLD → pybSeba. No compulsory native burn/withdrawal queue.                                       |
-| ysyBOLD carry               | Harvested ysyBOLD → yBOLD → BOLD → sBOLD → pybSeba. **No BOLD→USDC→ETH→BOLD roundtrip.**                                                                           |
+| Purpose                     | Route and accounting                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Protocol rETH investment    | Assigned ETH → current registry Rocket Pool deposit pool → actual rETH → protocol bucket. Credit actual rETH's canonical ETH basis, not gross ETH before mint fee.                   |
+| Protocol ysyBOLD investment | Assigned ETH → WETH CoW escrow → proven BOLD settlement → separate `pendingProtocolBold` → direct yBOLD/ysyBOLD deposits → protocol bucket. Credit actual final shares' yBOLD basis. |
+| Immediate pool rewards      | Assigned reward ETH → WETH CoW escrow → proven BOLD settlement → reward `pendingBold` → sBOLD → existing pybSeba.                                                                    |
+| rETH carry                  | Source/bucket-labelled rETH CoW escrow → proven BOLD settlement → reward `pendingBold` → sBOLD → pybSeba. No compulsory native burn/withdrawal queue.                                |
+| ysyBOLD carry               | Harvested ysyBOLD → yBOLD → BOLD → sBOLD → pybSeba. **No BOLD→USDC→ETH→BOLD roundtrip.**                                                                                             |
 
 Do not require USD feeds, Curve liquidity or Yearn redemption for native supporter withdrawal. ysyBOLD carry redemption
 requires Yearn availability, but not Curve/ETH/USD when no swap occurs. External failures may delay donations without
@@ -353,19 +358,23 @@ units. An estimate of market slippage is informational; do not subtract ETH from
 intact claim after a fee-bearing rETH mint. Apply the same healthy-entry, nonzero basis/inverse payout and custody
 checks to protocol credit; pending ETH is not permission to bypass a leg's entry freeze.
 
-The executor returns only this call's outputs and leftovers to the manager; it cannot sweep other callers' dust or spend
-a second classified bucket. Reconcile exact input/output balance deltas, refunds and intermediate tokens. Use ERC20 WETH
-on Uniswap rather than leaving native refunds unaccounted. Any partial exact-input consumption is debited by actual
-spend; remaining input stays assigned to the original purpose. No operator gas fee/reimbursement from protected
-principal.
+Direct operations reconcile exact input/output deltas and clear approvals. CoW swaps debit exactly one source at
+opening; the corresponding asset remains explicitly in-flight. A proven fill credits only that source's reward/principal
+BOLD. An unfilled terminal close refunds exactly the original sell quantity to the same source; WETH refunds are
+unwrapped. Intermediate allowance consumption is invalid and fails closed, not a supported partial fill. Unsolicited
+BOLD cannot prove a fill. Each isolated escrow closes once; its finite allowance consumption remains evidence even if
+CoW clears expired `filledAmount` storage. No operator gas fee/reimbursement from protected principal.
 
 ### 5.3 Execution bounds
 
-Execution routes require real deadlines, caller minima and independent contract-enforced floors. Price-dependent routes
-additionally require positive/complete/fresh relevant feed rounds and BOLD peg protection. Do not add USD-feed
-dependencies to native exits or the direct ysyBOLD-to-BOLD donation path. Use fixed verified token/venue identities,
-full-precision decimal normalization and exact bounded approvals cleared after use. A backend cannot lower onchain
-safety limits by supplying zero minima. Do not use current spot output as the sole minimum.
+Direct operations retain native protocol floors, deadlines and caller minima. For CoW swaps the approved economic model
+is different: the operator obtains a fresh verified quote, validates identities/amounts and applies separately approved
+slippage to set a positive immutable BOLD minimum. **No independent USD oracle, BOLD peg guard or fair-value floor is
+enforced for these orders.** A malicious/compromised bounded operator or bad quote can misprice harvested yield and
+protocol capital. Caps are per call, not cumulative loss limits. Native supporter backing never enters a CoW order. Use
+fixed verified tokens/settlement/relayer, no arbitrary target/calldata and finite order-specific approvals. Backend
+quote expiration gates opening authorization; the pre-signed order thereafter remains valid through its signed
+`validTo`, including across backend restarts. Do not claim that an offchain posting pause revokes it.
 
 Normal Yearn redemption maximum accepted loss is **0 bps**, explicit for both layers. No automatic emergency tolerance
 widening. Inability to redeem yield does not authorize redeeming principal.
@@ -373,11 +382,11 @@ widening. Inability to redeem yield does not authorize redeeming principal.
 Yearn 3.0.4's `maxRedeem(owner, maxLoss)` overload ignores its loss argument; a successful limit query with zero is not
 proof of a zero-loss redemption. Pass zero to the actual redemption calls and test their realized outcomes.
 
-Numeric release parameters remain **unapproved implementation gates**: maximum rETH mint fee; per-swap slippage/impact
-and BOLD peg caps; venue/pool fee tiers; source-specific oracle freshness; Rocket Pool report-age/data-block-lag bounds;
-per-operation ETH/token caps; acceptable dust bounds and minimum viable harvest size. Prior adapter values (50 bps
-swaps, 100 bps peg, 100 bps emergency Yearn loss) are not silently approved V2 settings. Recommend conservative values
-with current full-size fork evidence for user review; do not guess during implementation.
+Numeric release parameters remain **unapproved implementation gates**: maximum rETH mint fee; CoW quote slippage and
+order TTL; Rocket Pool report-age/data-block-lag bounds; per-operation ETH/token caps; acceptable dust bounds and
+minimum viable harvest size. Prior adapter values (50 bps swaps, 100 bps peg, 100 bps emergency Yearn loss) are not
+silently approved V2 settings. Recommend conservative values with current full-size fork evidence for user review; do
+not guess during implementation.
 
 Rocket Pool currently reports daily; a 1-hour USD-feed window must not be copied to its balance report. Registry changes
 require code/identity checks and explicit operational review, never a remembered obsolete deposit-pool address. Prove

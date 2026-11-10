@@ -6,6 +6,8 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IYieldManager } from "src/interfaces/IYieldManager.sol";
 import { IEthToBoldRouter } from "src/interfaces/IEthToBoldRouter.sol";
 import { ILegacyProtocolPrincipalHandoff } from "src/interfaces/v2/ILegacyProtocolPrincipalHandoff.sol";
+import { IV2SupporterVault } from "src/interfaces/v2/IV2SupporterVault.sol";
+import { ISebaCowIntentModule } from "src/interfaces/v2/ISebaCowIntentModule.sol";
 import { LegacyIntakeStopper } from "src/v2/LegacyIntakeStopper.sol";
 
 /// @title Legacy adapter accounting views
@@ -93,6 +95,16 @@ interface IHandoffDestination {
     /// @notice Read sBOLD awaiting donation to PYB SEBA.
     /// @return Accounted sBOLD atoms.
     function pendingSBold() external view returns (uint256);
+    /// @notice Read settled BOLD reserved for ysyBOLD protocol principal.
+    /// @return Accounted protocol BOLD atoms awaiting direct Yearn deployment.
+    function pendingProtocolBold() external view returns (uint256);
+    /// @notice Read the optional CoW intent module.
+    /// @return Module address, or zero before it is configured.
+    function cowModule() external view returns (address);
+    /// @notice Read one native supporter vault.
+    /// @param leg Asset leg: 0 rETH, 1 ysyBOLD.
+    /// @return Vault proxy address.
+    function vaults(uint256 leg) external view returns (address);
     /// @notice Read harvested native receipt tokens awaiting donation conversion.
     /// @param leg Asset leg: 0 rETH, 1 ysyBOLD.
     /// @param bucket Principal category: 0 supporters, 1 protocol.
@@ -351,9 +363,18 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
             next.executionEnabled() ||
             next.buffersRecovered() ||
             next.pendingBold() != 0 ||
-            next.pendingSBold() != 0
+            next.pendingSBold() != 0 ||
+            next.pendingProtocolBold() != 0
         ) revert InvalidState();
+        address module = next.cowModule();
+        if (module != address(0) && ISebaCowIntentModule(module).activeCount() != 0) revert InvalidState();
         for (uint256 i; i < 3; ++i) if (next.pendingEth(i) != 0) revert InvalidState();
+        for (uint256 leg; leg < 2; ++leg) {
+            address vault = next.vaults(leg);
+            if (vault.code.length == 0) revert InvalidState();
+            IV2SupporterVault.Bucket memory protocol = IV2SupporterVault(vault).bucket(1);
+            if (protocol.basis != 0 || protocol.tokens != 0) revert InvalidState();
+        }
         for (uint8 leg; leg < 2; ++leg)
             for (uint8 bucket; bucket < 2; ++bucket) {
                 if (next.harvestInventory(leg, bucket) != 0) revert InvalidState();

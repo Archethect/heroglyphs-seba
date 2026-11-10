@@ -1,0 +1,13 @@
+finalizeCowOrder
+├── Given missing module or previously finalized order
+│   └── It rejects duplicate accounting
+├── Given proven fill
+│   ├── ysy principal BOLD credits pendingProtocolBold only
+│   └── Other sources credit pendingBold only
+├── Given no fill
+│   ├── Operator waits until strictly past expiry
+│   └── Safe can cancel early and refund restores original source
+├── Given execution paused
+│   └── Existing orders may still fill and reconciliation remains available
+└── Given actual receipt differs
+    └── It rolls back all credits

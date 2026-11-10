@@ -25,8 +25,11 @@ contract RecoveryStackForkTest is StackForkBase {
         pool.sweepRewards();
         vm.startPrank(operator);
         manager.deployProtocolPrincipal(0, 1 ether, 1, 1, block.timestamp + 60);
-        manager.deployProtocolPrincipal(1, 1 ether, 1, 1, block.timestamp + 60);
         vm.stopPrank();
+        _cowSwap(1, 1 ether);
+        uint256 protocolBold = manager.pendingProtocolBold();
+        vm.prank(operator);
+        manager.deployYsyProtocolPrincipal(protocolBold, 1, 1, block.timestamp + 60);
         alice = makeAddr("recovery alice");
         bob = makeAddr("recovery bob");
         address carol = makeAddr("already withdrawn carol");
@@ -87,12 +90,12 @@ contract RecoveryStackForkTest is StackForkBase {
             "injected Yearn redemption outage"
         );
         vm.mockCallRevert(
-            execution.configuration().curvePool,
+            0xEFc6516323FbD28e80B85A497B65A86243a54B3E,
             abi.encodeWithSignature("exchange(int128,int128,uint256,uint256)"),
             "injected unusable Curve"
         );
         vm.mockCallRevert(
-            execution.configuration().ethUsdFeed,
+            0xc0053f3FBcCD593758258334Dfce24C2A9A673aD,
             abi.encodeWithSignature("latestRoundData()"),
             "injected stale USD feed"
         );

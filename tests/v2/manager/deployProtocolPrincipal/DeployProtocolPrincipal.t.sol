@@ -9,20 +9,19 @@ contract ManagerProtocolDeployTest is ManagerTestBase {
         vm.expectRevert(IYieldManagerV2.ExecutionDisabled.selector);
         manager.deployProtocolPrincipal(0, 1, 0, 0, block.timestamp);
     }
-    function test_BothLegsCreditActualBackingWithoutSupporterClaims() public {
+    function test_DirectRethCreditsBackingAndYsyCashRemainsAssigned() public {
         _enable();
         _fund(8 ether);
         vm.startPrank(operator);
         manager.deployProtocolPrincipal(0, 2 ether, 2 ether, 2 ether, block.timestamp);
-        manager.deployProtocolPrincipal(1, 2 ether, 2 ether, 2 ether, block.timestamp);
         vm.stopPrank();
         assertEq(rVault.protocolBasis(), 2 ether);
-        assertEq(yVault.protocolBasis(), 2 ether);
+        assertEq(yVault.protocolBasis(), 0);
         assertEq(rethToken.balanceOf(address(rVault)), 2 ether);
-        assertEq(ysyToken.balanceOf(address(yVault)), 2 ether);
+        assertEq(ysyToken.balanceOf(address(yVault)), 0);
         assertEq(manager.pendingEth(0), 4 ether);
         assertEq(manager.pendingEth(1), 0);
-        assertEq(manager.pendingEth(2), 0);
+        assertEq(manager.pendingEth(2), 2 ether);
         assertEq(rethToken.allowance(address(manager), address(rVault)), 0);
         assertEq(ysyToken.allowance(address(manager), address(yVault)), 0);
     }
@@ -62,7 +61,7 @@ contract ManagerProtocolDeployTest is ManagerTestBase {
         vm.expectRevert(IYieldManagerV2.Unauthorized.selector);
         manager.deployProtocolPrincipal(0, 1, 0, 0, block.timestamp);
         vm.startPrank(operator);
-        vm.expectRevert(IYieldManagerV2.InvalidLeg.selector);
+        vm.expectRevert(IYieldManagerV2.AsyncOrderRequired.selector);
         manager.deployProtocolPrincipal(2, 1, 0, 0, block.timestamp);
         vm.expectRevert(IYieldManagerV2.Expired.selector);
         manager.deployProtocolPrincipal(0, 1, 0, 0, block.timestamp - 1);

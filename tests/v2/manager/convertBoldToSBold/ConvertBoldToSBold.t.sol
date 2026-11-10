@@ -9,8 +9,7 @@ contract ConvertBoldToSBoldTest is ManagerTestBase {
         super.setUp();
         _enable();
         _fund(40 ether);
-        vm.prank(operator);
-        manager.convertEthRewards(20 ether, 20 ether, block.timestamp);
+        _settleReward(20 ether);
     }
     function test_MintIsExactAndUnsolicitedBoldIsNotDonated() public {
         boldToken.mint(address(manager), 1 ether);

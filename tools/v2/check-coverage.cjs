@@ -12,6 +12,9 @@ const targets = deployment
       "YsyBoldSupporterVault",
       "YieldManagerV2",
       "SebaV2Executor",
+      "SebaV2DirectExecutor",
+      "cow/SebaCowIntentModule",
+      "cow/SebaCowOrderEscrow",
       "LegacyProtocolPrincipalHandoff",
       "LegacyIntakeStopper",
     ];

@@ -1,5 +1,11 @@
 # Seba V2 implementation and release review
 
+**Historical base-PR evidence below.** The stacked `codex/seba-v2-cow-intents` revision replaces only DEX swaps with CoW
+and supersedes the fixed-route execution passages in this document. Use
+[the CoW release runbook](COW_INTENTS_RELEASE.md) and [assessment](COW_INTENTS_ASSESSMENT.md) for its current lifecycle,
+trust boundary and release gates. The old test counts, coverage percentages, audit results and bytecode sizes below do
+**not** apply to the CoW revision. New evidence must be measured before it is ready; no production action is authorized.
+
 Implementation branch: `codex/seba-yield-manager-v2`, based on contracts `origin/main`
 `0d2c922d4df05c38d934bc481e020ef7dd79dab0`. The original dirty rETH checkout is preserved.
 
@@ -128,7 +134,11 @@ not production artifact sizes.
    manager's exact-ETH balance, after approval. Each such drift aborts Stage B and requires a newly reconciled Safe
    handoff. This is the explicitly accepted governance-availability trade-off, not a guarantee of timely cutover. Fresh
    swap output changes between blocks: execute the first-stage exit, then approve an exact import of ETH already held by
-   the old manager. There is no standing pre-exit swap quote.
+   the old manager. There is no standing pre-exit swap quote. The legacy manager still permits public supporter deposits
+   before Stage A. Any newly created live deposit ID can be held until its owner withdraws, so the zero-live-claims
+   gate is also a third-party availability veto. Check the latest ID and coordinate every owner immediately before
+   Stage A; do not remove the gate or assume the Safe can force-withdraw a claim. A fresh claim means abort and obtain
+   a new cutover window/approval.
 2. Approve a numeric risk pack separately: caps, per-hop slippage, mint fee, oracle/report freshness, venue fee tiers,
    deadline, minimum entry/harvest sizes. Defaults remain disabled/zero. Never widen Yearn redemption loss above zero as
    an automatic fallback.

@@ -681,9 +681,6 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
     function _contract(address target) internal view {
         if (target.code.length == 0) revert InvalidConfiguration();
     }
-    function _leg(uint8 leg) internal pure {
-        if (leg > 1) revert InvalidLeg();
-    }
     function _bucket(uint8 which) internal pure {
         if (which > 1) revert InvalidBucket();
     }
