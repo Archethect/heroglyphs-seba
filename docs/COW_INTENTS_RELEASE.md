@@ -5,11 +5,11 @@ hosted services or merge from this document. The V2 migration approval gate rema
 
 ## Review status and accepted migration risks
 
-The frozen-source [three-pass Pashov review](../audits/v2-cow-pashov-20261110.md) returned **35 of
-36** planned specialist reviews (one pass-two access reviewer failed at the platform boundary). It reported five
+The frozen-source [three-pass Pashov review](../audits/v2-cow-pashov-20261110.md) returned **35 of 36** planned
+specialist reviews (one pass-two access reviewer failed at the platform boundary). It reported five
 migration-availability findings and no confirmed unauthorized asset extraction. It is not an audit of subsequent
-hardening changes, and the separate companion chat could not verify a Daybreak model selection. The exact live CoW
-order format/zero-fee acceptance remains unproved and blocks production enablement.
+hardening changes, and the separate companion chat could not verify a Daybreak model selection. The exact live CoW order
+format/zero-fee acceptance remains unproved and blocks production enablement.
 
 The Safe-approved exact-snapshot and zero-live-legacy-claims gates are intentionally strict. An unprivileged party can
 send one wei to the old manager/router, send an extra Beefy share atom to the old adapter, or hold a valid public legacy
@@ -40,8 +40,8 @@ still have their own oracle/freshness checks. Removing Seba's DEX-oracle guards 
 
 Direct Rocket Pool/Yearn operations retain **exact** backend previews. The user declined a preview-drift tolerance:
 Yearn's rate can change between the preview block and the execution block, causing a healthy ysyBOLD deployment to
-revert and remain pending for retry. A fork reproduced this on the source-1 BOLD deployment; loosening the minimum by
-1 bp made that local transaction pass, but that tolerance is **not** implemented or approved. A separate sBOLD oracle
+revert and remain pending for retry. A fork reproduced this on the source-1 BOLD deployment; loosening the minimum by 1
+bp made that local transaction pass, but that tolerance is **not** implemented or approved. A separate sBOLD oracle
 returned `TooStalePrice()` on the time-warped fork, blocking donation independently of CoW. Do not represent the local
 composite rehearsal as a completed healthy donation or assume repeated exact previews will eventually succeed.
 
@@ -132,17 +132,17 @@ node tools/v2/check-coverage.cjs /private/tmp/seba-cow-final-ci-unit.lcov
 ```
 
 It reported **100% lines, branches and functions for all ten measured V2 onchain targets**, with no changed production
-source excluded. The coverage run had 256 V2 unit tests. Omitting the two compiler-profile flags generates
-incomplete source maps and is **not** a valid coverage measurement. The full Foundry run first had 447 passing tests and one
-legacy fork `setUp()` failure from transient Alchemy DNS; the rerun exited successfully. Targeted pinned fork
-migration passed 5/5 and imported 1.4893780996765226 ETH of actual old protocol capital, not synthetic funding.
+source excluded. The coverage run had 256 V2 unit tests. Omitting the two compiler-profile flags generates incomplete
+source maps and is **not** a valid coverage measurement. The full Foundry run first had 447 passing tests and one legacy
+fork `setUp()` failure from transient Alchemy DNS; the rerun exited successfully. Targeted pinned fork migration passed
+5/5 and imported 1.4893780996765226 ETH of actual old protocol capital, not synthetic funding.
 `node tools/v2/check-artifacts.cjs` passed EIP-170/initcode and the pre-CoW layout commitment; the manager runtime is
-22,662/24,576 bytes. OpenZeppelin standalone upgrade validation passed for manager, both vaults and a compatible
-manager upgrade fixture. The three repository tests, local Graph reorg and independent post-audit diff review are
-additional evidence, not substitutes for live order acceptance or release approval.
-The CI Solhint gate uses zero warnings. Its V2 configuration allows an 11-branch migration preflight and 60-line
-integration functions, and exempts immutable names required by public ABI getters and CoW's mandatory long EIP-712
-string. These are style-policy exceptions, not exclusions from compilation, coverage, or security review.
+22,662/24,576 bytes. OpenZeppelin standalone upgrade validation passed for manager, both vaults and a compatible manager
+upgrade fixture. The three repository tests, local Graph reorg and independent post-audit diff review are additional
+evidence, not substitutes for live order acceptance or release approval. The CI Solhint gate uses zero warnings. Its V2
+configuration allows an 11-branch migration preflight and 60-line integration functions, and exempts immutable names
+required by public ABI getters and CoW's mandatory long EIP-712 string. These are style-policy exceptions, not
+exclusions from compilation, coverage, or security review.
 
 - Unit, branching-tree, value-math fuzz and stateful conservation invariants for every changed onchain path; honest 100%
   line/every-branch results and no excluded changed production code disguised as full coverage.
@@ -171,10 +171,10 @@ Local delta replay is not a complete historical rebuild or hosted production dep
 
 The isolated local reorg rehearsal at fork block 26384078 indexed an orphaned `CowExecutionSet(true)` receipt, reverted
 that Anvil block, mined a different transaction at the same height restoring `false`, and advanced the local chain.
-Graph Node removed the orphaned transaction `0x296b0a89f856c08736bd89a4c670936f40112c2b92cca0cbc04178d0bfc3c175`, indexed replacement
-`0xc3fba4ada21d6f2d43bcc626f379a82a037af4cdf431c1efaf49041fcffec97b`, and showed the module disabled at canonical
-block 26384079. The repeatable, loopback-guarded test is `node tools/cow/local-graph-reorg.cjs FIXTURE --execute-local`;
-it requires a fresh fixture head and dedicated ports 38545/38000. This proves local rollback for that event, not every
-possible cross-chain/indexer reorg.
-The script was rerun from a fresh checkpoint at block 26384085 and passed independently at competing block 26384086,
-reporting `orphanEventRemoved=true`, `replacementEventIndexed=true`, and `stateRestored=true`.
+Graph Node removed the orphaned transaction `0x296b0a89f856c08736bd89a4c670936f40112c2b92cca0cbc04178d0bfc3c175`,
+indexed replacement `0xc3fba4ada21d6f2d43bcc626f379a82a037af4cdf431c1efaf49041fcffec97b`, and showed the module disabled
+at canonical block 26384079. The repeatable, loopback-guarded test is
+`node tools/cow/local-graph-reorg.cjs FIXTURE --execute-local`; it requires a fresh fixture head and dedicated ports
+38545/38000. This proves local rollback for that event, not every possible cross-chain/indexer reorg. The script was
+rerun from a fresh checkpoint at block 26384085 and passed independently at competing block 26384086, reporting
+`orphanEventRemoved=true`, `replacementEventIndexed=true`, and `stateRestored=true`.

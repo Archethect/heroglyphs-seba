@@ -115,13 +115,13 @@ hooks are not treated as contract-enforced safety checks.
   `208210855043`. The aggregate failure must not be reported as failure of its 1 ETH call. The preceding 1 ETH swap
   affects the subsequent call's local pool state. No minimum was widened to make tests pass.
 - The three-pass frozen-source audit at `2d77f42` returned 35/36 specialists; its
-  [assembled report](../audits/v2-cow-pashov-20261110.md) records five migration-availability
-  findings and eight leads, not a clean bill of health. Post-audit destination-preflight hardening was separately
-  reviewed and tested. The measured changed onchain targets reached 100% lines/branches/functions in unit coverage;
-  the current full Foundry run passed after retrying one transient Alchemy DNS setup failure. The isolated local
-  backend/Graph replay reconciled canonical balances/events and a same-height reorg. **Live exact-order acceptance,
-  actual solver fill, numeric production risk parameters, hosted indexer catch-up and frontend acceptance remain open
-  release gates.** Draft PR review must not be mistaken for deployment authorization.
+  [assembled report](../audits/v2-cow-pashov-20261110.md) records five migration-availability findings and eight leads,
+  not a clean bill of health. Post-audit destination-preflight hardening was separately reviewed and tested. The
+  measured changed onchain targets reached 100% lines/branches/functions in unit coverage; the current full Foundry run
+  passed after retrying one transient Alchemy DNS setup failure. The isolated local backend/Graph replay reconciled
+  canonical balances/events and a same-height reorg. **Live exact-order acceptance, actual solver fill, numeric
+  production risk parameters, hosted indexer catch-up and frontend acceptance remain open release gates.** Draft PR
+  review must not be mistaken for deployment authorization.
 
 ## CROPS/trust review
 

@@ -135,10 +135,10 @@ not production artifact sizes.
    handoff. This is the explicitly accepted governance-availability trade-off, not a guarantee of timely cutover. Fresh
    swap output changes between blocks: execute the first-stage exit, then approve an exact import of ETH already held by
    the old manager. There is no standing pre-exit swap quote. The legacy manager still permits public supporter deposits
-   before Stage A. Any newly created live deposit ID can be held until its owner withdraws, so the zero-live-claims
-   gate is also a third-party availability veto. Check the latest ID and coordinate every owner immediately before
-   Stage A; do not remove the gate or assume the Safe can force-withdraw a claim. A fresh claim means abort and obtain
-   a new cutover window/approval.
+   before Stage A. Any newly created live deposit ID can be held until its owner withdraws, so the zero-live-claims gate
+   is also a third-party availability veto. Check the latest ID and coordinate every owner immediately before Stage A;
+   do not remove the gate or assume the Safe can force-withdraw a claim. A fresh claim means abort and obtain a new
+   cutover window/approval.
 2. Approve a numeric risk pack separately: caps, per-hop slippage, mint fee, oracle/report freshness, venue fee tiers,
    deadline, minimum entry/harvest sizes. Defaults remain disabled/zero. Never widen Yearn redemption loss above zero as
    an automatic fallback.

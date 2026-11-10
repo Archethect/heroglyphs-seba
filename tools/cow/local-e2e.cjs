@@ -376,7 +376,9 @@ async function exit(provider, f, recoveryBeforeInvestment = false) {
     await tx(v.configureHarvest(await v.maximumHarvest(), false));
   }
   await tx(manager.recoverBuffers(id("local cow completed reconciliation")));
-  const unlocks = await Promise.all(vaults.flatMap((v) => f.users.map(async (_, i) => Number((await v.position(i + 1)).unlockAt))));
+  const unlocks = await Promise.all(
+    vaults.flatMap((v) => f.users.map(async (_, i) => Number((await v.position(i + 1)).unlockAt))),
+  );
   const unlock = Math.max(...unlocks);
   if ((await provider.getBlock("latest")).timestamp < unlock) {
     await provider.send("evm_setNextBlockTimestamp", [unlock]);
