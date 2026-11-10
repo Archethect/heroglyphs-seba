@@ -8,6 +8,8 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IYieldManagerV2 } from "../interfaces/v2/IYieldManagerV2.sol";
 import { IV2Executor } from "../interfaces/v2/IV2Executor.sol";
+import { IV2DirectExecutor } from "../interfaces/v2/IV2DirectExecutor.sol";
+import { ISebaCowIntentModule } from "../interfaces/v2/ISebaCowIntentModule.sol";
 import { IV2SupporterVault } from "../interfaces/v2/IV2SupporterVault.sol";
 import { ISBOLD } from "../vendor/liquity/ISBOLD.sol";
 import { IPYBSeba } from "../interfaces/IPYBSeba.sol";
@@ -112,7 +114,11 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
     bool public legacyImported;
     /// @notice Immutable approved legacy-import evidence commitment after arming.
     bytes32 public legacyManifest;
-    uint256[40] private __gap;
+    /// @notice Fixed-route CoW module; each pending source has independent escrow custody.
+    ISebaCowIntentModule public cowModule;
+    /// @notice Settled BOLD reserved only for ysyBOLD protocol principal, never rewards.
+    uint256 public pendingProtocolBold;
+    uint256[38] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -226,8 +232,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
             c.bold != bold ||
             c.yBold != yBold ||
             c.weth.code.length == 0 ||
-            c.usdc.code.length == 0 ||
-            (weth != address(0) && (c.weth != weth || c.usdc != usdc))
+            (weth != address(0) && c.weth != weth)
         ) revert InvalidConfiguration();
         if (address(executor) != address(0)) {
             if (
@@ -269,7 +274,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         uint256 minBasis,
         uint256 deadline
     ) external nonReentrant onlyOperator {
-        _leg(leg);
+        if (leg != 0) revert AsyncOrderRequired();
         _execution(deadline);
         _ethAmount(amount, pendingEth[leg + 1]);
         _ethCustody();
@@ -278,9 +283,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         IERC20 token = IERC20(leg == 0 ? reth : ysyBold);
         uint256 beforeTokens = token.balanceOf(address(this));
         uint256 beforeEth = address(this).balance;
-        uint256 output = leg == 0
-            ? executor.investReth{ value: amount }(minTokens, deadline)
-            : executor.investYsyBold{ value: amount }(minTokens, deadline);
+        uint256 output = executor.investReth{ value: amount }(minTokens, deadline);
         uint256 received = token.balanceOf(address(this)) - beforeTokens;
         if (address(this).balance != beforeEth - amount) revert InvalidTokenDelta();
         if (received == 0 || received != output) revert InvalidTokenDelta();
@@ -295,20 +298,8 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
     }
 
     /// @inheritdoc IYieldManagerV2
-    function convertEthRewards(uint256 amount, uint256 minBold, uint256 deadline) external nonReentrant onlyOperator {
-        _execution(deadline);
-        _ethAmount(amount, pendingEth[0]);
-        _ethCustody();
-        _boldCustody();
-        pendingEth[0] -= amount;
-        uint256 beforeTokens = IERC20(bold).balanceOf(address(this));
-        uint256 beforeEth = address(this).balance;
-        uint256 output = executor.convertEthToBold{ value: amount }(minBold, deadline);
-        if (address(this).balance != beforeEth - amount) revert InvalidTokenDelta();
-        _creditBold(beforeTokens, output, minBold);
-        _ethCustody();
-        _boldCustody();
-        emit RewardsConverted(0, 0, amount, output);
+    function convertEthRewards(uint256, uint256, uint256) external view onlyOperator {
+        revert AsyncOrderRequired();
     }
 
     /// @inheritdoc IYieldManagerV2
@@ -319,7 +310,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         uint256 minBold,
         uint256 deadline
     ) external nonReentrant onlyOperator {
-        _leg(leg);
+        if (leg != 1) revert AsyncOrderRequired();
         _bucket(which);
         _execution(deadline);
         _yieldCustody(leg);
@@ -331,15 +322,129 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         uint256 beforeInput = token.balanceOf(address(this));
         uint256 beforeBold = IERC20(bold).balanceOf(address(this));
         token.forceApprove(address(executor), amount);
-        uint256 output = leg == 0
-            ? executor.convertRethToBold(amount, minBold, deadline)
-            : executor.convertYsyToBold(amount, minBold, deadline);
+        uint256 output = executor.convertYsyToBold(amount, minBold, deadline);
         token.forceApprove(address(executor), 0);
         if (token.balanceOf(address(this)) != beforeInput - amount) revert InvalidTokenDelta();
         _creditBold(beforeBold, output, minBold);
         _yieldCustody(leg);
         _boldCustody();
         emit RewardsConverted(leg + 1, which, amount, output);
+    }
+
+    /// @inheritdoc IYieldManagerV2
+    function configureCowModule(address target) external onlySafe {
+        if (executionEnabled || buffersRecovered || (address(cowModule) != address(0) && cowModule.activeCount() != 0))
+            revert ActiveCowOrders();
+        _contract(target);
+        ISebaCowIntentModule m = ISebaCowIntentModule(target);
+        if (
+            m.manager() != address(this) ||
+            m.treasury() != treasury ||
+            m.reth() != reth ||
+            m.bold() != bold ||
+            m.weth() != weth ||
+            weth == address(0)
+        ) revert InvalidConfiguration();
+        cowModule = m;
+        emit CowModuleConfigured(target);
+    }
+
+    /// @inheritdoc IYieldManagerV2
+    function openCowOrder(
+        uint8 source,
+        uint256 amount,
+        uint256 minBold,
+        uint32 validTo,
+        uint256 expectedId,
+        bytes32 appData
+    ) external nonReentrant onlyOperator returns (uint256 id) {
+        _execution(validTo);
+        if (source > 3 || address(cowModule) == address(0)) revert InvalidConfiguration();
+        uint256 beforeEth = address(this).balance;
+        uint256 beforeReth;
+        if (source < 2) {
+            uint8 purpose = source == 0 ? 0 : 2;
+            _ethAmount(amount, pendingEth[purpose]);
+            _ethCustody();
+            pendingEth[purpose] -= amount;
+        } else {
+            _yieldCustody(0);
+            if (amount == 0 || amount > maximumYieldTokens[0] || amount > harvestInventory[0][source - 2])
+                revert InvalidAmount();
+            harvestInventory[0][source - 2] -= amount;
+            beforeReth = IERC20(reth).balanceOf(address(this));
+            IERC20(reth).forceApprove(address(cowModule), amount);
+        }
+        (id, ) = cowModule.openOrder{ value: source < 2 ? amount : 0 }(
+            source,
+            amount,
+            minBold,
+            validTo,
+            expectedId,
+            appData
+        );
+        if (source < 2) {
+            if (address(this).balance != beforeEth - amount) revert InvalidTokenDelta();
+            _ethCustody();
+        } else {
+            IERC20(reth).forceApprove(address(cowModule), 0);
+            if (IERC20(reth).balanceOf(address(this)) != beforeReth - amount) revert InvalidTokenDelta();
+            _yieldCustody(0);
+        }
+    }
+
+    /// @inheritdoc IYieldManagerV2
+    function finalizeCowOrder(uint256 id) external nonReentrant onlyOperator {
+        if (address(cowModule) == address(0)) revert InvalidConfiguration();
+        uint256 beforeEth = address(this).balance;
+        uint256 beforeReth = IERC20(reth).balanceOf(address(this));
+        uint256 beforeBold = IERC20(bold).balanceOf(address(this));
+        (uint8 source, , bool filled, uint256 refund, uint256 received) = cowModule.closeOrder(
+            id,
+            msg.sender == treasury
+        );
+        if (
+            address(this).balance != beforeEth + (source < 2 ? refund : 0) ||
+            IERC20(reth).balanceOf(address(this)) != beforeReth + (source >= 2 ? refund : 0) ||
+            IERC20(bold).balanceOf(address(this)) != beforeBold + received
+        ) revert InvalidTokenDelta();
+        if (filled) {
+            if (source == 1) pendingProtocolBold += received;
+            else pendingBold += received;
+        } else if (source < 2) pendingEth[source == 0 ? 0 : 2] += refund;
+        else harvestInventory[0][source - 2] += refund;
+        emit CowOrderAccounted(id, source, filled, refund, received);
+    }
+
+    /// @inheritdoc IYieldManagerV2
+    function deployYsyProtocolPrincipal(
+        uint256 amount,
+        uint256 minTokens,
+        uint256 minBasis,
+        uint256 deadline
+    ) external nonReentrant onlyOperator {
+        _execution(deadline);
+        _boldCustody();
+        _yieldCustody(1);
+        if (amount == 0 || amount > pendingProtocolBold) revert InvalidAmount();
+        pendingProtocolBold -= amount;
+        uint256 beforeBold = IERC20(bold).balanceOf(address(this));
+        uint256 beforeYsy = IERC20(ysyBold).balanceOf(address(this));
+        IERC20(bold).forceApprove(address(executor), amount);
+        uint256 output = IV2DirectExecutor(address(executor)).investBold(amount, minTokens, deadline);
+        IERC20(bold).forceApprove(address(executor), 0);
+        uint256 received = IERC20(ysyBold).balanceOf(address(this)) - beforeYsy;
+        if (
+            received == 0 ||
+            received != output ||
+            received < minTokens ||
+            IERC20(bold).balanceOf(address(this)) != beforeBold - amount
+        ) revert InvalidTokenDelta();
+        IERC20(ysyBold).forceApprove(vaults[1], received);
+        uint256 basis = IV2SupporterVault(vaults[1]).depositProtocol(received, minBasis, deadline);
+        IERC20(ysyBold).forceApprove(vaults[1], 0);
+        if (IERC20(ysyBold).balanceOf(address(this)) != beforeYsy || basis == 0) revert InvalidTokenDelta();
+        emit YsyProtocolDeployed(amount, received, basis);
     }
 
     /// @inheritdoc IYieldManagerV2
@@ -453,13 +558,15 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
     /// @inheritdoc IYieldManagerV2
     function recoverBuffers(bytes32 manifest) external nonReentrant onlySafe {
         if (manifest == bytes32(0)) revert InvalidConfiguration();
+        if (address(cowModule) != address(0) && cowModule.activeCount() != 0) revert ActiveCowOrders();
         _custody();
         uint256 ethAmount = _assignedEth();
         uint256 b = pendingBold;
+        uint256 p = pendingProtocolBold;
         uint256 s = pendingSBold;
         uint256 r = harvestInventory[0][0] + harvestInventory[0][1];
         uint256 y = harvestInventory[1][0] + harvestInventory[1][1];
-        if (buffersRecovered && ethAmount + b + s + r + y == 0) revert BuffersAlreadyRecovered();
+        if (buffersRecovered && ethAmount + b + p + s + r + y == 0) revert BuffersAlreadyRecovered();
         bytes32 accountingHash = keccak256(
             abi.encode(
                 pendingEth,
@@ -468,7 +575,8 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
                 harvestInventory[1][0],
                 harvestInventory[1][1],
                 b,
-                s
+                s,
+                p
             )
         );
         intakeEnabled = false;
@@ -476,12 +584,13 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         buffersRecovered = true;
         delete pendingEth;
         pendingBold = 0;
+        pendingProtocolBold = 0;
         pendingSBold = 0;
         delete harvestInventory[0][0];
         delete harvestInventory[0][1];
         delete harvestInventory[1][0];
         delete harvestInventory[1][1];
-        _sendToken(bold, b);
+        _sendToken(bold, b + p);
         _sendToken(sBold, s);
         _sendToken(reth, r);
         _sendToken(ysyBold, y);
@@ -490,6 +599,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
             if (!ok) revert TransferFailed();
         }
         emit BuffersRecovered(manifest, ethAmount, b, s, r, y, accountingHash);
+        emit ProtocolBoldRecovered(manifest, p);
     }
 
     /// @inheritdoc IYieldManagerV2
@@ -547,7 +657,7 @@ contract YieldManagerV2 is IYieldManagerV2, ReentrancyGuardUpgradeable, UUPSUpgr
         if (address(this).balance < _assignedEth()) revert InvalidTokenDelta();
     }
     function _boldCustody() internal view {
-        if (IERC20(bold).balanceOf(address(this)) < pendingBold) revert InvalidTokenDelta();
+        if (IERC20(bold).balanceOf(address(this)) < pendingBold + pendingProtocolBold) revert InvalidTokenDelta();
     }
     function _sBoldCustody() internal view {
         if (IERC20(sBold).balanceOf(address(this)) < pendingSBold) revert InvalidTokenDelta();
