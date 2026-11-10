@@ -31,6 +31,66 @@ interface IYieldManagerV2 {
     error InvalidImport();
     error CoreAsset();
     error TransferFailed();
+    error AsyncOrderRequired();
+    error ActiveCowOrders();
+    /// @notice Safe bound a typed CoW module; indexers may bind its lifecycle events.
+    /// @param module Reciprocal fixed-source module, bound only while paused and no earlier orders remain.
+    event CowModuleConfigured(address indexed module);
+    /// @notice Returned order custody was credited exactly once to its original source.
+    /// @param orderId Module-local order identity; pair it with the current module address.
+    /// @param source Original immutable accounting source.
+    /// @param filled Whether exact input consumption was proven onchain.
+    /// @param refundSell Original unspent input restored to its source.
+    /// @param boldReceived Gross proven-fill BOLD credited to rewards or separate protocol principal.
+    event CowOrderAccounted(
+        uint256 indexed orderId,
+        uint8 indexed source,
+        bool filled,
+        uint256 refundSell,
+        uint256 boldReceived
+    );
+    /// @notice Settled principal BOLD acquired actual backing; no second ETH debit occurs.
+    /// @param boldIn Protocol BOLD consumed by the direct nested Yearn route.
+    /// @param tokens Actual ysyBOLD atoms received and deposited in the protocol vault bucket.
+    /// @param basis Actual yBOLD principal basis credited by that vault.
+    event YsyProtocolDeployed(uint256 boldIn, uint256 tokens, uint256 basis);
+    /// @notice Retired principal BOLD is disclosed separately from reward BOLD.
+    /// @param manifest Approved reconciliation commitment.
+    /// @param amount Exact protocol BOLD atoms transferred to the Safe.
+    event ProtocolBoldRecovered(bytes32 indexed manifest, uint256 amount);
+    /// @notice Bind a reciprocal module while paused and no previous orders remain.
+    /// @param target Reviewed non-upgradeable module with matching manager, Safe and token identities.
+    function configureCowModule(address target) external;
+    /// @notice Open quote/minimum-protected order from source 0 reward ETH, 1 ysy principal ETH, 2/3 rETH carry.
+    /// @param source Immutable purpose, never inferred from offchain status at finalization.
+    /// @param amount Exact ETH wei or harvested rETH atoms assigned to this order.
+    /// @param minBold Nonzero exact-order BOLD floor approved by the bounded operator.
+    /// @param validTo Last settlement timestamp within the module's Safe-approved TTL.
+    /// @param expectedId Expected next identity used for the quoted escrow owner and receiver.
+    /// @param appData CoW application-data hash.
+    /// @return Newly reserved module-local order identity.
+    function openCowOrder(
+        uint8 source,
+        uint256 amount,
+        uint256 minBold,
+        uint32 validTo,
+        uint256 expectedId,
+        bytes32 appData
+    ) external returns (uint256);
+    /// @notice Reconcile proven fill or expired refund; Safe may cancel unfilled orders early, including while paused.
+    /// @param orderId Open module-local identity to reconcile exactly once.
+    function finalizeCowOrder(uint256 orderId) external;
+    /// @notice Deploy only settled protocol BOLD through direct nested Yearn deposits.
+    /// @param boldAmount Exact protocol BOLD atoms consumed; never reward BOLD.
+    /// @param minTokens Minimum actual ysyBOLD atoms delivered by the direct executor.
+    /// @param minBasis Minimum actual yBOLD principal basis credited by the vault.
+    /// @param deadline Inclusive execution timestamp.
+    function deployYsyProtocolPrincipal(
+        uint256 boldAmount,
+        uint256 minTokens,
+        uint256 minBasis,
+        uint256 deadline
+    ) external;
 
     /// @notice Fixed production identities were initialized atomically in the proxy.
     /// @param pool Sole source of fresh reward ETH.

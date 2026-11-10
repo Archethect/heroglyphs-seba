@@ -1,0 +1,12 @@
+openOrder
+├── Given caller is unauthorized or opening is paused
+│   └── It reverts without deploying or funding an escrow
+├── Given source, quantity, minimum, expiry, TTL, exact ETH value or next ID is invalid
+│   └── It reverts without debiting any source
+├── Given one source already has an active order
+│   └── It rejects while other sources remain independent
+├── Given ETH input
+│   └── It wraps exactly, measures sender/escrow deltas and presigns one finite FOK order
+└── Given harvested rETH input
+    ├── It pulls exactly once with finite allowance
+    └── Nonstandard mint, tax, extra-debit or receipt faults revert atomically

@@ -25,8 +25,13 @@ contract StackFlowsForkTest is StackForkBase {
         assertEq(reward, (inherited + 40 ether) / 2);
         vm.startPrank(operator);
         manager.deployProtocolPrincipal(0, rCash, 1, 1, block.timestamp + 60);
-        manager.deployProtocolPrincipal(1, yCash, 1, 1, block.timestamp + 60);
-        manager.convertEthRewards(reward, 1, block.timestamp + 60);
+        vm.stopPrank();
+        _cowSwap(1, yCash);
+        uint256 protocolBold = manager.pendingProtocolBold();
+        vm.prank(operator);
+        manager.deployYsyProtocolPrincipal(protocolBold, 1, 1, block.timestamp + 60);
+        _cowSwap(0, reward);
+        vm.startPrank(operator);
         manager.convertBoldToSBold(manager.pendingBold(), 1, block.timestamp + 60);
         vm.stopPrank();
         uint256 donation = manager.pendingSBold();
@@ -65,12 +70,12 @@ contract StackFlowsForkTest is StackForkBase {
             "injected Yearn outage"
         );
         vm.mockCallRevert(
-            execution.configuration().curvePool,
+            0xEFc6516323FbD28e80B85A497B65A86243a54B3E,
             abi.encodeWithSignature("exchange(int128,int128,uint256,uint256)"),
             "injected Curve outage"
         );
         vm.mockCallRevert(
-            execution.configuration().ethUsdFeed,
+            0xc0053f3FBcCD593758258334Dfce24C2A9A673aD,
             abi.encodeWithSignature("latestRoundData()"),
             "injected oracle outage"
         );

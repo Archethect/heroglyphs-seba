@@ -1,0 +1,5 @@
+upgradeToAndCall
+├── Given Safe upgrade with one live order and settled protocol BOLD
+│   └── It preserves module binding, source debits, UID, pending principal and active count
+└── Given settlement after upgrade
+    └── It credits reward BOLD exactly once without consuming protocol BOLD

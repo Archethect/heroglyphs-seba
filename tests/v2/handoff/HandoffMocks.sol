@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 import { IEthFlow } from "src/vendor/cowswap/IEthFlow.sol";
+import { IV2SupporterVault } from "src/interfaces/v2/IV2SupporterVault.sol";
 import { ExecutorToken } from "../executor/ExecutorMocks.sol";
 
 contract HandoffSafeMock {
@@ -57,6 +58,28 @@ contract HandoffRouterMock {
     }
 }
 
+contract HandoffVaultMock {
+    uint256 public protocolBasis;
+    uint256 public protocolTokens;
+    function setProtocol(uint256 basis, uint256 tokens) external {
+        protocolBasis = basis;
+        protocolTokens = tokens;
+    }
+    function bucket(uint8 which) external view returns (IV2SupporterVault.Bucket memory record) {
+        if (which == 1) {
+            record.basis = protocolBasis;
+            record.tokens = protocolTokens;
+        }
+    }
+}
+
+contract HandoffCowModuleMock {
+    uint256 public activeCount;
+    function setActiveCount(uint256 count) external {
+        activeCount = count;
+    }
+}
+
 /// @dev SYNTHETIC adapter: a fixed 50% ETH return proves legacy control flow, not executable mainnet liquidation.
 contract HandoffAdapterMock {
     uint256 public principalValue;
@@ -97,6 +120,9 @@ contract HandoffDestinationMock {
     uint256[3] public pendingEth;
     uint256 public pendingBold;
     uint256 public pendingSBold;
+    uint256 public pendingProtocolBold;
+    address[2] public vaults;
+    address public cowModule;
     mapping(uint8 => mapping(uint8 => uint256)) public harvestInventory;
     uint16 public rethBps = 5000;
     uint16 public ysyBoldBps = 5000;
@@ -132,6 +158,15 @@ contract HandoffDestinationMock {
     function setRewards(uint256 b, uint256 s) external {
         pendingBold = b;
         pendingSBold = s;
+    }
+    function setProtocolBold(uint256 amount) external {
+        pendingProtocolBold = amount;
+    }
+    function setVaults(address rethVault, address ysyVault) external {
+        vaults = [rethVault, ysyVault];
+    }
+    function setCowModule(address module) external {
+        cowModule = module;
     }
     function setHarvest(uint8 leg, uint8 bucket, uint256 n) external {
         harvestInventory[leg][bucket] = n;

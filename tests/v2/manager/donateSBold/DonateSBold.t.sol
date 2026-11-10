@@ -9,8 +9,8 @@ contract DonateSBoldTest is ManagerTestBase {
         super.setUp();
         _enable();
         _fund(40 ether);
+        _settleReward(20 ether);
         vm.startPrank(operator);
-        manager.convertEthRewards(20 ether, 1, block.timestamp);
         manager.convertBoldToSBold(20 ether, 1, block.timestamp);
         vm.stopPrank();
     }

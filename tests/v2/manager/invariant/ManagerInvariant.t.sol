@@ -10,6 +10,8 @@ import {
     ManagerSinkMock
 } from "../ManagerTestBase.t.sol";
 import { YieldManagerV2 } from "src/v2/YieldManagerV2.sol";
+import { SebaCowIntentModule } from "src/v2/cow/SebaCowIntentModule.sol";
+import { CowSettlementMock } from "../../cow/CowMocks.sol";
 
 /// @notice Unit state-machine: synthetic 1:1 venues prove purpose accounting, NOT market execution.
 contract ManagerAccountingHandler is Test {
@@ -46,16 +48,21 @@ contract ManagerAccountingHandler is Test {
         uint8 leg = seed % 2;
         uint256 available = manager.pendingEth(leg + 1);
         if (available == 0) return;
-        uint256 amount = bound(quantity, 1, available);
-        vm.prank(operator);
-        manager.deployProtocolPrincipal(leg, amount, 1, 1, block.timestamp);
+        uint256 amount = bound(quantity, 1, available > manager.maximumEth() ? manager.maximumEth() : available);
+        if (leg == 1) {
+            _swap(1, amount);
+            vm.prank(operator);
+            manager.deployYsyProtocolPrincipal(amount, 1, 1, block.timestamp);
+        } else {
+            vm.prank(operator);
+            manager.deployProtocolPrincipal(0, amount, 1, 1, block.timestamp);
+        }
         ++successfulActions;
     }
     function reward(uint96 quantity) public {
         uint256 available = manager.pendingEth(0);
         if (available == 0) return;
-        vm.prank(operator);
-        manager.convertEthRewards(bound(quantity, 1, available), 1, block.timestamp);
+        _swap(0, bound(quantity, 1, available > manager.maximumEth() ? manager.maximumEth() : available));
         ++successfulActions;
     }
     function harvest(uint8 legSeed, uint8 bucketSeed, uint96 quantity) public {
@@ -69,8 +76,12 @@ contract ManagerAccountingHandler is Test {
         uint8 bucket = bucketSeed % 2;
         uint256 available = manager.harvestInventory(leg, bucket);
         if (available == 0) return;
-        vm.prank(operator);
-        manager.convertHarvest(leg, bucket, bound(quantity, 1, available), 1, block.timestamp);
+        uint256 amount = bound(quantity, 1, available > 100_000 ether ? 100_000 ether : available);
+        if (leg == 0) _swap(2 + bucket, amount);
+        else {
+            vm.prank(operator);
+            manager.convertHarvest(leg, bucket, amount, 1, block.timestamp);
+        }
         ++successfulActions;
     }
     function mintSBold(uint96 quantity) public {
@@ -86,6 +97,22 @@ contract ManagerAccountingHandler is Test {
         vm.prank(operator);
         manager.donateSBold(bound(quantity, 1, available));
         ++successfulActions;
+    }
+    function _swap(uint8 source, uint256 amount) private {
+        SebaCowIntentModule cow = SebaCowIntentModule(payable(address(manager.cowModule())));
+        uint256 id = cow.nextOrderId();
+        address escrow = cow.predictEscrow(id);
+        vm.prank(operator);
+        manager.openCowOrder(source, amount, 1, uint32(block.timestamp + 60), id, bytes32(id));
+        CowSettlementMock(cow.settlement()).fill(
+            escrow,
+            source < 2 ? manager.weth() : manager.reth(),
+            manager.bold(),
+            amount,
+            amount
+        );
+        vm.prank(operator);
+        manager.finalizeCowOrder(id);
     }
 }
 
@@ -114,11 +141,11 @@ contract ManagerInvariantTest is ManagerTestBase {
         uint256 y = manager.harvestInventory(1, 0) + manager.harvestInventory(1, 1);
         assertEq(rethToken.balanceOf(address(manager)), r);
         assertEq(ysyToken.balanceOf(address(manager)), y);
-        assertEq(boldToken.balanceOf(address(manager)), manager.pendingBold());
+        assertEq(boldToken.balanceOf(address(manager)), manager.pendingBold() + manager.pendingProtocolBold());
         assertEq(sBoldToken.balanceOf(address(manager)), manager.pendingSBold());
         uint256 completed = rVault.protocolBasis() + yVault.protocolBasis() + sBoldToken.balanceOf(address(sink));
         assertEq(
-            cash + r + y + manager.pendingBold() + manager.pendingSBold() + completed,
+            cash + r + y + manager.pendingBold() + manager.pendingProtocolBold() + manager.pendingSBold() + completed,
             handler.receivedEth() + handler.harvestedTokens()
         );
         assertEq(rethToken.balanceOf(address(rVault)), rVault.protocolBasis());

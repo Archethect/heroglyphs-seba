@@ -1,0 +1,253 @@
+{
+  "endpoint": "https://api.cow.fi/mainnet/api/v1/quote",
+  "observedUtc": "2026-11-10T10:44:02Z/2026-11-10T10:44:05Z",
+  "caveat": "provider verified simulation, no order submission or live fill",
+  "results": [
+    {
+      "case": "WETH 0.01",
+      "request": {
+        "sellToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "10000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "9942978755011822",
+          "buyAmount": "20787107742523450572",
+          "validTo": 1794307742,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "57021244988178",
+          "gasAmount": "216078",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:02.129838445Z",
+        "id": 3143128526,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    },
+    {
+      "case": "WETH 1",
+      "request": {
+        "sellToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "1000000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "999689550383760923",
+          "buyAmount": "2091466009741239669520",
+          "validTo": 1794307742,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "310449616239077",
+          "gasAmount": "1176427",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:02.155922395Z",
+        "id": 3143128693,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    },
+    {
+      "case": "WETH 100",
+      "request": {
+        "sellToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "100000000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "99999134027743223509",
+          "buyAmount": "209155231110470237509831",
+          "validTo": 1794307743,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "865972256776491",
+          "gasAmount": "3281541",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:03.042142530Z",
+        "id": 3143128967,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    },
+    {
+      "case": "rETH 0.01",
+      "request": {
+        "sellToken": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "10000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xae78736cd615f374d3085123a210448e74fc6393",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "9941256849777514",
+          "buyAmount": "24436349843220050458",
+          "validTo": 1794307742,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "58743150222486",
+          "gasAmount": "261996",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1.1769650645622327100880966099794022738933563232421875",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:02.610421136Z",
+        "id": 3143128598,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    },
+    {
+      "case": "rETH 1",
+      "request": {
+        "sellToken": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "1000000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xae78736cd615f374d3085123a210448e74fc6393",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "999686820686907569",
+          "buyAmount": "2458541013497044044846",
+          "validTo": 1794307742,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "313179313092431",
+          "gasAmount": "1396788",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1.1769650645622327100880966099794022738933563232421875",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:02.034299720Z",
+        "id": 3143128215,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    },
+    {
+      "case": "rETH 100",
+      "request": {
+        "sellToken": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+        "buyToken": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+        "from": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "receiver": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "sellAmountBeforeFee": "100000000000000000000",
+        "kind": "sell",
+        "partiallyFillable": false,
+        "signingScheme": "presign",
+        "onchainOrder": true,
+        "priceQuality": "verified",
+        "validFor": 300
+      },
+      "response": {
+        "quote": {
+          "sellToken": "0xae78736cd615f374d3085123a210448e74fc6393",
+          "buyToken": "0x6440f144b7e50d6a8439336510312d2f54beb01d",
+          "receiver": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+          "sellAmount": "99999634326378639544",
+          "buyAmount": "245712994788467419321976",
+          "validTo": 1794307743,
+          "appData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "feeAmount": "365673621360456",
+          "gasAmount": "1630914",
+          "gasPrice": "263891951",
+          "sellTokenPrice": "1.1769650645622327100880966099794022738933563232421875",
+          "kind": "sell",
+          "partiallyFillable": false,
+          "sellTokenBalance": "erc20",
+          "buyTokenBalance": "erc20",
+          "signingScheme": "presign"
+        },
+        "from": "0x888d768764a2e304215247f0ba3457ccb0f0ab4f",
+        "expiration": "2026-11-10T10:54:03.107698777Z",
+        "id": 3143129014,
+        "verified": true,
+        "protocolFeeBps": "2"
+      }
+    }
+  ]
+}

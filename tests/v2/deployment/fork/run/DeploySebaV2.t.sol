@@ -7,6 +7,8 @@ import { YieldManagerV2 } from "../../../../../src/v2/YieldManagerV2.sol";
 import { RethSupporterVault } from "../../../../../src/v2/RethSupporterVault.sol";
 import { YsyBoldSupporterVault } from "../../../../../src/v2/YsyBoldSupporterVault.sol";
 import { SebaV2Executor } from "../../../../../src/v2/SebaV2Executor.sol";
+import { SebaV2DirectExecutor } from "../../../../../src/v2/SebaV2DirectExecutor.sol";
+import { SebaCowIntentModule } from "../../../../../src/v2/cow/SebaCowIntentModule.sol";
 import { IYieldManagerV2 } from "../../../../../src/interfaces/v2/IYieldManagerV2.sol";
 import { IV2Executor } from "../../../../../src/interfaces/v2/IV2Executor.sol";
 
@@ -59,6 +61,12 @@ contract DeploySebaV2ForkTest is Test {
         assertEq(reth.maximumReportAge(), 0);
         assertEq(reth.maximumReportBlockLag(), 0);
         assertFalse(SebaV2Executor(d.executor).enabled());
+        assertEq(SebaV2DirectExecutor(d.executor).maximumBold(), 0);
+        assertEq(address(manager.cowModule()), address(0));
+        assertFalse(SebaCowIntentModule(payable(d.cowModule)).enabled());
+        assertEq(SebaCowIntentModule(payable(d.cowModule)).nextOrderId(), 1);
+        assertEq(SebaCowIntentModule(payable(d.cowModule)).manager(), d.manager);
+        assertEq(d.bootstrapCowData, abi.encodeCall(manager.configureCowModule, (d.cowModule)));
         IV2Executor.Limits memory empty;
         assertEq(abi.encode(SebaV2Executor(d.executor).limits()), abi.encode(empty));
         assertEq(SebaV2Executor(d.executor).manager(), d.manager);
@@ -86,6 +94,22 @@ contract DeploySebaV2ForkTest is Test {
 
     function testFork_RejectsMissingSafeCode() external {
         vm.etch(SAFE, "");
+        _reject();
+    }
+    function testFork_RejectsMissingCowSettlementCode() external {
+        vm.etch(0x9008D19f58AAbD9eD0D60971565AA8510560ab41, "");
+        _reject();
+    }
+    function testFork_RejectsChangedCowRelayer() external {
+        vm.mockCall(
+            0x9008D19f58AAbD9eD0D60971565AA8510560ab41,
+            abi.encodeWithSignature("vaultRelayer()"),
+            abi.encode(address(this))
+        );
+        _reject();
+    }
+    function testFork_RejectsMissingCowRelayerCode() external {
+        vm.etch(0xC92E8bdf79f0507f65a392b0ab4667716BFE0110, "");
         _reject();
     }
 

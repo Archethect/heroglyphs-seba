@@ -27,16 +27,16 @@ jobs:
         run: test -n "$MAINNET_RPC"
       - name: V2 production-source lint
         run:
-          npx solhint --config .solhint-v2.json --max-warnings 0 'src/v2/*.sol' 'src/interfaces/v2/*.sol'
+          npx solhint --config .solhint-v2.json --max-warnings 0 'src/v2/**/*.sol' 'src/interfaces/v2/*.sol'
           'src/vendor/v2/*.sol' 'script/v2/*.sol'
       - name: Compile artifacts used by read-only preflight tests
         run: node tools/v2/run-foundry.mjs build
       - name: Read-only preflight and coverage-gate tests
-        run: node --test tools/v2/*.test.cjs
+        run: node --test tools/v2/*.test.cjs tools/cow/*.test.cjs
       - name: V2 formatting
         run: >-
-          npx prettier --check 'src/v2/*.sol' 'src/interfaces/v2/*.sol' 'src/vendor/v2/*.sol' 'script/v2/*.sol'
-          'tests/v2/**/*.sol' 'tools/v2/*.{cjs,mjs}' 'docs/*.{md,json}' .github/workflows/v2.yml
+          npx prettier --check 'src/v2/**/*.sol' 'src/interfaces/v2/*.sol' 'src/vendor/v2/*.sol' 'script/v2/*.sol'
+          'tests/v2/**/*.sol' 'tools/v2/*.{cjs,mjs}' 'tools/cow/*.cjs' 'docs/*.{md,json}' .github/workflows/v2.yml
       - name: Complete legacy and V2 test suite
         run: node tools/v2/run-foundry.mjs test
       - name: V2 unit coverage (fork evidence is separate)
@@ -45,11 +45,17 @@ jobs:
           v2-unit.lcov
         env:
           FOUNDRY_TEST: tests/v2
+          # Instrument every source without optimized IR source-map elimination; deployment builds retain compact IR.
+          FOUNDRY_COMPILATION_RESTRICTIONS: "[]"
+          FOUNDRY_ADDITIONAL_COMPILER_PROFILES: "[]"
       - run: node tools/v2/check-coverage.cjs v2-unit.lcov
       - name: Deployment-script fork coverage
         run: |
           node tools/v2/run-foundry.mjs coverage --offline --match-contract DeploySebaV2ForkTest --report lcov --report-file v2-deployment.lcov
           node tools/v2/check-coverage.cjs v2-deployment.lcov --deployment
+        env:
+          FOUNDRY_COMPILATION_RESTRICTIONS: "[]"
+          FOUNDRY_ADDITIONAL_COMPILER_PROFILES: "[]"
       - name: Complete optimized build for layouts and size limits
         run: node tools/v2/run-foundry.mjs build --force --build-info --build-info-path out/v2-complete-build-info
       - run: node tools/v2/check-artifacts.cjs

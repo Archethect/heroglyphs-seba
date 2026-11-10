@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { AbiCoder, Interface, ZeroAddress, keccak256 } = require("ethers");
+const { AbiCoder, Interface, ZeroAddress, keccak256, TypedDataEncoder, getCreateAddress } = require("ethers");
 const {
   FIXED,
   IMPLEMENTATION_SLOT,
@@ -36,6 +36,7 @@ function manifest() {
     ysyBoldVault: addr(205),
     ysyBoldImplementation: addr(206),
     executor: addr(207),
+    cowModule: addr(208),
     safeOwnersHash: keccak256(coder.encode(["address[]"], [owners])),
   };
   m.bootstrapBindTo = m.manager;
@@ -66,6 +67,8 @@ function snapshot(m = manifest()) {
     maximumEth: 0n,
     pendingBold: 0n,
     pendingSBold: 0n,
+    pendingProtocolBold: 0n,
+    cowModule: ZeroAddress,
     rethBps: 5000n,
     ysyBoldBps: 5000n,
     weightVersion: 1n,
@@ -121,14 +124,50 @@ function snapshot(m = manifest()) {
     executor: {
       manager: m.manager,
       treasury: FIXED.treasury,
-      configuration: { ...FIXED, manager: m.manager },
+      configuration: {
+        ...FIXED,
+        manager: m.manager,
+        usdc: ZeroAddress,
+        swapRouter: ZeroAddress,
+        curvePool: ZeroAddress,
+        ethUsdFeed: ZeroAddress,
+        usdcUsdFeed: ZeroAddress,
+      },
       limits: [...Array(13).fill(0n), ZeroAddress, ZeroAddress, ZeroAddress],
       enabled: false,
       codeMatches: true,
+      maximumBold: 0n,
+    },
+    cowModule: {
+      manager: m.manager,
+      treasury: FIXED.treasury,
+      weth: FIXED.weth,
+      reth: FIXED.reth,
+      bold: FIXED.bold,
+      settlement: FIXED.cowSettlement,
+      relayer: FIXED.cowRelayer,
+      implementation: getCreateAddress({ from: m.cowModule, nonce: 1 }),
+      enabled: false,
+      maxWeth: 0n,
+      maxReth: 0n,
+      maxTtl: 0n,
+      nextOrderId: 1n,
+      activeCount: 0n,
+      activeOrders: [0n, 0n, 0n, 0n],
+      codeMatches: true,
+      implementationCodeMatches: true,
+      implementationInitialized: true,
+      vendorCodePresent: true,
+      vendorRelayer: FIXED.cowRelayer,
+      vendorDomain: TypedDataEncoder.hashDomain({
+        name: "Gnosis Protocol",
+        version: "v2",
+        chainId: 1,
+        verifyingContract: FIXED.cowSettlement,
+      }),
     },
     assetGraph: [FIXED.yBold, FIXED.bold, FIXED.bold, sBold],
     registryReth: FIXED.reth,
-    curveCoins: [FIXED.bold, FIXED.usdc],
   };
 }
 
@@ -152,7 +191,7 @@ test("fresh disabled candidate passes and returns exact separate bootstrap calld
   assert.equal(report.readOnly, true);
   assert.equal(report.phase, "unbound");
   assert.equal(report.bootstrapBindData, m.bootstrapBindData);
-  assert.equal(report.checks.length, 36);
+  assert.ok(report.checks.includes("cow.disabledAndEmpty"));
 });
 
 test("bound phase checks reciprocal vaults without enabling any operation", () => {
@@ -309,11 +348,11 @@ for (const [name, mutate, failure] of [
     "venues.assetGraph",
   ],
   [
-    "curve coin order",
+    "CoW settlement identity",
     (s) => {
-      s.curveCoins.reverse();
+      s.cowModule.settlement = addr(400);
     },
-    "venues.assetGraph",
+    "cow.identities",
   ],
   [
     "implementation slot",
@@ -540,6 +579,134 @@ for (const [name, mutate, failure] of [
     assert.throws(() => validateSnapshot(s, m), new RegExp(failure.replaceAll(".", "\\.")));
   });
 
+for (const [name, mutate, failure] of [
+  [
+    "CoW new-order enabled",
+    (s) => {
+      s.cowModule.enabled = true;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW WETH cap",
+    (s) => {
+      s.cowModule.maxWeth = 1n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW rETH cap",
+    (s) => {
+      s.cowModule.maxReth = 1n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW TTL",
+    (s) => {
+      s.cowModule.maxTtl = 1n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW active count",
+    (s) => {
+      s.cowModule.activeCount = 1n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW active source",
+    (s) => {
+      s.cowModule.activeOrders[2] = 1n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW consumed ID",
+    (s) => {
+      s.cowModule.nextOrderId = 2n;
+    },
+    "cow.disabledAndEmpty",
+  ],
+  [
+    "CoW foreign module runtime",
+    (s) => {
+      s.cowModule.codeMatches = false;
+    },
+    "cow.compiledRuntime",
+  ],
+  [
+    "CoW foreign escrow runtime",
+    (s) => {
+      s.cowModule.implementationCodeMatches = false;
+    },
+    "cow.compiledRuntime",
+  ],
+  [
+    "CoW unlocked escrow implementation",
+    (s) => {
+      s.cowModule.implementationInitialized = false;
+    },
+    "cow.compiledRuntime",
+  ],
+  [
+    "CoW unexpected escrow deployment",
+    (s) => {
+      s.cowModule.implementation = addr(999);
+    },
+    "cow.compiledRuntime",
+  ],
+  [
+    "missing CoW vendor runtime",
+    (s) => {
+      s.cowModule.vendorCodePresent = false;
+    },
+    "cow.vendorBinding",
+  ],
+  [
+    "wrong CoW vendor relayer",
+    (s) => {
+      s.cowModule.vendorRelayer = addr(999);
+    },
+    "cow.vendorBinding",
+  ],
+  [
+    "wrong CoW vendor domain",
+    (s) => {
+      s.cowModule.vendorDomain = word(999);
+    },
+    "cow.vendorBinding",
+  ],
+  [
+    "settled principal BOLD",
+    (s) => {
+      s.manager.pendingProtocolBold = 1n;
+    },
+    "manager.unconfiguredAndEmpty",
+  ],
+  [
+    "already bound CoW module",
+    (s) => {
+      s.manager.cowModule = addr(999);
+    },
+    "manager.unconfiguredAndEmpty",
+  ],
+  [
+    "direct executor BOLD cap",
+    (s) => {
+      s.executor.maximumBold = 1n;
+    },
+    "executor.disabledAndUnset",
+  ],
+])
+  test("rejects " + name, () => {
+    const m = manifest();
+    const s = snapshot(m);
+    mutate(s);
+    assert.throws(() => validateSnapshot(s, m), new RegExp(failure.replaceAll(".", "\\.")));
+  });
+
 test("runtime comparison resolves all immutable addresses and detects changed non-immutable bytes", () => {
   const a = {
     ast: { nodeType: "VariableDeclaration", id: 1, mutability: "immutable", name: "manager" },
@@ -589,7 +756,19 @@ test("snapshot reader only performs pinned reads and produces an independently v
       operators: () => false,
     });
   }
-  register(m.executor, "SebaV2Executor", s.executor);
+  register(m.executor, "SebaV2DirectExecutor", s.executor);
+  register(m.cowModule, "SebaCowIntentModule", {
+    ...s.cowModule,
+    activeOrder: (i) => s.cowModule.activeOrders[Number(i)],
+  });
+  narrow(
+    FIXED.cowSettlement,
+    ["function vaultRelayer() view returns(address)", "function domainSeparator() view returns(bytes32)"],
+    {
+      vaultRelayer: FIXED.cowRelayer,
+      domainSeparator: s.cowModule.vendorDomain,
+    },
+  );
   for (const [a, name] of [
     [m.managerImplementation, "YieldManagerV2"],
     [m.rethImplementation, "RethSupporterVault"],
@@ -624,7 +803,6 @@ test("snapshot reader only performs pinned reads and produces an independently v
     narrow(a, ["function asset() view returns(address)"], { asset: s.assetGraph[i] }),
   );
   narrow(FIXED.rocketStorage, ["function getAddress(bytes32) view returns(address)"], { getAddress: FIXED.reth });
-  narrow(FIXED.curvePool, ["function coins(uint256) view returns(address)"], { coins: (i) => s.curveCoins[Number(i)] });
   let reads = 0;
   const provider = {
     async getNetwork() {
@@ -640,6 +818,13 @@ test("snapshot reader only performs pinned reads and produces an independently v
     async getStorage(a, slot, blockTag) {
       assert.equal(blockTag, s.block.number);
       if (same(a, FIXED.treasury)) return word(0);
+      if (same(a, s.cowModule.implementation)) {
+        const initialized = load("SebaCowOrderEscrow").storageLayout.storage.find(
+          (field) => field.label === "_initialized",
+        );
+        assert.equal(String(slot), String(initialized.slot));
+        return word(1n << BigInt(initialized.offset * 8));
+      }
       const p = s.proxies.find((p) => same(p.proxy, a) || same(p.implementation, a));
       if (slot === IMPLEMENTATION_SLOT) return p.slot;
       assert.equal(slot, INITIALIZABLE_SLOT);
@@ -661,8 +846,28 @@ test("snapshot reader only performs pinned reads and produces an independently v
           ),
           { __self: p.implementation },
         );
+      if (same(a, m.cowModule))
+        return expectedRuntime(load("SebaCowIntentModule"), {
+          manager: m.manager,
+          treasury: FIXED.treasury,
+          weth: FIXED.weth,
+          reth: FIXED.reth,
+          bold: FIXED.bold,
+          settlement: FIXED.cowSettlement,
+          relayer: FIXED.cowRelayer,
+          implementation: s.cowModule.implementation,
+        });
+      if (same(a, s.cowModule.implementation))
+        return expectedRuntime(load("SebaCowOrderEscrow"), {
+          module: m.cowModule,
+          settlement: FIXED.cowSettlement,
+          relayer: FIXED.cowRelayer,
+          treasury: FIXED.treasury,
+          bold: FIXED.bold,
+        });
+      if (same(a, FIXED.cowSettlement) || same(a, FIXED.cowRelayer)) return "0x6000";
       assert.ok(same(a, m.executor));
-      return expectedRuntime(load("SebaV2Executor"), { manager: m.manager, treasury: FIXED.treasury });
+      return expectedRuntime(load("SebaV2DirectExecutor"), { manager: m.manager, treasury: FIXED.treasury });
     },
     async call(tx) {
       reads++;
@@ -679,6 +884,21 @@ test("snapshot reader only performs pinned reads and produces an independently v
   const result = await readSnapshot(provider, m);
   assert.equal(validateSnapshot(result, m).readOnly, true);
   assert.ok(reads > 80, "must test the real complete read sequence rather than a handcrafted success flag");
+  const goodCode = provider.getCode;
+  for (const target of [m.cowModule, s.cowModule.implementation]) {
+    provider.getCode = async (a, blockTag) => (same(a, target) ? "0x6000" : goodCode(a, blockTag));
+    const corrupted = await readSnapshot(provider, m);
+    assert.throws(() => validateSnapshot(corrupted, m), /cow.compiledRuntime/);
+  }
+  provider.getCode = goodCode;
+  const goodStorage = provider.getStorage;
+  for (const value of [0n, 2n]) {
+    provider.getStorage = async (a, slot, blockTag) =>
+      same(a, s.cowModule.implementation) ? word(value << 8n) : goodStorage(a, slot, blockTag);
+    const unlocked = await readSnapshot(provider, m);
+    assert.throws(() => validateSnapshot(unlocked, m), /cow.compiledRuntime/);
+  }
+  provider.getStorage = goodStorage;
   provider.getBlock = async () => null;
   await assert.rejects(readSnapshot(provider, m), /block.unavailable/);
 });

@@ -148,6 +148,36 @@ contract HandoffPreMigrationTest is HandoffUnitBase {
                 vm.clearMockedCalls();
             }
     }
+    function test_destinationMustHaveNoUninvestedProtocolBoldOrActiveCowOrder() public {
+        destination.setProtocolBold(1);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        destination.setProtocolBold(0);
+        cowModule.setActiveCount(1);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        cowModule.setActiveCount(0);
+        destination.setCowModule(address(0));
+        _pre();
+        destination.setCowModule(address(cowModule));
+        _pre();
+    }
+    function test_destinationMustHaveNoLiveProtocolVaultPosition() public {
+        rethVault.setProtocol(1, 0);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        rethVault.setProtocol(0, 1);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        rethVault.setProtocol(0, 0);
+        ysyVault.setProtocol(1, 0);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        ysyVault.setProtocol(0, 1);
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        ysyVault.setProtocol(0, 0);
+        destination.setVaults(address(0), address(ysyVault));
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        destination.setVaults(address(rethVault), address(0));
+        _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+        destination.setVaults(address(rethVault), address(ysyVault));
+        _pre();
+    }
     function test_everySafeSecurityAssumptionIsChecked() public {
         address[] memory owners = new address[](1);
         owners[0] = address(0xaaa);

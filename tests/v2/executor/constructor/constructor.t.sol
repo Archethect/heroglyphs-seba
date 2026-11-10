@@ -10,7 +10,7 @@ contract ExecutorConstructorTest is ExecutorUnitBase {
     function test_invalidIdentitiesCannotDeploy() public {
         for (uint256 i; i < 13; ++i) {
             IV2Executor.Config memory c = _config();
-            assembly {
+            assembly ("memory-safe") {
                 mstore(add(c, mul(i, 32)), 0)
             }
             vm.expectRevert(IV2Executor.InvalidConfiguration.selector);

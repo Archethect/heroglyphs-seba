@@ -10,8 +10,8 @@ contract RecoverBuffersTest is ManagerTestBase {
     }
     function _inventory() internal {
         _fund(40 ether);
+        _settleReward(10 ether);
         vm.startPrank(operator);
-        manager.convertEthRewards(10 ether, 1, block.timestamp);
         manager.convertBoldToSBold(5 ether, 1, block.timestamp);
         vm.stopPrank();
         rVault.harvest(0, 1 ether);

@@ -11,7 +11,9 @@ import {
     HandoffPoolMock,
     HandoffRouterMock,
     HandoffAdapterMock,
-    HandoffDestinationMock
+    HandoffDestinationMock,
+    HandoffVaultMock,
+    HandoffCowModuleMock
 } from "./HandoffMocks.sol";
 
 abstract contract HandoffUnitBase is Test {
@@ -20,6 +22,9 @@ abstract contract HandoffUnitBase is Test {
     HandoffRouterMock internal router;
     HandoffAdapterMock internal adapter;
     HandoffDestinationMock internal destination;
+    HandoffVaultMock internal rethVault;
+    HandoffVaultMock internal ysyVault;
+    HandoffCowModuleMock internal cowModule;
     ExecutorToken internal bold;
     ExecutorToken internal sbold;
     ExecutorActor internal pyb;
@@ -72,6 +77,11 @@ abstract contract HandoffUnitBase is Test {
             address(sbold),
             address(pyb)
         );
+        rethVault = new HandoffVaultMock();
+        ysyVault = new HandoffVaultMock();
+        cowModule = new HandoffCowModuleMock();
+        destination.setVaults(address(rethVault), address(ysyVault));
+        destination.setCowModule(address(cowModule));
         handoff = new LegacyProtocolPrincipalHandoff(_configuration());
         _arm(handoff);
         vm.deal(address(this), 100 ether);

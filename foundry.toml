@@ -18,6 +18,10 @@
   ignored_error_codes = [3628]
   build_info = true
   extra_output = ["storageLayout"]
+  # Use one compact, reproducible pipeline for all V2 deployment artifacts.
+  # Legacy deployed-contract compilation remains on the original default settings.
+  additional_compiler_profiles = [{ name = "cow-manager", via_ir = true, optimizer_runs = 200 }]
+  compilation_restrictions = [{ paths = "src/v2/**/*.sol", via_ir = true, optimizer_runs = 200 }]
 
 [profile.default.invariant]
   runs = 256

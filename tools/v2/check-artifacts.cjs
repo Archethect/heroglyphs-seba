@@ -9,6 +9,9 @@ const names = [
   "RethSupporterVault",
   "YsyBoldSupporterVault",
   "SebaV2Executor",
+  "SebaV2DirectExecutor",
+  "SebaCowIntentModule",
+  "SebaCowOrderEscrow",
   "LegacyProtocolPrincipalHandoff",
   "LegacyIntakeStopper",
 ];
@@ -36,6 +39,16 @@ for (const name of names) {
   console.log(`${name}: runtime ${runtime}/24576, initcode ${init}/49152`);
   if (!["YieldManagerV2", "RethSupporterVault", "YsyBoldSupporterVault"].includes(name)) continue;
   const layout = artifact.storageLayout;
+  if (name === "YieldManagerV2") {
+    const baseline = JSON.parse(fs.readFileSync(path.join(snapshots, "YieldManagerV2.pre-cow.json"), "utf8"));
+    const incompatibilities = getStorageUpgradeErrors(baseline, layout);
+    if (incompatibilities.length)
+      throw new Error(`Pre-CoW manager layout incompatible: ${JSON.stringify(incompatibilities)}`);
+    const moved = structuredClone(layout);
+    moved.storage.find((v) => v.label === "pendingBold").slot = "999";
+    if (!getStorageUpgradeErrors(baseline, moved).length) throw new Error("Pre-CoW layout negative control failed");
+    console.log("YieldManagerV2: pre-CoW upgrade compatibility confirmed (two slots consumed from gap)");
+  }
   // Raw solc storageLayout omits enum members. Include their AST semantics; never waive custom-type checks.
   for (const [id, type] of Object.entries(layout.types))
     if (id.startsWith("t_enum(")) {

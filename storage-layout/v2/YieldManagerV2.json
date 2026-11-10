@@ -357,13 +357,33 @@
       }
     },
     {
-      "label": "__gap",
+      "label": "cowModule",
       "slot": "29",
       "offset": 0,
       "type": {
         "encoding": "inplace",
-        "label": "uint256[40]",
-        "numberOfBytes": "1280",
+        "label": "contract ISebaCowIntentModule",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "pendingProtocolBold",
+      "slot": "30",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "31",
+      "offset": 0,
+      "type": {
+        "encoding": "inplace",
+        "label": "uint256[38]",
+        "numberOfBytes": "1216",
         "base": {
           "encoding": "inplace",
           "label": "uint256",

@@ -7,7 +7,9 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { YieldManagerV2 } from "../../src/v2/YieldManagerV2.sol";
 import { RethSupporterVault } from "../../src/v2/RethSupporterVault.sol";
 import { YsyBoldSupporterVault } from "../../src/v2/YsyBoldSupporterVault.sol";
-import { SebaV2Executor } from "../../src/v2/SebaV2Executor.sol";
+import { SebaV2DirectExecutor } from "../../src/v2/SebaV2DirectExecutor.sol";
+import { SebaCowIntentModule } from "../../src/v2/cow/SebaCowIntentModule.sol";
+import { ICowSettlement } from "../../src/vendor/v2/ICowSettlement.sol";
 import { IYieldManagerV2 } from "../../src/interfaces/v2/IYieldManagerV2.sol";
 import { IV2Executor } from "../../src/interfaces/v2/IV2Executor.sol";
 
@@ -82,6 +84,8 @@ contract DeploySebaV2 is Script {
     address private constant YBOLD = 0x9F4330700a36B29952869fac9b33f45EEdd8A3d8;
     address private constant YSY = 0x23346B04a7f55b8760E5860AA5A77383D63491cD;
     address private constant REGISTRY = 0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46;
+    address private constant COW = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    address private constant RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
     uint256 private constant GUARD_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
 
     /// @notice Public candidate addresses and separately reviewed Safe bootstrap payload.
@@ -93,9 +97,11 @@ contract DeploySebaV2 is Script {
         address ysyBoldVault;
         address ysyBoldImplementation;
         address executor;
+        address cowModule;
         bytes32 safeOwnersHash;
         address bootstrapBindTo;
         bytes bootstrapBindData;
+        bytes bootstrapCowData;
     }
 
     /// @notice Target chain, reviewed Safe or legacy identity graph changed; no candidate should be deployed.
@@ -132,33 +138,42 @@ contract DeploySebaV2 is Script {
             )
         );
         d.executor = address(
-            new SebaV2Executor(
+            new SebaV2DirectExecutor(
                 IV2Executor.Config(
                     d.manager,
                     SAFE,
                     RETH,
                     WETH,
-                    USDC,
+                    address(0),
                     BOLD,
                     YBOLD,
                     YSY,
-                    0xE592427A0AEce92De3Edee1F18E0157C05861564,
-                    0xEFc6516323FbD28e80B85A497B65A86243a54B3E,
-                    0xc0053f3FBcCD593758258334Dfce24C2A9A673aD,
-                    0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6,
+                    address(0),
+                    address(0),
+                    address(0),
+                    address(0),
                     REGISTRY
                 )
             )
         );
+        d.cowModule = address(new SebaCowIntentModule(d.manager, SAFE, WETH, RETH, BOLD, COW));
         vm.stopBroadcast();
         d.safeOwnersHash = approvedSafeOwnersHash;
         d.bootstrapBindTo = d.manager;
         d.bootstrapBindData = abi.encodeCall(YieldManagerV2.bindVaults, (d.rethVault, d.ysyBoldVault));
+        d.bootstrapCowData = abi.encodeCall(YieldManagerV2.configureCowModule, (d.cowModule));
         _printManifest(d);
     }
 
     function _preflight(bytes32 approvedHash) private view returns (address sBold, address pybSeba) {
-        if (block.chainid != 1 || approvedHash == bytes32(0) || SAFE.code.length == 0) revert PreflightFailed();
+        if (
+            block.chainid != 1 ||
+            approvedHash == bytes32(0) ||
+            SAFE.code.length == 0 ||
+            COW.code.length == 0 ||
+            ICowSettlement(COW).vaultRelayer() != RELAYER ||
+            RELAYER.code.length == 0
+        ) revert PreflightFailed();
         IDeploymentSafe safe = IDeploymentSafe(SAFE);
         address[] memory owners = safe.getOwners();
         if (owners.length != 7 || safe.getThreshold() != 3 || keccak256(abi.encode(owners)) != approvedHash) {
@@ -196,8 +211,10 @@ contract DeploySebaV2 is Script {
         vm.serializeAddress(key, "ysyBoldVault", d.ysyBoldVault);
         vm.serializeAddress(key, "ysyBoldImplementation", d.ysyBoldImplementation);
         vm.serializeAddress(key, "executor", d.executor);
+        vm.serializeAddress(key, "cowModule", d.cowModule);
         vm.serializeBytes32(key, "safeOwnersHash", d.safeOwnersHash);
         vm.serializeAddress(key, "bootstrapBindTo", d.bootstrapBindTo);
-        console2.log(vm.serializeBytes(key, "bootstrapBindData", d.bootstrapBindData));
+        vm.serializeBytes(key, "bootstrapBindData", d.bootstrapBindData);
+        console2.log(vm.serializeBytes(key, "bootstrapCowData", d.bootstrapCowData));
     }
 }

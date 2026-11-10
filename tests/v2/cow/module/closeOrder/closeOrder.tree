@@ -1,0 +1,13 @@
+closeOrder
+├── Given unauthorized caller, unknown or closed order
+│   └── It reverts without accounting changes
+├── Given full finite allowance consumption
+│   ├── Insufficient BOLD or wrong escrow receipt reverts atomically
+│   └── It credits gross BOLD including same-purpose donations exactly once
+├── Given untouched allowance
+│   ├── Before expiry without Safe cancellation it remains pending
+│   └── After expiry or Safe cancellation it refunds original input, excluding donations
+├── Given partial spend
+│   └── It fails closed instead of inferring a partial fill
+└── Given concurrent sources and out-of-order finalization
+    └── It conserves every original input independently

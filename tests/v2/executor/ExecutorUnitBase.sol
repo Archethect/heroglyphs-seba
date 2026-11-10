@@ -38,7 +38,7 @@ abstract contract ExecutorUnitBase is Test {
     ExecutorRocketSettings internal settings;
     ExecutorRocketPool internal pool;
 
-    function setUp() public {
+    function setUp() public virtual {
         vm.warp(100_000);
         vm.roll(10_000);
         managerActor = new ExecutorActor();

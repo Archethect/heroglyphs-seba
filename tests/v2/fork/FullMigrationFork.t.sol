@@ -161,8 +161,12 @@ contract FullMigrationForkTest is StackForkBase {
         _enableTestExecution();
         vm.startPrank(operator);
         manager.deployProtocolPrincipal(0, manager.pendingEth(1), 1, 1, block.timestamp + 60);
-        manager.deployProtocolPrincipal(1, manager.pendingEth(2), 1, 1, block.timestamp + 60);
         vm.stopPrank();
+        // Migration ETH is real; solver inventory for this local settlement is explicitly synthetic.
+        _cowSwap(1, manager.pendingEth(2));
+        uint256 protocolBold = manager.pendingProtocolBold();
+        vm.prank(operator);
+        manager.deployYsyProtocolPrincipal(protocolBold, 1, 1, block.timestamp + 60);
         assertGt(rVault.bucket(1).basis, 0);
         assertGt(yVault.bucket(1).basis, 0);
         assertEq(manager.pendingEth(1) + manager.pendingEth(2), 0);

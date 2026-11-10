@@ -5,7 +5,17 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseEnv } = require("node:util");
-const { JsonRpcProvider, Interface, AbiCoder, ZeroAddress, getAddress, keccak256, toUtf8Bytes } = require("ethers");
+const {
+  JsonRpcProvider,
+  Interface,
+  AbiCoder,
+  ZeroAddress,
+  getAddress,
+  keccak256,
+  toUtf8Bytes,
+  TypedDataEncoder,
+  getCreateAddress,
+} = require("ethers");
 
 const FIXED = Object.freeze({
   treasury: "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
@@ -18,10 +28,8 @@ const FIXED = Object.freeze({
   yBold: "0x9F4330700a36B29952869fac9b33f45EEdd8A3d8",
   ysyBold: "0x23346B04a7f55b8760E5860AA5A77383D63491cD",
   rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
-  swapRouter: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-  curvePool: "0xEFc6516323FbD28e80B85A497B65A86243a54B3E",
-  ethUsdFeed: "0xc0053f3FBcCD593758258334Dfce24C2A9A673aD",
-  usdcUsdFeed: "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+  cowSettlement: "0x9008D19f58AAbD9eD0D60971565AA8510560ab41",
+  cowRelayer: "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110",
 });
 const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const INITIALIZABLE_SLOT = "0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
@@ -72,6 +80,7 @@ function normalizeManifest(input) {
     m[impl] = address(typeof metadata === "object" ? metadata.implementation : input[impl]);
   }
   m.executor = address(typeof input.executor === "object" ? input.executor.address : input.executor);
+  m.cowModule = address(typeof input.cowModule === "object" ? input.cowModule.address : input.cowModule);
   m.deployer = address(input.deployer || (local ? ZeroAddress : undefined));
   m.initialOperator = address(local ? input.operator : input.initialOperator);
   if (!local) {
@@ -88,6 +97,7 @@ function normalizeManifest(input) {
     m.ysyBoldVault,
     m.ysyBoldImplementation,
     m.executor,
+    m.cowModule,
     ...Object.values(FIXED),
   ];
   requireCheck(
@@ -170,7 +180,9 @@ async function readSnapshot(provider, manifest, options = {}) {
   const ma = load("YieldManagerV2");
   const ra = load("RethSupporterVault");
   const ya = load("YsyBoldSupporterVault");
-  const ea = load("SebaV2Executor");
+  const ea = load("SebaV2DirectExecutor");
+  const ca = load("SebaCowIntentModule");
+  const escrowArtifact = load("SebaCowOrderEscrow");
   const pa = load("ERC1967Proxy");
   const safe = await views(m.treasury, safeAbi, ["getOwners", "getThreshold"]);
   [safe.modules, safe.next] = await call(m.treasury, safeAbi, "getModulesPaginated", [SENTINEL, 1]);
@@ -215,6 +227,8 @@ async function readSnapshot(provider, manifest, options = {}) {
     "maximumEth",
     "pendingBold",
     "pendingSBold",
+    "pendingProtocolBold",
+    "cowModule",
     "rethBps",
     "ysyBoldBps",
     "weightVersion",
@@ -263,11 +277,69 @@ async function readSnapshot(provider, manifest, options = {}) {
     vaults[0],
     await views(m.rethVault, ra.abi, ["rocketStorage", "maximumReportAge", "maximumReportBlockLag"]),
   );
-  const executor = await views(m.executor, ea.abi, ["manager", "treasury", "configuration", "limits", "enabled"]);
+  const executor = await views(m.executor, ea.abi, [
+    "manager",
+    "treasury",
+    "configuration",
+    "limits",
+    "enabled",
+    "maximumBold",
+  ]);
   executor.codeMatches = same(
     await provider.getCode(m.executor, blockTag),
     expectedRuntime(ea, { manager: m.manager, treasury: m.treasury }),
   );
+  const cowModule = await views(m.cowModule, ca.abi, [
+    "manager",
+    "treasury",
+    "weth",
+    "reth",
+    "bold",
+    "settlement",
+    "relayer",
+    "implementation",
+    "enabled",
+    "maxWeth",
+    "maxReth",
+    "maxTtl",
+    "nextOrderId",
+    "activeCount",
+  ]);
+  cowModule.activeOrders = await Promise.all([0, 1, 2, 3].map((i) => call(m.cowModule, ca.abi, "activeOrder", [i])));
+  const immutableCow = {
+    manager: m.manager,
+    treasury: m.treasury,
+    weth: FIXED.weth,
+    reth: FIXED.reth,
+    bold: FIXED.bold,
+    settlement: FIXED.cowSettlement,
+    relayer: FIXED.cowRelayer,
+    implementation: cowModule.implementation,
+  };
+  cowModule.codeMatches = same(await provider.getCode(m.cowModule, blockTag), expectedRuntime(ca, immutableCow));
+  cowModule.implementationCodeMatches = same(
+    await provider.getCode(cowModule.implementation, blockTag),
+    expectedRuntime(escrowArtifact, {
+      module: m.cowModule,
+      settlement: FIXED.cowSettlement,
+      relayer: FIXED.cowRelayer,
+      treasury: m.treasury,
+      bold: FIXED.bold,
+    }),
+  );
+  const initialized = escrowArtifact.storageLayout.storage.find((field) => field.label === "_initialized");
+  requireCheck(initialized, "artifact.escrowInitializer");
+  cowModule.implementationInitialized =
+    ((BigInt(await provider.getStorage(cowModule.implementation, initialized.slot, blockTag)) >>
+      BigInt(initialized.offset * 8)) &
+      255n) ===
+    1n;
+  const cowAbi = ["function vaultRelayer() view returns(address)", "function domainSeparator() view returns(bytes32)"];
+  cowModule.vendorRelayer = await call(FIXED.cowSettlement, cowAbi, "vaultRelayer");
+  cowModule.vendorDomain = await call(FIXED.cowSettlement, cowAbi, "domainSeparator");
+  cowModule.vendorCodePresent =
+    (await provider.getCode(FIXED.cowSettlement, blockTag)) !== "0x" &&
+    (await provider.getCode(FIXED.cowRelayer, blockTag)) !== "0x";
   const assetAbi = ["function asset() view returns(address)"];
   const assetGraph = await Promise.all(
     [FIXED.ysyBold, FIXED.yBold, old.sBOLD, old.sebaVault].map((token) => call(token, assetAbi, "asset")),
@@ -276,8 +348,6 @@ async function readSnapshot(provider, manifest, options = {}) {
   const registryReth = await call(FIXED.rocketStorage, registryAbi, "getAddress", [
     keccak256(toUtf8Bytes("contract.addressrocketTokenRETH")),
   ]);
-  const curveAbi = ["function coins(uint256) view returns(address)"];
-  const curveCoins = await Promise.all([0, 1].map((i) => call(FIXED.curvePool, curveAbi, "coins", [i])));
   // Catch a reorg during the multiple pinned reads instead of mixing inconsistent canonical observations.
   requireCheck(same((await provider.getBlock(blockTag))?.hash, block.hash), "block.reorg");
   return {
@@ -292,7 +362,7 @@ async function readSnapshot(provider, manifest, options = {}) {
     executor,
     assetGraph,
     registryReth,
-    curveCoins,
+    cowModule,
   };
 }
 
@@ -319,10 +389,7 @@ function validateSnapshot(s, manifest) {
     s.assetGraph.every((a, i) => same(a, [FIXED.yBold, FIXED.bold, FIXED.bold, s.old.sBOLD][i])),
     "tokens.assetGraph",
   );
-  check(
-    same(s.registryReth, FIXED.reth) && s.curveCoins.every((a, i) => same(a, [FIXED.bold, FIXED.usdc][i])),
-    "venues.assetGraph",
-  );
+  check(same(s.registryReth, FIXED.reth), "venues.assetGraph");
   for (const [i, p] of s.proxies.entries()) {
     check(same(getAddress(`0x${p.slot.slice(-40)}`), p.implementation), `proxy.${i}.implementationSlot`);
     check(
@@ -346,11 +413,12 @@ function validateSnapshot(s, manifest) {
   );
   check(g.intakeEnabled === false && g.executionEnabled === false && g.buffersRecovered === false, "manager.disabled");
   check(
-    [g.executor, g.weth, g.usdc, g.legacyHandoff].every((a) => same(a, ZeroAddress)) &&
+    [g.executor, g.weth, g.usdc, g.legacyHandoff, g.cowModule].every((a) => same(a, ZeroAddress)) &&
       [
         g.maximumEth,
         g.pendingBold,
         g.pendingSBold,
+        g.pendingProtocolBold,
         g.legacyExpectedEth,
         g.legacyExpiry,
         g.legacyWeightVersion,
@@ -400,16 +468,57 @@ function validateSnapshot(s, manifest) {
   check(
     same(e.manager, m.manager) &&
       same(e.treasury, FIXED.treasury) &&
-      Object.entries({ ...FIXED, manager: m.manager })
-        .filter(([name]) => !["pool", "oldManager"].includes(name))
-        .every(([name, a]) => same(e.configuration[name], a)),
+      ["treasury", "reth", "weth", "bold", "yBold", "ysyBold", "rocketStorage"].every((name) =>
+        same(e.configuration[name], FIXED[name]),
+      ) &&
+      same(e.configuration.manager, m.manager) &&
+      ["usdc", "swapRouter", "curvePool", "ethUsdFeed", "usdcUsdFeed"].every((name) =>
+        same(e.configuration[name], ZeroAddress),
+      ),
     "executor.identities",
   );
   check(
-    e.enabled === false && [...e.limits].every((v) => (typeof v === "string" ? same(v, ZeroAddress) : zero(v))),
+    e.enabled === false &&
+      zero(e.maximumBold) &&
+      [...e.limits].every((v) => (typeof v === "string" ? same(v, ZeroAddress) : zero(v))),
     "executor.disabledAndUnset",
   );
   check(e.codeMatches === true, "executor.compiledRuntime");
+  const cow = s.cowModule;
+  check(
+    ["treasury", "weth", "reth", "bold"].every((name) => same(cow[name], FIXED[name])) &&
+      same(cow.manager, m.manager) &&
+      same(cow.settlement, FIXED.cowSettlement) &&
+      same(cow.relayer, FIXED.cowRelayer),
+    "cow.identities",
+  );
+  check(
+    cow.enabled === false &&
+      [cow.maxWeth, cow.maxReth, cow.maxTtl, cow.activeCount, ...cow.activeOrders].every(zero) &&
+      BigInt(cow.nextOrderId) === 1n,
+    "cow.disabledAndEmpty",
+  );
+  check(
+    cow.codeMatches === true &&
+      cow.implementationCodeMatches === true &&
+      cow.implementationInitialized === true &&
+      same(cow.implementation, getCreateAddress({ from: m.cowModule, nonce: 1 })),
+    "cow.compiledRuntime",
+  );
+  check(
+    cow.vendorCodePresent === true &&
+      same(cow.vendorRelayer, FIXED.cowRelayer) &&
+      same(
+        cow.vendorDomain,
+        TypedDataEncoder.hashDomain({
+          name: "Gnosis Protocol",
+          version: "v2",
+          chainId: 1,
+          verifyingContract: FIXED.cowSettlement,
+        }),
+      ),
+    "cow.vendorBinding",
+  );
   return {
     schema: "seba-v2-preflight-v1",
     readOnly: true,
@@ -422,6 +531,7 @@ function validateSnapshot(s, manifest) {
     rethVault: m.rethVault,
     ysyBoldVault: m.ysyBoldVault,
     executor: m.executor,
+    cowModule: m.cowModule,
     safeOwnersHash: m.safeOwnersHash,
     checks,
     bootstrapBindTo: m.bootstrapBindTo,

@@ -18,7 +18,7 @@ contract ConfigureExecutionTest is ManagerTestBase {
         assertEq(address(manager.executor()), address(replacement));
     }
     function test_AllWrongExecutorIdentitiesReject() public {
-        for (uint8 i; i < 10; ++i) {
+        for (uint8 i; i < 8; ++i) {
             IV2Executor.Config memory c = execution.configuration();
             address wrong = address(pool);
             if (i == 0) c.manager = wrong;
@@ -28,12 +28,10 @@ contract ConfigureExecutionTest is ManagerTestBase {
             if (i == 4) c.bold = wrong;
             if (i == 5) c.yBold = wrong;
             if (i == 6) c.weth = address(0);
-            if (i == 7) c.usdc = address(0);
-            if (i > 7) {
+            if (i == 7) {
                 vm.prank(address(safe));
                 manager.configureExecution(address(execution), 1, 1, 1);
-                if (i == 8) c.weth = wrong;
-                else c.usdc = wrong;
+                c.weth = wrong;
             }
             ManagerExecutorMock bad = new ManagerExecutorMock(c);
             vm.expectRevert(IYieldManagerV2.InvalidConfiguration.selector);
