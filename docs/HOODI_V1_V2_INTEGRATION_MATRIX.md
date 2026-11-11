@@ -1,8 +1,9 @@
 # Hoodi V1 → V2 rehearsal: cross-repository phase gate
 
 Status: design/implementation in progress. This is **not** a deployment authorization. The existing Hoodi apxETH stack
-and the funded chain-1 test stack are out of scope. The testnet graph should use new isolated **private** Goldsky V1 and
-V2-candidate endpoints if account access and Hoodi support are verified. The unmodified V1 backend always sends a Bearer
+and the funded chain-1 test stack are out of scope. The owner approved new, uniquely named **private** Hoodi V1 and
+V2-candidate graphs in the existing Hero's Team Goldsky project; existing mainnet graphs, tags and endpoints must not
+be changed. This shares project quota and access, but not graph names. The unmodified V1 backend always sends a Bearer
 header, so its test-only Goldsky token must live in a dedicated Secrets Manager secret, never a URL or CDK template.
 Local Graph Node replay remains the independent receipt-level check; do not use the retired Alchemy Subgraphs deployment
 path or repoint an existing production graph.
