@@ -10,6 +10,7 @@ import {
   planHoodiSafe,
   requireExpectedCodeHash,
   requireHoodiChain,
+  safeFactoryInputs,
   safeFactoryPayload,
 } from "./hoodi-public-safe-plan.mjs";
 
@@ -33,6 +34,10 @@ test("public planner refuses absent, unknown, or changed dependency code", () =>
 });
 
 test("Safe creation calldata has exactly one Hoodi admin and no setup hooks", () => {
+  const inputs = safeFactoryInputs();
+  assert.equal(ethers.dataLength(inputs.initializer), 356);
+  assert.equal(inputs.singleton, SAFE_SINGLETON);
+  assert.equal(inputs.saltNonce, SAFE_SALT_NONCE.toString());
   const factory = new ethers.Interface([
     "function createProxyWithNonce(address singleton,bytes initializer,uint256 saltNonce) returns (address proxy)",
   ]);
@@ -42,6 +47,7 @@ test("Safe creation calldata has exactly one Hoodi admin and no setup hooks", ()
   const decodedFactory = factory.decodeFunctionData("createProxyWithNonce", safeFactoryPayload());
   assert.equal(decodedFactory.singleton, SAFE_SINGLETON);
   assert.equal(decodedFactory.saltNonce, SAFE_SALT_NONCE);
+  assert.equal(decodedFactory.initializer, inputs.initializer);
   const decodedSafe = safe.decodeFunctionData("setup", decodedFactory.initializer);
   assert.deepEqual(Array.from(decodedSafe.owners), [HOODI_ADMIN]);
   assert.equal(decodedSafe.threshold, 1n);

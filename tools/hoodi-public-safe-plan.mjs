@@ -38,12 +38,20 @@ export function requireExpectedCodeHash(address, code) {
 }
 
 export function safeFactoryPayload() {
-  const initializer = safeInitializer();
+  const { singleton, initializer, saltNonce } = safeFactoryInputs();
   return new ethers.Interface(FACTORY_ABI).encodeFunctionData("createProxyWithNonce", [
-    SAFE_SINGLETON,
+    singleton,
     initializer,
-    SAFE_SALT_NONCE,
+    BigInt(saltNonce),
   ]);
+}
+
+export function safeFactoryInputs() {
+  return {
+    singleton: SAFE_SINGLETON,
+    initializer: safeInitializer(),
+    saltNonce: SAFE_SALT_NONCE.toString(),
+  };
 }
 
 function safeInitializer() {
@@ -66,12 +74,13 @@ export async function planHoodiSafe(provider, source = currentSource()) {
   for (const address of EXPECTED_CODE_HASHES.keys()) {
     requireExpectedCodeHash(address, await provider.getCode(address, block.number));
   }
+  const factoryInputs = safeFactoryInputs();
   const data = safeFactoryPayload();
   const factory = new ethers.Contract(SAFE_FACTORY, FACTORY_ABI, provider);
   const predictedSafe = await factory.createProxyWithNonce.staticCall(
-    SAFE_SINGLETON,
-    safeInitializer(),
-    SAFE_SALT_NONCE,
+    factoryInputs.singleton,
+    factoryInputs.initializer,
+    BigInt(factoryInputs.saltNonce),
     { from: HOODI_ADMIN },
   );
   if ((await provider.getCode(predictedSafe)) !== "0x")
@@ -110,7 +119,10 @@ export async function planHoodiSafe(provider, source = currentSource()) {
       to: SAFE_FACTORY,
       from: HOODI_ADMIN,
       valueWei: "0",
+      factoryInputs,
+      initializerBytes: ethers.dataLength(factoryInputs.initializer),
       data,
+      dataHash: ethers.keccak256(data),
       estimatedGas: estimatedGas.toString(),
       gasLimit: gasLimit.toString(),
       maxFeePerGasWei: maxFeePerGas.toString(),
@@ -121,6 +133,7 @@ export async function planHoodiSafe(provider, source = currentSource()) {
     abortIf: [
       "Wallet network is not Hoodi (chain 560048).",
       "Recipient, zero ETH value, calldata, signer, or nonce differs from this reviewed plan.",
+      "Factory initializer is not exactly 356 bytes or calldata hash differs; copy from this generated plan, never from prose.",
       "Safe factory/singleton/MultiSend code hash or predicted Safe address differs on recheck.",
       "The Safe address already has code, or a pending admin transaction appears.",
       "The fee ceiling or gas estimate changes materially; regenerate and review this plan.",

@@ -101,6 +101,12 @@ transaction** for owner-wallet review. It checks chain ID, official Safe code ha
 balance and `eth_estimateGas`; it has no signer or send path. A dirty source is marked `executionReady: false`. Re-run
 from a clean pinned source and recheck the live head immediately before signing. Later V1 deployment and binding
 transactions require their own reviewed plan and receipts; the loopback-only Anvil tool must never be pointed at Hoodi.
+For the factory UI, copy `transaction.factoryInputs.initializer` directly from generated JSON. It must be 356 bytes;
+compare `transaction.dataHash` with the wallet's full calldata when available. Do not manually transcribe long hex from
+chat. The failed Hoodi factory transaction `0x53921503cce3f97b4cf1f189f24974c5f784a0490cbbd45228c323c5e808034f`
+used a 362-byte initializer (six extra zero bytes), reverted without deploying a Safe, and consumed the EOA nonce.
+Replay at the parent block confirms the submitted call reverts and the exact generated calldata returns the expected
+Safe address. A retry requires a fresh nonce/gas preflight, not an unchanged old transaction.
 
 ## CROPS record for this rehearsal
 
