@@ -34,20 +34,36 @@ contract HoodiSBoldMock is MockSBold, HoodiOnlyMock {
 }
 
 /// @title Hoodi fixed-price Chainlink feed mock
-/// @notice Returns a fresh eight-decimal USD answer; not a real oracle.
+/// @notice Returns a fixed eight-decimal USD answer with a Safe-maintained report time; not a real oracle.
 contract HoodiPriceFeedMock is HoodiOnlyMock {
+    /// @notice The reviewed test Safe controls report-time updates.
+    address public immutable updater;
     /// @notice Fixed synthetic price with eight decimals.
     int256 public immutable answer;
     /// @notice Test-only manually selected report time.
     uint256 public updatedAt;
 
-    constructor(int256 price) {
+    /// @notice A zero updater cannot authorize required report refreshes.
+    error InvalidUpdater();
+    /// @notice Only the designated test Safe may update the synthetic report time.
+    error UnauthorizedUpdater();
+    /// @notice Future reports are invalid for the legacy adapter's age calculation.
+    error FutureReportTime();
+
+    /// @param price Fixed synthetic USD answer with eight decimals.
+    /// @param reportUpdater Test Safe authorized to update the report time.
+    constructor(int256 price, address reportUpdater) {
+        if (reportUpdater == address(0)) revert InvalidUpdater();
+        updater = reportUpdater;
         answer = price;
         updatedAt = block.timestamp;
     }
 
-    /// @notice Set a synthetic report timestamp to exercise stale-feed failure paths.
+    /// @notice Refresh or deliberately stale a synthetic report; never accept a future timestamp.
+    /// @param timestamp Selected report time, no later than the current block.
     function setUpdatedAt(uint256 timestamp) external {
+        if (msg.sender != updater) revert UnauthorizedUpdater();
+        if (timestamp > block.timestamp) revert FutureReportTime();
         updatedAt = timestamp;
     }
 

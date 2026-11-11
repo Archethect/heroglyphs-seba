@@ -196,8 +196,8 @@ if (PHASE === 'v1') {
   const usdc = await deployed('MockUSDC'); m.dependencies.usdc = usdc.entry;
   const bold = await deployed('MockBold'); m.dependencies.bold = bold.entry;
   const sBold = await deployed('HoodiSBoldMock', [bold.entry.address], 'HoodiExternalMocks'); m.v1.sBold = sBold.entry;
-  const ethFeed = await deployed('HoodiPriceFeedMock', [2000n * 10n ** 8n], 'HoodiExternalMocks'); m.dependencies.ethUsdFeed = ethFeed.entry;
-  const usdFeed = await deployed('HoodiPriceFeedMock', [10n ** 8n], 'HoodiExternalMocks'); m.dependencies.usdcUsdFeed = usdFeed.entry;
+  const ethFeed = await deployed('HoodiPriceFeedMock', [2000n * 10n ** 8n, m.safe.address], 'HoodiExternalMocks'); m.dependencies.ethUsdFeed = ethFeed.entry;
+  const usdFeed = await deployed('HoodiPriceFeedMock', [10n ** 8n, m.safe.address], 'HoodiExternalMocks'); m.dependencies.usdcUsdFeed = usdFeed.entry;
   const uni = await deployed('HoodiUniswapMock', [weth.entry.address, usdc.entry.address], 'HoodiExternalMocks'); m.dependencies.uniswap = uni.entry;
   const curve = await deployed('HoodiCurveMock', [usdc.entry.address], 'HoodiExternalMocks'); m.dependencies.curve = curve.entry;
   const beefy = await deployed('HoodiBeefyMock', [curve.entry.address], 'HoodiExternalMocks'); m.dependencies.beefyVault = beefy.entry;

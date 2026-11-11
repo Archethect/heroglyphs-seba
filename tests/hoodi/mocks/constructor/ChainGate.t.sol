@@ -8,12 +8,12 @@ contract HoodiMockChainGateTest is Test {
     function test_RevertWhen_NotHoodi() public {
         vm.chainId(1);
         vm.expectRevert(HoodiOnlyMock.HoodiOnly.selector);
-        new HoodiPriceFeedMock(2000e8);
+        new HoodiPriceFeedMock(2000e8, address(this));
     }
 
     function test_WhenHoodi() public {
         vm.chainId(560_048);
-        HoodiPriceFeedMock feed = new HoodiPriceFeedMock(2000e8);
+        HoodiPriceFeedMock feed = new HoodiPriceFeedMock(2000e8, address(this));
         (, int256 answer,, uint256 updatedAt,) = feed.latestRoundData();
         assertEq(answer, 2000e8);
         assertEq(updatedAt, block.timestamp);

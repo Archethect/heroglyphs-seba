@@ -48,6 +48,11 @@ chooses whether to proceed.
   where compatible. Mocks do not prove mainnet Beefy, Yearn, sBOLD, liquidity, or live CoW solver execution. The
   unchanged V1 backend may use a dedicated, test-only HTTPS quote stub approved for this rehearsal; its response is
   synthetic and the mock EthFlow fill remains a separate, explicit test-solver action.
+- The two fixed-price Hoodi V1 oracle mocks expose only a **Safe-authorized** report-time refresh and reject future
+  timestamps. Before any V1 Beefy-adapter entry or exit—including Stage A—the test Safe must refresh and verify both
+  report times at the execution block: ETH/USD must be at most one hour old and USDC/USD at most 23 hours old. A stale
+  feed or unavailable Safe is an abort, not a reason to bypass the legacy adapter's freshness checks. These timestamps
+  only keep a synthetic test price usable; they do not establish real USD market value.
 - Fresh mainnet fork: real existing V1 state and external integrations, with explicitly labelled local signer
   impersonation and synthetic solver funding.
 - Only a separately approved live order can prove orderbook acceptance/fill.
@@ -75,7 +80,8 @@ positions created after V2 launch retain their normal lock.
    on the pool, manager, PYB, router and Beefy adapter, retaining only its bounded V1 automator/mock-solver functions.
    This differs from mainnet's retained Aragon role overlap and is testnet governance, not production policy. Test the
    direct-EOA admin failure and Safe success.
-3. Existing Hoodi contracts, AWS stack, S3 objects, EventBridge rule and graph are not modified. The chain-1 test stack
+3. Existing Hoodi onchain contracts and holders are not modified. The old Hoodi **testnet** AWS/graph resources may be
+   retired or replaced only after an inventory snapshot and a verified isolated successor; the chain-1/production stack
    is never targeted. No `cdk deploy --all`. The public Hoodi rehearsal invokes only the financial-maintenance path;
    validator graduation/backpay stay on local/fork regression tests. Do not invoke the complete legacy poller against
    stale NFT/Gnosis graph inputs.
@@ -88,6 +94,12 @@ positions created after V2 launch retain their normal lock.
    current fork tests. An independent cross-stack audit and fix re-review cover the exact commits to be deployed.
 7. Before any Hoodi transaction, the lead presents the exact manifest, signer, amount, calldata, gas estimate and abort
    conditions for review. A failing gate stops the sequence; it does not trigger an improvised top-up or bypass.
+
+The read-only `tools/hoodi-public-safe-plan.mjs <ignored-local-env-file>` produces **only the first Safe-factory
+transaction** for owner-wallet review. It checks chain ID, official Safe code hashes, unused salt, nonce, wallet gas
+balance and `eth_estimateGas`; it has no signer or send path. A dirty source is marked `executionReady: false`. Re-run
+from a clean pinned source and recheck the live head immediately before signing. Later V1 deployment and binding
+transactions require their own reviewed plan and receipts; the loopback-only Anvil tool must never be pointed at Hoodi.
 
 ## CROPS record for this rehearsal
 

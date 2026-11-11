@@ -66,8 +66,9 @@ contract HoodiMocksBehaviorTest is Test {
     }
 
     function test_FeedAndHarvesterViewsPauseAndFailures() public {
-        HoodiPriceFeedMock feed = new HoodiPriceFeedMock(2000e8);
+        HoodiPriceFeedMock feed = new HoodiPriceFeedMock(2000e8, address(this));
         assertEq(feed.decimals(), 8);
+        vm.warp(18);
         feed.setUpdatedAt(17);
         (, int256 answer, uint256 started, uint256 updated,) = feed.latestRoundData();
         assertEq(answer, 2000e8);

@@ -6,6 +6,11 @@ External BOLD, sBOLD, USDC, Beefy, Curve, Yearn, EthFlow and CoW settlement are 
 its registry are real Hoodi contracts. A synthetic venue fill proves accounting and wiring, **not** executable
 liquidity, price, or real CoW solver behavior.
 
+The mock V1 USD feeds fix their prices but require a current report timestamp for the unchanged Beefy adapter. Only the
+new test Safe can call `setUpdatedAt`, and it cannot set a future time. A public Hoodi run must refresh both feeds via
+the Safe before V1 adapter entry/exit (especially Stage A), then check the legacy one-hour ETH/USD and 23-hour USDC/USD
+age limits. The local fork completes within those limits; a public deployment spanning days cannot assume that.
+
 The test stack uses the official Hoodi Safe v1.4.1 singleton `0x41675C099F32341bf84BFc5382aF534df5C7461a`, factory
 `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67`, and MultiSend `0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526`. The new Safe
 is 1-of-1, owned by the existing Hoodi admin `0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f`. This is **not** a production

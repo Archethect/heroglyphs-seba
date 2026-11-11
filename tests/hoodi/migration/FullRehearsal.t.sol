@@ -52,6 +52,8 @@ contract HoodiFullRehearsalForkTest is Test {
     MockUSDC internal usdc;
     MockBold internal bold;
     HoodiSBoldMock internal sBold;
+    HoodiPriceFeedMock internal ethFeed;
+    HoodiPriceFeedMock internal usdFeed;
     HoodiUniswapMock internal uni;
     HoodiCurveMock internal curve;
     HoodiBeefyMock internal beefy;
@@ -97,8 +99,8 @@ contract HoodiFullRehearsalForkTest is Test {
         curve = new HoodiCurveMock(address(usdc));
         beefy = new HoodiBeefyMock(address(curve));
         ethFlow = new HoodiEthFlowMock(OWNER);
-        HoodiPriceFeedMock ethFeed = new HoodiPriceFeedMock(2000e8);
-        HoodiPriceFeedMock usdFeed = new HoodiPriceFeedMock(1e8);
+        ethFeed = new HoodiPriceFeedMock(2000e8, address(safe));
+        usdFeed = new HoodiPriceFeedMock(1e8, address(safe));
         // The legacy backend polls a separate Beefy strategy's paused()/harvest() ABI.
         new HoodiBeefyHarvesterMock();
         router = new EthToBoldRouter(address(ethFlow), address(bold), OWNER, OWNER);
@@ -334,6 +336,20 @@ contract HoodiFullRehearsalForkTest is Test {
         assertEq(address(next).balance, 1 ether);
         assertEq(old.depositId(), 0);
         assertFalse(next.executionEnabled());
+    }
+
+    function test_StageARequiresFreshSafeControlledOracleReports() public {
+        _seedV1ProtocolRewards();
+        vm.warp(block.timestamp + adapter.ETH_USD_ORACLE_MAX_AGE() + 1);
+        vm.expectRevert();
+        this.executeStageA();
+        assertEq(address(old.yieldVault()), address(adapter));
+
+        _safeCall(address(ethFeed), abi.encodeCall(HoodiPriceFeedMock.setUpdatedAt, (block.timestamp)));
+        _safeCall(address(usdFeed), abi.encodeCall(HoodiPriceFeedMock.setUpdatedAt, (block.timestamp)));
+        _stageA();
+        assertEq(address(old.yieldVault()), address(stopper));
+        assertEq(address(old).balance, 1 ether);
     }
 
     function test_StageBWrongPointerRollsBackOnlyStageB() public {
@@ -604,5 +620,10 @@ contract HoodiFullRehearsalForkTest is Test {
     function executeWrongStageB() external {
         require(msg.sender == address(this));
         _stageB(false);
+    }
+
+    function executeStageA() external {
+        require(msg.sender == address(this));
+        _stageA();
     }
 }
