@@ -2,8 +2,8 @@
 
 Status: design/implementation in progress. This is **not** a deployment authorization. The existing Hoodi apxETH stack
 and the funded chain-1 test stack are out of scope. The owner approved new, uniquely named **private** Hoodi V1 and
-V2-candidate graphs in the existing Hero's Team Goldsky project; existing mainnet graphs, tags and endpoints must not
-be changed. This shares project quota and access, but not graph names. The unmodified V1 backend always sends a Bearer
+V2-candidate graphs in the existing Hero's Team Goldsky project; existing mainnet graphs, tags and endpoints must not be
+changed. This shares project quota and access, but not graph names. The unmodified V1 backend always sends a Bearer
 header, so its test-only Goldsky token must live in a dedicated Secrets Manager secret, never a URL or CDK template.
 Local Graph Node replay remains the independent receipt-level check; do not use the retired Alchemy Subgraphs deployment
 path or repoint an existing production graph.
@@ -25,6 +25,16 @@ path or repoint an existing production graph.
 
 No later phase starts merely because the prior phase passed its tests. The owner receives its evidence and explicitly
 chooses whether to proceed.
+
+Phase-3 Safe bootstrap is complete on **Hoodi only**. Factory transaction
+`0x3ac6307b93523487a9d39c079801994e6363d445f13554483f6540279d31fdf6` succeeded in block 3,994,979
+(`0x78d5413ab1becd78b37ca4a3a987a0d2ac17212f5137cd09dc4ec8e51f66066f`). Its input exactly matches the generated factory
+calldata hash `0x00ab1f11351f212ae1b5276ed0389a56524f801efe807be09833214f7e4b08fb`. `ProxyCreation` emitted Safe
+`0xAc52395a9D706696Cf36125A0664c0C6d2B06B7b`, runtime code hash
+`0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c`, singleton
+`0x41675C099F32341bf84BFc5382aF534df5C7461a`, version 1.4.1. Read-only post-checks found sole owner
+`0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f`, threshold 1, no modules, zero guard and Safe nonce 0. This proves only the
+Safe bootstrap; **no V1 stack, backend or Goldsky graph has been deployed**.
 
 ## Evidence boundary
 
@@ -77,9 +87,10 @@ positions created after V2 launch retain their normal lock.
 1. Commit hashes, chain ID 560048, all code hashes, verified identities, transaction receipts, deployment blocks and
    hashes are pinned in a public non-secret manifest. Secrets, RPC URLs and keys stay out of Git.
 2. The 1-of-1 Hoodi Safe is owned by the previously used Hoodi admin EOA; its owner, threshold, modules and guard are
-   verified before either V1 or V2 receives administration. After bootstrap wiring, the EOA relinquishes V1 `ADMIN_ROLE`
-   on the pool, manager, PYB, router and Beefy adapter, retaining only its bounded V1 automator/mock-solver functions.
-   This differs from mainnet's retained Aragon role overlap and is testnet governance, not production policy. Test the
+   verified before either V1 or V2 receives administration. The isolated public V1 contracts receive the Safe as
+   `ADMIN_ROLE` at construction, so the EOA never holds their V1 admin role; it retains only bounded V1
+   automator/mock-solver functions. See [the five-batch signing and receipt gate](HOODI_V1_SAFE_BATCHES.md). This
+   differs from mainnet's retained Aragon role overlap and is testnet governance, not production policy. Test the
    direct-EOA admin failure and Safe success.
 3. Existing Hoodi onchain contracts and holders are not modified. The old Hoodi **testnet** AWS/graph resources may be
    retired or replaced only after an inventory snapshot and a verified isolated successor; the chain-1/production stack
@@ -96,17 +107,17 @@ positions created after V2 launch retain their normal lock.
 7. Before any Hoodi transaction, the lead presents the exact manifest, signer, amount, calldata, gas estimate and abort
    conditions for review. A failing gate stops the sequence; it does not trigger an improvised top-up or bypass.
 
-The read-only `tools/hoodi-public-safe-plan.mjs <ignored-local-env-file>` produces **only the first Safe-factory
-transaction** for owner-wallet review. It checks chain ID, official Safe code hashes, unused salt, nonce, wallet gas
-balance and `eth_estimateGas`; it has no signer or send path. A dirty source is marked `executionReady: false`. Re-run
-from a clean pinned source and recheck the live head immediately before signing. Later V1 deployment and binding
-transactions require their own reviewed plan and receipts; the loopback-only Anvil tool must never be pointed at Hoodi.
-For the factory UI, copy `transaction.factoryInputs.initializer` directly from generated JSON. It must be 356 bytes;
-compare `transaction.dataHash` with the wallet's full calldata when available. Do not manually transcribe long hex from
-chat. The failed Hoodi factory transaction `0x53921503cce3f97b4cf1f189f24974c5f784a0490cbbd45228c323c5e808034f`
-used a 362-byte initializer (six extra zero bytes), reverted without deploying a Safe, and consumed the EOA nonce.
-Replay at the parent block confirms the submitted call reverts and the exact generated calldata returns the expected
-Safe address. A retry requires a fresh nonce/gas preflight, not an unchanged old transaction.
+The read-only `tools/hoodi-public-safe-plan.mjs <ignored-local-env-file>` generated the completed Safe-factory
+transaction. The read-only `tools/hoodi-public-v1-next.mjs <ignored-local-env-file> <batch-index-0..4>` now produces one
+separately simulated V1 Safe batch at a time. Both have no signer or send path. A dirty source is marked
+`executionReady: false`; re-run from a clean pinned source and recheck the live head immediately before signing. The
+loopback-only Anvil proof sends transactions **only** to its local fork, never Hoodi. For the factory UI, copy
+`transaction.factoryInputs.initializer` directly from generated JSON. It must be 356 bytes; compare
+`transaction.dataHash` with the wallet's full calldata when available. Do not manually transcribe long hex from chat.
+The failed Hoodi factory transaction `0x53921503cce3f97b4cf1f189f24974c5f784a0490cbbd45228c323c5e808034f` used a
+362-byte initializer (six extra zero bytes), reverted without deploying a Safe, and consumed the EOA nonce. Replay at
+the parent block confirms the submitted call reverts and the exact generated calldata returns the expected Safe address.
+A retry requires a fresh nonce/gas preflight, not an unchanged old transaction.
 
 ## CROPS record for this rehearsal
 
