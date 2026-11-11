@@ -87,3 +87,7 @@ receipt gate checks these facts for each submitted hash:
 ```bash
 node tools/hoodi-public-v1-verify.mjs /Users/simon.deschutter/Projects/heroglyphs/hero_boost/.env 0 <Hoodi-transaction-hash>
 ```
+
+All five public contract batches have now passed this gate. Their exact hashes, block evidence, deployed addresses and
+runtime hashes are in [`HOODI_V1_PUBLIC_MANIFEST.json`](HOODI_V1_PUBLIC_MANIFEST.json). Safe nonce is 5; do **not**
+replay any batch. The V1 financial lifecycle and backend/Goldsky release remain separate pending gates.
