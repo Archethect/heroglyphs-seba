@@ -58,7 +58,7 @@ signed off for the isolated V2-aware backend and new dual-era Goldsky candidate.
 available during this stage. **Stop and report Phase 4 before any migration.**
 
 Verification performed before public signing:
-`node --test tools/hoodi-public-*.test.mjs tools/hoodi-safe-createcall.test.mjs` (14/14); full six-batch local
+`node --test tools/hoodi-public-*.test.mjs tools/hoodi-safe-createcall.test.mjs` (17/17); full six-batch local
 Hoodi-fork execution and exact receipt verification at block 3,999,532 (six `ExecutionSuccess` events, Safe nonce 7→13,
 all switches disabled, pool pointer unchanged). `forge build` passed. The V2 Solidity suite ran 259 non-fork tests
 successfully; eight mainnet-fork tests could not run in this Hoodi-only shell because `MAINNET_RPC` is intentionally
