@@ -33,14 +33,19 @@ calldata hash `0x00ab1f11351f212ae1b5276ed0389a56524f801efe807be09833214f7e4b08f
 `0xAc52395a9D706696Cf36125A0664c0C6d2B06B7b`, runtime code hash
 `0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c`, singleton
 `0x41675C099F32341bf84BFc5382aF534df5C7461a`, version 1.4.1. Read-only post-checks found sole owner
-`0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f`, threshold 1, no modules and zero guard. The Safe nonce is now 5.
+`0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f`, threshold 1, no modules and zero guard. The Safe nonce after the V1
+deployment batches was 5; it advanced to 7 during Phase-3 setup and oracle refresh.
 
 The five **Hoodi-only public V1 contract batches** succeeded at blocks 3,995,123, 3,995,135, 3,995,162, 3,995,175 and
 3,995,211. Each input matched the reviewed plan, emitted Safe `ExecutionSuccess`, advanced the Safe nonce once and left
 all expected runtime hashes intact. The final batch verified Safe-only core administration, manager-only adapter/router
 roles, pool/PYBSeba/manager pointers and zero supporter claims/principal/pending conversion. See the
 [non-secret public V1 receipt manifest](HOODI_V1_PUBLIC_MANIFEST.json). This completes the **contracts deployment/wiring
-substep only**: no public V1 financial lifecycle, backend or Goldsky graph has been exercised yet.
+substep only. Since then, Phase 3 completed its public financial lifecycle: the isolated V1 backend swept 2 Hoodi test
+ETH (1 ETH into the mock Beefy adapter, 1 ETH through the mock EthFlow order), the test solver delivered 2,000 synthetic
+BOLD, and the backend finalized 2,000 sBOLD into pybSeba. The private V1 Goldsky graph indexed those receipts and
+balances. There were no supporter deposits or public validator/backpay runs. The Safe nonce is now **7**, not 5; see the
+[Phase-4 V2 staging gate](HOODI_V2_STAGE_BATCHES.md) before preparing another transaction.
 
 ## Evidence boundary
 
