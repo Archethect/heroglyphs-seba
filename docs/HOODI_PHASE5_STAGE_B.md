@@ -55,6 +55,22 @@ cap, V2 empty-state invariant, graph health, or backend-disabled gate changes; i
 near; or if calldata differs from the reviewed plan. Do not widen caps, skip assertions, or use mainnet/funded-chain
 credentials to make the batch pass. A new handoff requires a new Safe review.
 
+## Public Hoodi handoff deployment receipt (2026-11-13)
+
+- [Safe transaction `0x95fd…c506`](https://hoodi.etherscan.io/tx/0x95fdf64d322dcbfbb8b75d8a53dce3574068d98dc7797c0239edf02ac97ac506)
+  succeeded at block **4,007,290**, hash `0x3c98844b8e85de0c9e4b84b80ba1362e098a0cf8aa11bca8bf28d363f10a448a`. It
+  matched the saved outer Safe calldata byte-for-byte, emitted `ExecutionSuccess`, and advanced Safe nonce to **15**.
+  The predicted
+  [handoff at `0x4909…eBD6`](https://hoodi.etherscan.io/address/0x490956f3750780613fb96190cb2b63ae7121ebd6#code) exists
+  and its exact Solidity 0.8.28/IR/optimizer-200 source is verified.
+- The immutable `CONFIGURATION_HASH` is `0xbf2639191d1c0dd39dbc5589a7e7a2db899785df2c6f326497eddd095e6d50e3`; the
+  manifest commitment remains `0x178ad989af6fbe81a3651e7f84618c538ff992d3a2a4927a0ec84d11b6237c9d`. Its expiry is
+  **2026-11-13 12:09:36 UTC**. The deployment moved **no ETH**. One test ETH remains parked in V1 until the separately
+  signed seven-call cutover.
+- At block **4,007,300**, the independent public Hoodi preflight read the exact deployment receipt/source and current
+  V1/V2 accounting, then `eth_call`-simulated the full Safe cutover successfully. Estimated cutover gas was **783,200**,
+  with a **979,000** gas-limit plan. This is a simulation, not a cutover receipt; recheck immediately before signing.
+
 ## Verification evidence so far
 
 - Stage B planner/verifier unit tests: **5/5**; all Hoodi planner tests: **31/31**.
