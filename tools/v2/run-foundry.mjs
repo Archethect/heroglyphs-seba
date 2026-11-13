@@ -16,12 +16,15 @@ if (!allowed.has(args[0]) || args.includes("--broadcast")) {
   throw new Error("Only local forge build/test/coverage/inspect are allowed; broadcasting is forbidden");
 }
 const loaded = fs.existsSync(envFile) ? parseEnv(fs.readFileSync(envFile, "utf8")) : {};
-const rpc = process.env.MAINNET_RPC || loaded.MAINNET_RPC;
+const mainnetRpc = process.env.MAINNET_RPC || loaded.MAINNET_RPC;
+const hoodiRpc = process.env.HOODI_RPC || loaded.HOODI_RPC;
 const env = { ...process.env, ETHERSCAN_API_KEY: "", RUST_LOG: "error" };
-if (rpc) env.MAINNET_RPC = rpc;
+if (mainnetRpc) env.MAINNET_RPC = mainnetRpc;
+if (hoodiRpc) env.HOODI_RPC = hoodiRpc;
 const redact = (text) => {
   let result = text;
-  if (rpc) {
+  for (const rpc of [mainnetRpc, hoodiRpc]) {
+    if (!rpc) continue;
     result = result.split(rpc).join("[REDACTED_RPC]");
     const key = new URL(rpc).pathname.split("/").filter(Boolean).at(-1);
     if (key && key.length >= 16) result = result.split(key).join("[REDACTED_RPC_KEY]");

@@ -286,6 +286,9 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
             next.pendingEth(2) != expectedEth - r ||
             destination.balance != _destinationEthBefore + expectedEth
         ) revert InvalidState();
+        for (uint256 leg; leg < 2; ++leg)
+            if (IV2SupporterVault(next.vaults(leg)).recoveryState() != IV2SupporterVault.RecoveryState.Normal)
+                revert InvalidState();
         _noLegacyClaims();
         _conversionsClear();
         _destinationIdentities();
@@ -369,16 +372,23 @@ contract LegacyProtocolPrincipalHandoff is ILegacyProtocolPrincipalHandoff {
         address module = next.cowModule();
         if (module != address(0) && ISebaCowIntentModule(module).activeCount() != 0) revert InvalidState();
         for (uint256 i; i < 3; ++i) if (next.pendingEth(i) != 0) revert InvalidState();
-        for (uint256 leg; leg < 2; ++leg) {
-            address vault = next.vaults(leg);
-            if (vault.code.length == 0) revert InvalidState();
-            IV2SupporterVault.Bucket memory protocol = IV2SupporterVault(vault).bucket(1);
-            if (protocol.basis != 0 || protocol.tokens != 0) revert InvalidState();
-        }
+        _destinationVaultsReady(next);
         for (uint8 leg; leg < 2; ++leg)
             for (uint8 bucket; bucket < 2; ++bucket) {
                 if (next.harvestInventory(leg, bucket) != 0) revert InvalidState();
             }
+    }
+
+    /// @dev Both protocol buckets must be empty and able to accept capital before the one-shot import.
+    function _destinationVaultsReady(IHandoffDestination next) private view {
+        for (uint256 leg; leg < 2; ++leg) {
+            address vault = next.vaults(leg);
+            if (vault.code.length == 0) revert InvalidState();
+            if (IV2SupporterVault(vault).recoveryState() != IV2SupporterVault.RecoveryState.Normal)
+                revert InvalidState();
+            IV2SupporterVault.Bucket memory protocol = IV2SupporterVault(vault).bucket(1);
+            if (protocol.basis != 0 || protocol.tokens != 0) revert InvalidState();
+        }
     }
 
     /// @dev Validate the exact reviewed import authority, asset identities and allocation, before and after cutover.

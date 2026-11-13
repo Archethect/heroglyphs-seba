@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "seba-hoodi-stage-b-approval-v1",
+  "network": "hoodi",
+  "chainId": 560048,
+  "testOnly": true,
+  "mode": "isolated-mock-backed",
+  "sourceCommitForOnchainCode": "e40e46cca58f5a63195848ae233a6e1f5deb2362",
+  "stageA": {
+    "transactionHash": "0xf5e4a64426f442463477b9fcd8411a3ec54cc04b1b25a44e70e53cfd84243c3f",
+    "blockNumber": 4007084,
+    "blockHash": "0xe6f92d05a01fca957ef59e4fd407bc2c488b1e069f7c87ea4b358ea2323c8526",
+    "parkedEthWei": "1000000000000000000",
+    "stopper": "0x8388e0c50197362FD46159Ac48cFC7c962E3937a"
+  },
+  "snapshot": {
+    "blockNumber": 4007105,
+    "blockHash": "0x439086885747b119296455eb3596c185bd0dba2f56b2f0151fdae6c7c2ebaf2c"
+  },
+  "safe": {
+    "address": "0xAc52395a9D706696Cf36125A0664c0C6d2B06B7b",
+    "owners": ["0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f"],
+    "threshold": 1,
+    "expectedNonceBeforeHandoffDeployment": 14
+  },
+  "legacy": {
+    "manager": "0x7743B769f61fACb3F90F9Ff2c17082350668a9BD",
+    "pool": "0xB17e95B6f94c2028247be0Ab803f25fd19cfb679",
+    "adapter": "0x7394E59D3c5B12626B2AdE4d226d0C24A8b28233",
+    "router": "0xE9009F04B65E45151c3FeAE22bE3861ACFF91524",
+    "oldPrincipal": "0",
+    "oldDepositId": "0",
+    "adapterPrincipal": "0",
+    "adapterShares": "0",
+    "actualBeefyShares": "0"
+  },
+  "destination": {
+    "managerProxy": "0x989F75ca5Ba3422b4392198cbc45C7Ec1587657A",
+    "rethBps": 5000,
+    "ysyBoldBps": 5000
+  },
+  "approvedUnmigratedSurplusCaps": {
+    "maximumRouterEth": "0",
+    "maximumOldBold": "0",
+    "maximumOldSBold": "0",
+    "maximumRouterBold": "0"
+  },
+  "disclosure": "Hoodi-only mock-backed rehearsal. One test ETH is imported to V2; no real Beefy, Yearn, CoW, or BOLD market liquidity is established by this manifest."
+}

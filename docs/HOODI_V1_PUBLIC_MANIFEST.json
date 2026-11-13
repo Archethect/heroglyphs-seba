@@ -1,0 +1,325 @@
+{
+  "schemaVersion": "seba-hoodi-rehearsal-v1",
+  "network": "hoodi",
+  "chainId": 560048,
+  "testOnly": true,
+  "mode": "isolated-mock-backed",
+  "phase": "v1-ready",
+  "previousManifestHash": null,
+  "source": {
+    "contractsCommit": "e40e46cca58f5a63195848ae233a6e1f5deb2362"
+  },
+  "anchor": {
+    "blockNumber": 3994979,
+    "blockHash": "0x78d5413ab1becd78b37ca4a3a987a0d2ac17212f5137cd09dc4ec8e51f66066f"
+  },
+  "safe": {
+    "kind": "real-safe-proxy",
+    "address": "0xAc52395a9D706696Cf36125A0664c0C6d2B06B7b",
+    "runtimeCodeHash": "0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c",
+    "evidence": {
+      "transactionHash": "0x3ac6307b93523487a9d39c079801994e6363d445f13554483f6540279d31fdf6",
+      "blockNumber": 3994979,
+      "blockHash": "0x78d5413ab1becd78b37ca4a3a987a0d2ac17212f5137cd09dc4ec8e51f66066f"
+    },
+    "owners": ["0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f"],
+    "threshold": 1,
+    "version": "1.4.1"
+  },
+  "dependencies": {
+    "safeSingleton": {
+      "kind": "real",
+      "address": "0x41675C099F32341bf84BFc5382aF534df5C7461a",
+      "runtimeCodeHash": "0x1fe2df852ba3299d6534ef416eefa406e56ced995bca886ab7a553e6d0c5e1c4",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "safeFactory": {
+      "kind": "real",
+      "address": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "runtimeCodeHash": "0x50c3cdc4074750a7a974204a716c999edd37482f907608d960b2b025ee0b3317",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "safeMultiSend": {
+      "kind": "real",
+      "address": "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526",
+      "runtimeCodeHash": "0x0e4f7fc66550a322d1e7688e181b75e217e662a4f3f4d6a29b22bc61217c4b77",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "safeCreateCall": {
+      "kind": "real",
+      "address": "0x9b35Af71d77eaf8d7e40252370304687390A1A52",
+      "runtimeCodeHash": "0x2b3060c55fcb8275653e99ad511a71f67ba76934ed66a7d74d6e68b52afff889",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "reth": {
+      "kind": "real",
+      "address": "0x7322c24752f79c05FFD1E2a6FCB97020C1C264F1",
+      "runtimeCodeHash": "0x0d57888fff1a726e4be011956ed1956783b825a32253b2027f555b64660ed225",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "rocketStorage": {
+      "kind": "real",
+      "address": "0x594Fb75D3dc2DFa0150Ad03F99F97817747dd4E1",
+      "runtimeCodeHash": "0x63234b906b13cc6132a2587c90d14e12c730088be5f61ebb2ca54000d6b1f3dc",
+      "verifiedAt": {
+        "blockNumber": 3995211,
+        "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+      }
+    },
+    "weth": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x446BF2B7e3B61BbE1E020Ab6fCF17A914664593B",
+      "runtimeCodeHash": "0x6ffd364a846fbb425a255666bef4fb0bdeb158e4a3f65c7ebf268663248f9b06",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "usdc": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x53c092C8D0e31660Bd810FDB77d5fE1FF2fB80bB",
+      "runtimeCodeHash": "0xa77d01b1db3c08ba89d10704d11ebf0d8e8886d0804d68b799e9b08197bbb4af",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "bold": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x640D169b87fbf242042445cc05486146482d3949",
+      "runtimeCodeHash": "0x6357e7b5f94cc2aa6ac22a1c1e43e7c44fa091cb85c46cdbf21aabc435ba33e1",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "ethUsdFeed": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0xCFe4B3fcC57C2eE630C22DC8cd2a7528A08dd335",
+      "runtimeCodeHash": "0x75d980d4332d4f1dfe987d7f7ffab8c53850aa37346722e83482925e24c0b2f4",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "usdcUsdFeed": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x06fBAb39E6C78d9084a41D6f4fF99Cd266E754c6",
+      "runtimeCodeHash": "0x2c74e9789ec80f8ea65a3d1513cc9ecc7cd686e822f31fd04525d6ef498f2ece",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "uniswap": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0xEef358f8Cc60362602BaB358a1BE3a3B081e6A12",
+      "runtimeCodeHash": "0xc8386c05604a14329f17fec9c51fabd6d1bdff6e81ab45d563368106575fcc99",
+      "evidence": {
+        "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+        "blockNumber": 3995135,
+        "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+      }
+    },
+    "curve": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x3dB4eb0DF626D45dD9a96e2d58721E36d8c6DEFD",
+      "runtimeCodeHash": "0xb7b9df6d48cc0fd5f595985e91dcace533b655ce48dd8c6321c1318820c6908e",
+      "evidence": {
+        "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+        "blockNumber": 3995135,
+        "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+      }
+    },
+    "beefyVault": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0xaf70fb82EbAfFbE8E5618e21288045dde7F34943",
+      "runtimeCodeHash": "0x42fda60649bf618601be04c87effd0e06e6bb05a389c3b2feb824e3e165a081b",
+      "evidence": {
+        "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+        "blockNumber": 3995135,
+        "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+      }
+    },
+    "beefyHarvester": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0xCAcD0dEF67906375d45107a4373Ce2959Df67F02",
+      "runtimeCodeHash": "0xedb20577842062f99aef0497f90055b9eb5988ed4a0f2b8f186ec83b741d47d7",
+      "evidence": {
+        "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+        "blockNumber": 3995135,
+        "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+      }
+    },
+    "ethFlow": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x98FAb25484928B33568d5526d64f1A44a47f2AE7",
+      "runtimeCodeHash": "0x660f20f93401072d65d89886f3f8da0ee56baa472903176dddb44b168b3252d8",
+      "evidence": {
+        "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+        "blockNumber": 3995135,
+        "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+      }
+    }
+  },
+  "v1": {
+    "sBold": {
+      "kind": "mock",
+      "creationKind": "safe-create2",
+      "address": "0x77Fe212C9d06758796a9352Dad6f84ac9E05E8F5",
+      "runtimeCodeHash": "0x6a3033960619d985d2a58496c43eaa6f41b5d739ba9a2e7d9b50f8d717524be9",
+      "evidence": {
+        "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+        "blockNumber": 3995123,
+        "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+      }
+    },
+    "router": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0xE9009F04B65E45151c3FeAE22bE3861ACFF91524",
+      "runtimeCodeHash": "0xee8a490755acdb2784e07767a6cdb82ab18abe72e88c99216294dbea492894be",
+      "evidence": {
+        "transactionHash": "0x37c44885d60d59d4bc8a56c6badf351f2507fafb3e0a01236d94ed8a332e7a8f",
+        "blockNumber": 3995162,
+        "blockHash": "0x3653691b61e3347231383e5b55dc0758f4d1a3049e224381ba5d225d7c1d25bb"
+      }
+    },
+    "pybSeba": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0x0C0CFB723726878E94Ed491f39aA78bf118a88c8",
+      "runtimeCodeHash": "0xa5b220b719d66f8818ca4f92fd5b97928ddbed0a88d27063c3f9f4a595ed703f",
+      "evidence": {
+        "transactionHash": "0x37c44885d60d59d4bc8a56c6badf351f2507fafb3e0a01236d94ed8a332e7a8f",
+        "blockNumber": 3995162,
+        "blockHash": "0x3653691b61e3347231383e5b55dc0758f4d1a3049e224381ba5d225d7c1d25bb"
+      }
+    },
+    "pool": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0xB17e95B6f94c2028247be0Ab803f25fd19cfb679",
+      "runtimeCodeHash": "0x61c9af11db78c42c5253722d65a94a7f953a40197d08f5b6fb17bc8d484098ff",
+      "evidence": {
+        "transactionHash": "0x37c44885d60d59d4bc8a56c6badf351f2507fafb3e0a01236d94ed8a332e7a8f",
+        "blockNumber": 3995162,
+        "blockHash": "0x3653691b61e3347231383e5b55dc0758f4d1a3049e224381ba5d225d7c1d25bb"
+      }
+    },
+    "beefyAdapter": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0x7394E59D3c5B12626B2AdE4d226d0C24A8b28233",
+      "runtimeCodeHash": "0x564e47e8e32f376cd70f9c11d3546004e4aae6719ae4e7c4bd52890c1b392e7a",
+      "evidence": {
+        "transactionHash": "0x772a100ac67a841fb6ea36adbe46a4cce5daebed9fe12d42797aa68afb22dc43",
+        "blockNumber": 3995175,
+        "blockHash": "0x8559260a53d3f665e80796c2580cf1f6af4dc563ccdb7811a1fb27bff2181827"
+      }
+    },
+    "manager": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0x7743B769f61fACb3F90F9Ff2c17082350668a9BD",
+      "runtimeCodeHash": "0x487ab2761e828a5b955eb71411fdf7ccfa9a78d68d208d54d4b887609341050b",
+      "evidence": {
+        "transactionHash": "0x772a100ac67a841fb6ea36adbe46a4cce5daebed9fe12d42797aa68afb22dc43",
+        "blockNumber": 3995175,
+        "blockHash": "0x8559260a53d3f665e80796c2580cf1f6af4dc563ccdb7811a1fb27bff2181827"
+      }
+    },
+    "rocketPoolBackPay": {
+      "kind": "mainnet-source-on-mock-Hoodi",
+      "creationKind": "safe-create2",
+      "address": "0x2b6755f1056e4d58BdcB4378B4E7f93Ac88125aA",
+      "runtimeCodeHash": "0x2a1f75b365d113d35423da6ad09ddde914e9181a9ba360d813820da7abd20fa8",
+      "evidence": {
+        "transactionHash": "0x772a100ac67a841fb6ea36adbe46a4cce5daebed9fe12d42797aa68afb22dc43",
+        "blockNumber": 3995175,
+        "blockHash": "0x8559260a53d3f665e80796c2580cf1f6af4dc563ccdb7811a1fb27bff2181827"
+      }
+    }
+  },
+  "v2": {},
+  "cutover": {},
+  "reconciliation": {
+    "v1TestAutomator": "0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f",
+    "liveSupporterClaims": 0,
+    "depositId": 0,
+    "principalValueWei": "0",
+    "pendingBoldConversionWei": "0"
+  },
+  "transactions": [
+    {
+      "label": "safe.bootstrap",
+      "transactionHash": "0x3ac6307b93523487a9d39c079801994e6363d445f13554483f6540279d31fdf6",
+      "blockNumber": 3994979,
+      "blockHash": "0x78d5413ab1becd78b37ca4a3a987a0d2ac17212f5137cd09dc4ec8e51f66066f"
+    },
+    {
+      "label": "v1.dependencies-a",
+      "transactionHash": "0x7f33295d98ed95360b3c3d9bba3d2178256f93405b3a8221793f877c3331e74b",
+      "blockNumber": 3995123,
+      "blockHash": "0xb72a2b43ebd352c220bc1fa4fa81702a2449ffc75af5b650ad2b31558a4f2c04"
+    },
+    {
+      "label": "v1.dependencies-b",
+      "transactionHash": "0x71edd084d417ea2daa197feca46683638078b0dc53df63429613c188a80dd9c7",
+      "blockNumber": 3995135,
+      "blockHash": "0xeb1813a578f790f6992c302eb948e98e8a719d7a4d145b1803704b15e6b609dc"
+    },
+    {
+      "label": "v1.core-a",
+      "transactionHash": "0x37c44885d60d59d4bc8a56c6badf351f2507fafb3e0a01236d94ed8a332e7a8f",
+      "blockNumber": 3995162,
+      "blockHash": "0x3653691b61e3347231383e5b55dc0758f4d1a3049e224381ba5d225d7c1d25bb"
+    },
+    {
+      "label": "v1.core-b",
+      "transactionHash": "0x772a100ac67a841fb6ea36adbe46a4cce5daebed9fe12d42797aa68afb22dc43",
+      "blockNumber": 3995175,
+      "blockHash": "0x8559260a53d3f665e80796c2580cf1f6af4dc563ccdb7811a1fb27bff2181827"
+    },
+    {
+      "label": "v1.bindings",
+      "transactionHash": "0x1bdce5aaf2d0a2a483306096ceef4d7dd3fcf93addd5152486437c199fe1cb94",
+      "blockNumber": 3995211,
+      "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+    }
+  ],
+  "checkpoint": {
+    "blockNumber": 3995211,
+    "blockHash": "0x35baf7203268761ddddd8a9e94bd14b4345d6699530b24477e5202ad3af001c4"
+  }
+}

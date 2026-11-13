@@ -1,0 +1,85 @@
+# Hoodi V1→V2 local rehearsal (test-only)
+
+This harness clones the unchanged Seba V1 pool, manager, reward vault, Beefy adapter and ETH→BOLD router on a **local
+Anvil fork of Hoodi at block 3,988,379**. It does not modify or replace the existing public Hoodi apxETH installation.
+External BOLD, sBOLD, USDC, Beefy, Curve, Yearn, EthFlow and CoW settlement are Hoodi-only mocks; Rocket Pool rETH and
+its registry are real Hoodi contracts. A synthetic venue fill proves accounting and wiring, **not** executable
+liquidity, price, or real CoW solver behavior.
+
+The mock V1 USD feeds fix their prices but require a current report timestamp for the unchanged Beefy adapter. Only the
+new test Safe can call `setUpdatedAt`, and it cannot set a future time. A public Hoodi run must refresh both feeds via
+the Safe before V1 adapter entry/exit (especially Stage A), then check the legacy one-hour ETH/USD and 23-hour USDC/USD
+age limits. The local fork completes within those limits; a public deployment spanning days cannot assume that.
+
+The test stack uses the official Hoodi Safe v1.4.1 singleton `0x41675C099F32341bf84BFc5382aF534df5C7461a`, factory
+`0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67`, and MultiSend `0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526`. The new Safe
+is 1-of-1, owned by the existing Hoodi admin `0x00008A88A21a1d34CDDAA7fC15A0E84ed7e42D8f`. This is **not** a production
+signer policy. The Safe exercises actual `execTransaction` for Stage A/B; a direct impersonated call to the handoff is
+not accepted as equivalent.
+
+## Narrow execution path
+
+1. `tools/hoodi-local-rehearsal.mjs v1` deploys fresh unchanged V1 code, binds contracts, transfers all cloned V1
+   ADMIN_ROLEs to the new Safe, leaves the EOA only as V1 automator and test-only mock solver, then exercises one
+   protocol reward sweep, Beefy adapter entry, EthFlow mock order/fill, BOLD→sBOLD, and PYB top-up. It creates **zero
+   user claims** to allow prompt public-testnet cutover; live-claim veto and 30-day-lock cases must instead be proved on
+   a mainnet fork.
+2. `v2 <v1-manifest>` deploys V2 proxies/implementations, executor, CoW module and Yearn mocks **disabled**. The Safe
+   owns V2 configuration, upgrade and recovery; the backend receives only bounded operator authority when explicitly
+   enabled for a test.
+3. `stage-a <v2-manifest>` executes the real 1-of-1 Safe MultiSend to stop V1 intake, exit legacy protocol capital, and
+   park exact ETH in the old manager. There is no automatic Stage B.
+4. `stage-b <stage-a-manifest>` executes a second Safe MultiSend against a reviewed exact ETH amount, importing into
+   V2's rETH/ysyBOLD protocol buckets and switching only the **new** pool's manager pointer. A changed quote, pointer,
+   code identity, Safe policy, or excess residual aborts.
+5. `tools/hoodi-local-cow.mjs open|fill|finalize` exercises one V2 protocol WETH→BOLD order in separate receipt-backed
+   steps. `fill` is a **synthetic mock solver** operation; `finalize` verifies manager source attribution and directly
+   deposits into mock yBOLD/ysyBOLD. The backend can probe pending, ready and closed states between steps. No Hoodi
+   request is sent to the real CoW API. The next `invest-reth` step is required to call the rehearsal **both-invested**;
+   a settled ysy order alone leaves the imported rETH-leg ETH idle in the manager.
+6. `tools/hoodi-local-cow.mjs invest-reth <cutover-manifest> <settled-order-evidence>` separately verifies the exact
+   prior ysy settlement checkpoint, then uses Safe transactions to enable only the rETH vault's report bounds and entry.
+   It resolves Rocket Pool contracts from the **real Hoodi registry** and reads back the executor's configured
+   addresses. The operator invests the remaining imported `pendingEth(1)` through the **real Hoodi Rocket Pool deposit
+   pool**, not a mock mint. Test-only minima are the current fee-adjusted Rocket rETH preview minus one rETH atom and
+   the vault's canonical ETH-basis preview minus two wei; these are rounding tolerances, not approved production policy.
+   The immutable `both-invested` evidence records the Rocket deposit receipt, real token output, bucket basis/custody,
+   zero remaining manager ETH/pending principal, and unchanged ysy bucket. A stale prior checkpoint or repeat attempt
+   aborts before a transaction.
+
+Both scripts reject non-loopback RPC URLs, require `anvil_nodeInfo` with the exact fork anchor and chain ID 560048, and
+check the preceding immutable manifest, code hashes, receipt/block hashes, pointer and cash state before later phases.
+They are deliberately **not public Hoodi deployment scripts**. Do not point them at a public RPC, publish a private key,
+or use their mock addresses for mainnet configuration.
+
+Development-fork receipts made while the worktree is dirty are diagnostic only. Final cross-repository evidence requires
+a reviewed commit, a clean worktree (`source.worktreeDirty=false` in every manifest), and a **new isolated loopback
+Anvil port/history** for the complete V1→V2→Stage A→Stage B→pending→ready→settled→both-invested replay. Never reset or
+reuse the retained earlier Anvil/Graph history to manufacture a clean-looking checkpoint.
+
+The manifest chain uses `schemaVersion: seba-hoodi-rehearsal-v1`, `network: hoodi`, `chainId: 560048`, `testOnly: true`,
+and `mode: isolated-mock-backed`. Each phase file is written once under ignored `broadcast/hoodi-local/`;
+`previousManifestHash` is Keccak-256 of the exact prior UTF-8 file bytes, including its final newline. `v1`, `v2`,
+`safe`, and `dependencies` contain address, runtime code hash and creation receipt (or pinned verification block for
+pre-existing real code). `cutover.stageA/stageB` contain Safe execution receipts; `reconciliation` contains
+parked/imported ETH and the mock V1 EthFlow UID. Operational RPC URLs, API keys and private keys are never stored in
+manifests.
+
+## Evidence limits and release gate
+
+- This local test proves deployed transaction ordering and observable onchain events, but mocked external venues and
+  synthetic BOLD/ETH funding do not prove a real market exit or solver fill.
+- The rETH protocol investment does exercise the real Hoodi Rocket Pool mint against its deposit capacity and current
+  fee at the pinned fork state. This proves that specific test-sized direct mint, not future capacity or mainnet
+  execution quality. A fresh read and approval are required before any public deployment.
+- The current public Hoodi apxETH state and holders are preserved. Public V1/V2 deployment needs a separate reviewed
+  script and explicit approval; this harness cannot broadcast there.
+- A fresh mainnet fork remains authoritative for unchanged mainnet-source identity, live V1 claim veto, 30-day supporter
+  lock, Beefy exit liquidity, and real CoW/Yearn/Rocket Pool behavior. A blocked current-block old exit is a release
+  blocker, not a historical success.
+- The cloned V1 Safe-only admin inventory differs intentionally from mainnet's Aragon/legacy overlap. This is a new
+  isolated test stack, not a claim that mainnet authority has changed.
+- The local V1 test automator is the existing admin EOA. A public Hoodi backend operator may be a **different** address:
+  before enabling automation, the Safe must grant it V1 manager/pool `AUTOMATOR_ROLE` where applicable and set V2
+  manager/module operator permissions. Preflight must read those roles back from chain. Do not infer operator authority
+  from Safe ownership or from the test-only EOA shortcut.

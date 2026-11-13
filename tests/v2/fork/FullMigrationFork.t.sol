@@ -224,6 +224,26 @@ contract FullMigrationForkTest is StackForkBase {
         assertFalse(handoff.used());
         assertFalse(manager.legacyImported());
     }
+    function test_RealSafeStageBRejectsVaultRecoveryStartedAfterStageA() public {
+        _prepareHandoff();
+        uint256 parkedEth = address(old).balance;
+        assertTrue(
+            _safeTransaction(
+                abi.encodeWithSignature(
+                    "multiSend(bytes)",
+                    _call(address(rVault), abi.encodeCall(rVault.beginRecovery, (keccak256("fork-only recovery test"))))
+                )
+            )
+        );
+        assertEq(uint256(rVault.recoveryState()), 1);
+        vm.expectRevert(bytes("GS013"));
+        this.executeCorrectForTest();
+        assertEq(address(old.yieldVault()), address(stopper));
+        assertEq(address(old).balance, parkedEth);
+        assertEq(manager.legacyHandoff(), address(0));
+        assertFalse(handoff.used());
+        assertFalse(manager.legacyImported());
+    }
     function test_StageABlocksNewLegacyDepositsAndPermissionlessSweepsUntilStageB() public {
         _prepareHandoff();
         uint256 parkedEth = address(old).balance;
@@ -241,6 +261,34 @@ contract FullMigrationForkTest is StackForkBase {
             address(manager).balance - manager.pendingEth(0) - manager.pendingEth(1) - manager.pendingEth(2),
             address(manager).balance
         );
+    }
+    function test_FreshMainnetLegacyClaimsClosedAndThirtyDayLock() public {
+        assertEq(old.USER_LOCK_SECS(), 30 days);
+        uint256 lastId = old.depositId();
+        assertGt(lastId, 0);
+        for (uint256 id = 1; id <= lastId; ++id) {
+            (, , uint256 amount, ) = old.deposits(id);
+            assertEq(amount, 0, "live legacy claim blocks cutover");
+        }
+        emit log_named_uint("Closed legacy deposit IDs at fork block", lastId);
+    }
+    function test_StageBRejectsFaultInjectedLiveLegacyClaimOnFreshFork() public {
+        _prepareHandoff();
+        uint256 parkedEth = address(old).balance;
+        ILegacyProtocolPrincipalHandoff.Configuration memory config = handoff.configuration();
+        // Fault injection after successful real Stage A. It models a stale/live claim; no mainnet storage is changed.
+        vm.mockCall(
+            address(old),
+            abi.encodeWithSignature("deposits(uint256)", 1),
+            abi.encode(address(0xBEEF), config.oldVault, 1 ether, uint32(block.timestamp + 30 days))
+        );
+        vm.expectRevert(bytes("GS013"));
+        this.executeCorrectForTest();
+        vm.clearMockedCalls();
+        assertEq(address(old).balance, parkedEth);
+        assertEq(address(old.yieldVault()), address(stopper));
+        assertFalse(handoff.used());
+        assertFalse(manager.legacyImported());
     }
     function executeWrongPointerForTest() external {
         require(msg.sender == address(this));

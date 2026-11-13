@@ -19,14 +19,19 @@ const names = [
 const record = (source, branches = 1) =>
   `SF:${source}\nLF:1\nLH:1\nBRF:${branches}\nBRH:${branches}\nFNF:1\nFNH:1\nend_of_record\n`;
 const complete = () => names.map((n) => record(`src/v2/${n}.sol`, n === "LegacyIntakeStopper" ? 0 : 1)).join("");
-function run(t, content, deployment = false) {
+function run(t, content, deployment = false, hoodi = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "seba-coverage-test-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const file = path.join(dir, "fixture.lcov");
   fs.writeFileSync(file, content);
   return spawnSync(
     process.execPath,
-    [path.join(__dirname, "check-coverage.cjs"), file, ...(deployment ? ["--deployment"] : [])],
+    [
+      path.join(__dirname, "check-coverage.cjs"),
+      file,
+      ...(deployment ? ["--deployment"] : []),
+      ...(hoodi ? ["--hoodi"] : []),
+    ],
     { encoding: "utf8" },
   );
 }
@@ -52,4 +57,12 @@ test("rejects a missing source instead of excluding it", (t) => {
 test("deployment mode requires actual script coverage, not implementation coverage", (t) => {
   assert.equal(run(t, record("script/v2/DeploySebaV2.s.sol"), true).status, 0);
   assert.notEqual(run(t, complete(), true).status, 0);
+});
+test("Hoodi mode requires complete mock-source line, branch and function coverage", (t) => {
+  const source = "src/mocks/hoodi/HoodiExternalMocks.sol";
+  const full = record(source);
+  assert.equal(run(t, full, false, true).status, 0);
+  assert.notEqual(run(t, complete(), false, true).status, 0);
+  for (const field of ["LH", "BRH", "FNH"])
+    assert.notEqual(run(t, full.replace(`${field}:1`, `${field}:0`), false, true).status, 0);
 });

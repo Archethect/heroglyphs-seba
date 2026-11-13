@@ -205,6 +205,9 @@ interface IV2SupporterVault {
     /// @notice Read the fixed governance, upgrade and recovery authority.
     /// @return Fixed Safe authority and recovery recipient.
     function treasury() external view returns (address);
+    /// @notice Read the vault's normal or terminal recovery lifecycle state.
+    /// @return Current state; only Normal can accept migrated protocol capital.
+    function recoveryState() external view returns (RecoveryState);
     /// @notice Read an original supporter record without changing its lifecycle.
     /// @return Record, retaining its owner and original lock after closure.
     /// @param id Local vault position ID; external identity also includes chain and proxy address.

@@ -61,9 +61,13 @@ contract HandoffRouterMock {
 contract HandoffVaultMock {
     uint256 public protocolBasis;
     uint256 public protocolTokens;
+    IV2SupporterVault.RecoveryState public recoveryState;
     function setProtocol(uint256 basis, uint256 tokens) external {
         protocolBasis = basis;
         protocolTokens = tokens;
+    }
+    function setRecoveryState(IV2SupporterVault.RecoveryState state) external {
+        recoveryState = state;
     }
     function bucket(uint8 which) external view returns (IV2SupporterVault.Bucket memory record) {
         if (which == 1) {

@@ -3,6 +3,8 @@ pragma solidity 0.8.28;
 import { HandoffUnitBase } from "../HandoffUnitBase.sol";
 import { LegacyProtocolPrincipalHandoff } from "src/v2/LegacyProtocolPrincipalHandoff.sol";
 import { ILegacyProtocolPrincipalHandoff } from "src/interfaces/v2/ILegacyProtocolPrincipalHandoff.sol";
+import { IV2SupporterVault } from "src/interfaces/v2/IV2SupporterVault.sol";
+import { HandoffVaultMock } from "../HandoffMocks.sol";
 
 contract HandoffPreMigrationTest is HandoffUnitBase {
     function test_authorityChainAndExpiryBoundaries() public {
@@ -176,6 +178,17 @@ contract HandoffPreMigrationTest is HandoffUnitBase {
         destination.setVaults(address(rethVault), address(0));
         _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
         destination.setVaults(address(rethVault), address(ysyVault));
+        _pre();
+    }
+    function test_destinationVaultMustRemainInNormalState() public {
+        for (uint8 leg; leg < 2; ++leg) {
+            HandoffVaultMock vault = leg == 0 ? rethVault : ysyVault;
+            for (uint8 state = 1; state < 4; ++state) {
+                vault.setRecoveryState(IV2SupporterVault.RecoveryState(state));
+                _expectPre(ILegacyProtocolPrincipalHandoff.InvalidState.selector);
+            }
+            vault.setRecoveryState(IV2SupporterVault.RecoveryState.Normal);
+        }
         _pre();
     }
     function test_everySafeSecurityAssumptionIsChecked() public {

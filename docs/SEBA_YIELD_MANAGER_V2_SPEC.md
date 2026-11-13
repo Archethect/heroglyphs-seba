@@ -422,9 +422,15 @@ is insufficient.
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Public supporter            | Deposit native token into chosen vault; withdraw own unlocked position; permissionless read/preview                                                                           | Withdraw another owner, bypass lock, choose arbitrary asset/receiver, move another leg                                                 |
 | Treasury Safe               | V2 role administration; future weights/approved limits; entry/harvest pause; protocol withdrawal to treasury; surplus classification/repair; upgrades; recovery/final budgets | Present these powers as trustless or promise repayment; bypass claim accounting with direct user payouts                               |
-| Bounded backend operator    | Deploy already assigned protocol ETH; collect bounded carry; execute typed conversions/top-ups within caps, to fixed destinations                                             | Upgrade, change roles/weights/venues/caps/recipients, start recovery, set settlement budgets, withdraw principal, reassign pending ETH |
+| Bounded V2 operator         | Deploy already assigned protocol ETH; collect bounded carry; execute typed conversions/top-ups within caps, to fixed destinations                                             | Upgrade, change roles/weights/venues/caps/recipients, start recovery, set settlement budgets, withdraw principal, reassign pending ETH |
 | Manager proxy               | Credit protocol buckets from actual tokens; coordinate reward inventory                                                                                                       | Own or rewrite supporter position records, use supporter principal as conversion input                                                 |
 | Existing Aragon DAO/plugins | Retain current deployed-contract admin paths, including manager pointer/role powers where granted                                                                             | Be described as having no influence just because it lacks direct V2 upgrade role                                                       |
+
+The deployed SebaPool and pybSeba are retained after YieldManager V2 cutover. Their legacy `AUTOMATOR_ROLE` can choose
+unbounded graduation points and recipient; the user explicitly accepts this continuing privileged-key risk rather than
+changing V1 contracts in this release. V2 maintenance uses a separate key, but the mainnet scheduled backend Lambda can
+still read both secrets. Separate addresses are not runtime compromise isolation. Verify actual role membership and both
+signer addresses in the release preflight; do not label the complete backend authority “bounded.”
 
 Implement an explicit role-admin graph: Safe-only authority manages operator grants and all V2 privilege roles; no
 operator/self-admin escalation or orphaned deployer grants. Roles can be distinct even though one Safe holds
@@ -667,6 +673,9 @@ Before building final signed calldata:
    ETH; classify it explicitly instead of importing blindly.
 5. Have verified new proxies, complete recovery code, executor, disabled initial entries, operational legacy service and
    caught-up dual-era indexer/backend ready. No unfinished external order or unbounded approvals may cross the handoff.
+   Both destination vaults must still be in `Normal` recovery state, not merely have empty protocol buckets; the handoff
+   checks this again during import and final postassertion, so recovery started at any point in Stage B aborts the
+   atomic batch.
 
 Approved two-stage procedure, each stage rehearsed with the real Safe threshold on a fresh fork:
 
@@ -681,6 +690,7 @@ Stage B — approve the now-known exact amount, then execute one atomic batch
 V2.armLegacyImport(exactReviewedSourceAmountExpiryAndWeights)
 handoff.assertPreMigration()
     # zero live old claims/PV, canonical stopper, exact ETH, Safe and identities
+    # both V2 vaults in Normal recovery state, checked again during import and postassertion
 oldManager.setYieldVault(approvedHandoffAdapter)
 oldManager.depositPrincipalIntoYieldVault()
     # exact ETH forwarded; handoff returns zero; old principal remains zero

@@ -5,11 +5,14 @@ hosted services or merge from this document. The V2 migration approval gate rema
 
 ## Review status and accepted migration risks
 
-The frozen-source [three-pass Pashov review](../audits/v2-cow-pashov-20261110.md) returned **35 of 36** planned
-specialist reviews (one pass-two access reviewer failed at the platform boundary). It reported five
-migration-availability findings and no confirmed unauthorized asset extraction. It is not an audit of subsequent
-hardening changes, and the separate companion chat could not verify a Daybreak model selection. The exact live CoW order
-format/zero-fee acceptance remains unproved and blocks production enablement.
+The newer [phase-2 three-pass Pashov v4.1 review](../audits/hoodi-v1-v2-phase2-20261110.md) covered the frozen pre-fix
+contracts head with **36 of 36** specialist reviews, run in batches under the runtime concurrency limit. It identified a
+retained V1 automator authority risk, legacy Beefy accounting/migration risks and a V2 destination recovery-state
+readiness gap. The V2 gap has a red/green unit regression and pinned mainnet-fork test; a targeted independent re-review
+found no remaining issue in that fix. This does **not** replace a complete fresh Pashov audit of the final changed heads
+or a professional audit. The earlier [CoW review](../audits/v2-cow-pashov-20261110.md) was against an older commit and
+had only 35/36 reviews. No Daybreak result is claimed. Exact live CoW order-format/zero-fee acceptance remains unproved
+and blocks production enablement.
 
 The Safe-approved exact-snapshot and zero-live-legacy-claims gates are intentionally strict. An unprivileged party can
 send one wei to the old manager/router, send an extra Beefy share atom to the old adapter, or hold a valid public legacy
@@ -73,7 +76,10 @@ Only `DonationCompleted` denotes a completed pybSeba donation; order creation/fi
   recovers buffers and authorizes proxy upgrades. Existing upgrade powers can change all asset-moving logic.
 - Backend operator: requests verified quotes, opens typed capped orders, submits exactly the authorized order to CoW,
   reconciles filled/expired orders, deploys settled protocol BOLD and donates classified rewards. No arbitrary token,
-  destination, calldata, signer or authority change is permitted.
+  destination, calldata, signer or authority change is permitted. The V2 signer is separate from the legacy automator
+  signer. This prevents accidental signer reuse, **not** compromise isolation in the shared production Lambda, whose IAM
+  can read both secrets. The retained SebaPool/PYBSeba automator authority remains a user-accepted risk after V2
+  cutover; do not describe the whole backend as bounded by V2 caps.
 - CoW orderbook/solvers: provide discovery and execution liveness. HTTP/API status alone cannot credit manager balances.
   No private signing key for the manager/escrow is given to the backend or a solver; the escrow authorizes its one
   order.

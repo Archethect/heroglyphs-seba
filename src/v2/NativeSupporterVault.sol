@@ -46,7 +46,7 @@ abstract contract NativeSupporterVault is IV2SupporterVault, ReentrancyGuardUpgr
     /// @notice Collection-only operators with no upgrade, recovery or principal authority.
     mapping(address operator => bool enabled) public operators;
     /// @notice Terminal recovery lifecycle, independent of ordinary pause flags.
-    RecoveryState public recoveryState;
+    RecoveryState public override recoveryState;
     /// @notice Immutable chain/proxy/snapshot identity after export.
     bytes32 public recoveryInstance;
     /// @notice Immutable initial custody-evidence commitment.
