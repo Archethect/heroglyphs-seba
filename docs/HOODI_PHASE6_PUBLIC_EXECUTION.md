@@ -42,6 +42,38 @@ ysyBOLD recovery with fully funded fixed budgets at a deliberate 50% loss. The r
 initiation, underfunding, the original user lock, protocol/user claim closure, and no second user claim. Safe actions in
 these tests use Foundry impersonation, and test users are locally funded. They do not prove a signed public Safe
 operation or create public supporter positions. The pre-existing nine-test Hoodi migration/failure suite, backend
-81-test Hoodi unit suite, and subgraph 44-test mapping suite also pass. Public supporter positions, reward donation
-receipts, and a destructive public recovery drill remain separate decisions; this report does not mark all of Phase 6
-complete.
+81-test Hoodi unit suite, and subgraph 44-test mapping suite also pass. At this fork checkpoint, public supporter
+positions, reward donation receipts, and a destructive public recovery drill remained separate decisions. The later
+public supporter-entry results are recorded below; this report does not mark all of Phase 6 complete.
+
+## Public supporter entry in both legs
+
+On 2026-11-13 the existing Hoodi admin EOA acted as an ordinary, non-Safe supporter. It minted rETH through the **real
+Hoodi Rocket Pool** and deposited the exact received `48,142,990,506,601,405` rETH wei into the V2 rETH vault. The three
+receipts were [mint](https://hoodi.etherscan.io/tx/0xdff17dd240d60710350e303ba870124159b86b9888980eb59d793f9d8a021e1f),
+[exact approval](https://hoodi.etherscan.io/tx/0x4c5cf540ce10343bf9d0cb37dc67a2736b2c5b0a6e29aab80c0e68d96ae409a6), and
+[vault deposit](https://hoodi.etherscan.io/tx/0x17df6b146feff55391364048a6b5a47c54bb9517b5797f3cc152782649bb14ae). The
+vault emitted position ID `1` in block **4,008,349**
+(`0x419b482fdb06f7d6b73e06d7fb69e224bc2e540247652966b14468296dcee6bf`), with `49,974,999,999,999,999` wei ETH basis and
+unlock at **2026-12-13 15:20 UTC**. The transfer exhausted the exact allowance. The protocol bucket remained
+`481,431,536,185,306,049` rETH wei against `499,749,999,999,999,999` wei ETH basis; total rETH vault custody equaled
+both bucket token amounts.
+
+The same EOA minted `10e18` **synthetic** BOLD and entered the mock BOLD → yBOLD → ysyBOLD path. The seven receipts were
+[mint](https://hoodi.etherscan.io/tx/0x9b6f224f8f1c890f5e394467075c7615d8a8646874440a0263b5cccc34cdad8e),
+[BOLD approval](https://hoodi.etherscan.io/tx/0xe4f4dd298073eea02c40f1d642c4f4644b83c7bd9aa9e4e0aadc23aefd48bf6d),
+[yBOLD deposit](https://hoodi.etherscan.io/tx/0x690142d6cbfae165ee2fb38f774ddb2f2ff78397717723f107a6d495abc469ff),
+[yBOLD approval](https://hoodi.etherscan.io/tx/0xfda88c2b634ec4f64369580904c64f3cdad7b4a648c27f517d02a7a6e3084d71),
+[ysyBOLD deposit](https://hoodi.etherscan.io/tx/0x94cefc5f4ec1947bfa1c71f95d2ef65f17f12cb65f726b5b66b62d1e021fe9b6),
+[ysyBOLD approval](https://hoodi.etherscan.io/tx/0xcc75b108a9ad67ce5032c6b76a3bce8e4184c11a1212aa256a7e58b7d0fbe74b),
+and [vault deposit](https://hoodi.etherscan.io/tx/0x4071a28c3ec816435abca6a45e965fff339eba6c1a3d95786c6a6813d59a9433).
+The ysyBOLD vault emitted its own local position ID `1` in block **4,008,423**
+(`0xedf097e187cda70f4c68da3a2dbf581ede58e84c330691ba8bbec1e56ab5e3fc`), with `10e18` shares and `10e18` yBOLD basis,
+unlock at **2026-12-13 15:36 UTC**, and zero remaining EOA allowance. Its supporter/protocol token buckets were
+`10e18`/`1000e18`, matching `1010e18` vault custody. The rETH position and both protocol buckets were unchanged.
+
+At the exact ysyBOLD deposit block/hash, the private Goldsky V2 graph returned **both** position IDs and all four
+principal buckets with the same owner, token amounts, basis, locks and open status as onchain, and reported no indexing
+errors. These public deposits prove entry and live indexing, **not** a public withdrawal: both positions retain their
+normal 30-day locks. The earlier time-advanced fork tests cover the withdrawal path. Synthetic ysyBOLD economics and
+live CoW fill reliability remain unproven by this testnet run.
