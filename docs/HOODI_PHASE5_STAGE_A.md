@@ -47,3 +47,10 @@ Abort if the backend starts financial maintenance, either graph lags/errors, a s
 oracle refresh/exit simulation fails, code/roles/Safe policy drift, wallet has a pending transaction, gas is unsafe, or
 the full calldata differs. A completed Stage A cannot be rolled back into the mock Beefy position merely by reverting
 Stage B; ETH remains parked in the old manager while intake is stopped.
+
+## Public Hoodi Stage A receipt (2026-11-13)
+
+- [Safe transaction `0xf5e4…43c3f`](https://hoodi.etherscan.io/tx/0xf5e4a64426f442463477b9fcd8411a3ec54cc04b1b25a44e70e53cfd84243c3f) succeeded at block **4,007,084**, hash `0xe6f92d05a01fca957ef59e4fd407bc2c488b1e069f7c87ea4b358ea2323c8526`. The independent receipt verifier matched the exact four-call Safe calldata, `ExecutionSuccess`, both report refreshes, and the deployed stopper runtime code. Safe nonce advanced to **14**.
+- The mock Beefy adapter emitted `PrincipalRetrieved(2000000000000000000000 shares, 1000000000000000000 wei)`. The share quantity is a synthetic mock basis, **not** 2,000 ETH. Exactly **1 test ETH** is parked in the old manager; old adapter accounted principal, accounted shares and actual mock Beefy shares are zero.
+- The [intake stopper](https://hoodi.etherscan.io/address/0x8388e0c50197362fd46159ac48cfc7c962e3937a#code) is source-verified as `LegacyIntakeStopper` compiled with Solidity 0.8.28, via IR, optimizer 200. The old pool still points to V1, while V2 intake/execution and legacy import remain disabled.
+- A fresh block-4,007,105 RPC snapshot found zero live legacy IDs, zero pending conversion/order, no residual old-manager/router BOLD, sBOLD or ETH, and no V2 pending balances. The previously completed V1/V2 Goldsky-to-RPC checkpoint parity was at the Stage A block. These observations **do not** authorize Stage B without a fresh exact-amount manifest, new immutable handoff, full Safe-batch simulation, and separate review.
