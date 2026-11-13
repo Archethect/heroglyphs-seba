@@ -6,6 +6,7 @@ import { parseEnv } from "node:util";
 import { ethers } from "ethers";
 import { HOODI_ADMIN, requireHoodiChain } from "./hoodi-public-safe-plan.mjs";
 import { HOODI_REHEARSAL_SAFE } from "./hoodi-public-v1-next.mjs";
+import { APPROVED_STAGE_B_MANIFEST_HASH } from "./hoodi-public-stage-b-plan.mjs";
 
 const safeAbi = [
   "function nonce() view returns(uint256)",
@@ -39,6 +40,7 @@ export async function verifyHoodiStageBCutover(provider, approval, staged, plan,
     plan.transaction?.from !== HOODI_ADMIN || plan.transaction?.to !== HOODI_REHEARSAL_SAFE ||
     plan.transaction?.valueWei !== "0" || !ethers.isHexString(plan.transaction?.data) ||
     ethers.keccak256(plan.transaction.data) !== plan.transaction.dataHash ||
+    plan.approvalManifestHash !== APPROVED_STAGE_B_MANIFEST_HASH ||
     plan.approvalManifestHash !== ethers.keccak256(ethers.toUtf8Bytes(
       fs.readFileSync("docs/HOODI_PHASE5_STAGE_B_MANIFEST.json", "utf8"),
     )) || plan.handoff?.address === ethers.ZeroAddress)

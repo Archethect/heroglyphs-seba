@@ -10,7 +10,8 @@ import { HOODI_ADMIN, requireHoodiChain, SAFE_MULTISEND } from "./hoodi-public-s
 import { HOODI_REHEARSAL_SAFE, encodeOwnerSafeExecution } from "./hoodi-public-v1-next.mjs";
 import { multiSendData } from "./hoodi-safe-createcall.mjs";
 import {
-  buildHandoffDeployment, buildStageBCalls, checkSourceCommit, checkStageBCode, readStageBState,
+  APPROVED_STAGE_B_MANIFEST_HASH, buildHandoffDeployment, buildStageBCalls,
+  checkSourceCommit, checkStageBCode, readStageBState,
   requireStageBState, validateStageBManifest,
 } from "./hoodi-public-stage-b-plan.mjs";
 
@@ -31,6 +32,7 @@ const handoffAbi = [
 export async function requireDeploymentPlan(a, plan, approvalBytes) {
   if (plan?.schemaVersion !== "seba-hoodi-stage-b-handoff-deployment-plan-v1" ||
     plan.chainId !== 560048 || plan.readOnly !== true || plan.broadcast !== false ||
+    plan.approvalManifestHash !== APPROVED_STAGE_B_MANIFEST_HASH ||
     plan.approvalManifestHash !== ethers.keccak256(ethers.toUtf8Bytes(approvalBytes)) ||
     plan.transaction?.to !== HOODI_REHEARSAL_SAFE || plan.transaction?.from !== HOODI_ADMIN ||
     plan.transaction?.valueWei !== "0" || plan.transaction?.safeNonce !== "14" ||

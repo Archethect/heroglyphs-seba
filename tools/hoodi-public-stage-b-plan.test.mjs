@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { ethers } from "ethers";
-import { validateStageBManifest, requireStageBState, buildStageBCalls, buildHandoffDeployment } from "./hoodi-public-stage-b-plan.mjs";
+import { APPROVED_STAGE_B_MANIFEST_HASH, validateStageBManifest, requireStageBState, buildStageBCalls, buildHandoffDeployment } from "./hoodi-public-stage-b-plan.mjs";
 import { requireDeploymentPlan } from "./hoodi-public-stage-b-exec-plan.mjs";
 import { verifyHoodiStageBCutover } from "./hoodi-public-stage-b-verify.mjs";
 
@@ -34,6 +34,8 @@ function goodState() {
 }
 
 test("Stage B approval pins the exact Hoodi-only one-ETH, zero-surplus handoff", () => {
+  assert.equal(ethers.keccak256(ethers.toUtf8Bytes(fs.readFileSync(
+    "docs/HOODI_PHASE5_STAGE_B_MANIFEST.json", "utf8"))), APPROVED_STAGE_B_MANIFEST_HASH);
   assert.doesNotThrow(() => validateStageBManifest(approval, staged));
   for (const altered of [
     { ...approval, chainId: 1 },

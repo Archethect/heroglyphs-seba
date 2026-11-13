@@ -14,6 +14,7 @@ import { verifyHoodiStageA } from "./hoodi-public-stage-a-verify.mjs";
 
 const APPROVAL_PATH = "docs/HOODI_PHASE5_STAGE_B_MANIFEST.json";
 const STAGED_PATH = "docs/HOODI_V2_STAGED_MANIFEST.json";
+export const APPROVED_STAGE_B_MANIFEST_HASH = "0x178ad989af6fbe81a3651e7f84618c538ff992d3a2a4927a0ec84d11b6237c9d";
 const SENTINEL = "0x0000000000000000000000000000000000000001";
 const GUARD_SLOT = "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8";
 const safeAbi = [
@@ -244,6 +245,8 @@ export async function planStageBHandoffDeployment(provider, a, m, approvalBytes,
   requireStageBState(a, state, m);
   const expiry = head.timestamp + lifetimeSeconds;
   const manifestHash = ethers.keccak256(ethers.toUtf8Bytes(approvalBytes));
+  if (manifestHash !== APPROVED_STAGE_B_MANIFEST_HASH)
+    throw new Error("Stage B reviewed manifest bytes changed");
   const { code, salt, deployment, data, configurationHash } =
     await buildHandoffDeployment(a, expiry, manifestHash);
   if (await provider.getCode(deployment.expectedAddress, head.number) !== "0x") throw new Error("Stage B handoff address occupied");
