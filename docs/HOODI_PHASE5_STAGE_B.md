@@ -91,6 +91,13 @@ credentials to make the batch pass. A new handoff requires a new Safe review.
   separate gated steps. The isolated AWS full poller stays disabled until those steps are reviewed; no mainnet or
   funded-chain-1 resources are changed.
 
+The byte-exact [Stage A manifest](HOODI_PHASE5_STAGE_A_MANIFEST.json) and
+[cutover manifest](HOODI_PHASE5_CUTOVER_MANIFEST.json) record the public receipts and checkpoint hashes. Their
+respective Keccak-256 file hashes are `0x28af8e0bcd84aac3beb5ed29534e1836dd20aef01ae43d51df1c97daf41efe15` and
+`0x70716b0574e0504db5e0c2a7911389f051da109275863120cc8a40b1d4cc48b5`; the latter names the former as its
+`previousManifestHash`. The backend's read-only Hoodi evidence verifier accepted this chain and the onchain Stage A/B
+receipts. This verifies the cutover, not completion of V2 investments or backend release.
+
 ## Verification evidence so far
 
 - Stage B planner/verifier unit tests: **5/5**; all Hoodi planner tests: **31/31**.
