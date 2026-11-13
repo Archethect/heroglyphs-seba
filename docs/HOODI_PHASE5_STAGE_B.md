@@ -71,6 +71,26 @@ credentials to make the batch pass. A new handoff requires a new Safe review.
   V1/V2 accounting, then `eth_call`-simulated the full Safe cutover successfully. Estimated cutover gas was **783,200**,
   with a **979,000** gas-limit plan. This is a simulation, not a cutover receipt; recheck immediately before signing.
 
+## Public Hoodi Stage B cutover receipt (2026-11-13)
+
+- [Safe transaction `0x87c3…bbff`](https://hoodi.etherscan.io/tx/0x87c31363ced1aaba63c62292724d8f70acfd8ea05d113d1c40d3a54f9fb0bbff)
+  succeeded at block **4,007,357**, hash `0xe586856f1771dc1b15815930cbfd9153e61faf1be1e46d6a5d25909bca3a1b4d`. The exact
+  seven-call outer Safe calldata matched the reviewed plan. `ExecutionSuccess`, the handoff pre/import/post events, and
+  one V2 `LegacyPrincipalImported` were independently verified. Safe nonce advanced to **16**.
+- The old manager holds **0 ETH** and has no live supporter IDs. The V2 manager holds **1 test ETH**:
+  `pendingEth(1) = 0.5 ETH` for the rETH protocol leg and `pendingEth(2) = 0.5 ETH` for the ysyBOLD protocol leg.
+  `pendingEth(0) = 0`; the pool points to the V2 manager proxy, V2 intake is enabled, and V2 investment/harvest
+  execution remains **disabled**. All four disclosed unmigrated-surplus balances are zero. This is a mock-backed Hoodi
+  cutover, not evidence of real market settlement.
+- Both dedicated Hoodi Goldsky graphs were healthy and indexed beyond block 4,007,357. Exact-block graph/RPC parity
+  passed for the V1 pool/PYB state and V2 manager/vault/CoW state: zero live legacy records or IDs, zero CoW orders, no
+  indexing errors. The parity helper now queries logs in bounded ranges because the dedicated Hoodi Alchemy endpoint
+  rejects requests spanning more than 10,000 blocks. `fullInvestedVerified` remains **false**: the imported ETH is
+  assigned, not yet invested in rETH or ysyBOLD.
+- **Do not treat the public rehearsal as finished.** Backend/graph consumer cutover and both protocol investments remain
+  separate gated steps. The isolated AWS full poller stays disabled until those steps are reviewed; no mainnet or
+  funded-chain-1 resources are changed.
+
 ## Verification evidence so far
 
 - Stage B planner/verifier unit tests: **5/5**; all Hoodi planner tests: **31/31**.
