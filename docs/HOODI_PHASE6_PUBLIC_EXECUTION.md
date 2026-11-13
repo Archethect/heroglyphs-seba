@@ -30,3 +30,18 @@ This is a mock-backed testnet wiring test, **not** proof of a live CoW solver fi
 Yearn economics, or a loss-free migration. Public supporter deposits/withdrawals and validator/backpay processing were
 not exercised here; their fork tests and release gates remain separate. The full Hoodi validator poller stays disabled
 with reserved concurrency zero. No mainnet deployment or fund movement occurred.
+
+## Follow-up fork drills; no public transactions
+
+At public Hoodi block **4,008,210** (`0x36ef344bf31f0d1cfed95f52eeb129f44caf36266f14026935267a006b553b55`),
+`tests/hoodi/publicstate/Phase6Drills.t.sol` forks the exact deployed V2 proxies and dependencies. Four tests pass: real
+Hoodi Rocket Pool mint into an rETH supporter position plus synthetic Yearn ysyBOLD supporter entry and post-lock native
+exits despite entry pauses; a reward order that cannot finalize early and returns its exact ETH source after expiry; a
+separately mock-filled reward order that completes an sBOLD donation without crediting protocol BOLD; and same-token
+ysyBOLD recovery with fully funded fixed budgets at a deliberate 50% loss. The recovery test checks unauthorized
+initiation, underfunding, the original user lock, protocol/user claim closure, and no second user claim. Safe actions in
+these tests use Foundry impersonation, and test users are locally funded. They do not prove a signed public Safe
+operation or create public supporter positions. The pre-existing nine-test Hoodi migration/failure suite, backend
+81-test Hoodi unit suite, and subgraph 44-test mapping suite also pass. Public supporter positions, reward donation
+receipts, and a destructive public recovery drill remain separate decisions; this report does not mark all of Phase 6
+complete.
